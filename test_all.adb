@@ -20,14 +20,42 @@
 
 with Ada.Command_Line;
 with Ada.Text_IO;
+with Natools.Chunked_Strings.Tests;
 with Natools.Getopt_Long_Tests;
 with Natools.Tests.Text_IO;
 
 procedure Test_All is
+   package Uneven_Chunked_Strings is new Natools.Chunked_Strings
+     (Default_Allocation_Unit => 7,
+      Default_Chunk_Size      => 15);
+   package Uneven_Chunked_Strings_Tests is new Uneven_Chunked_Strings.Tests;
+
+   package Even_Chunked_Strings is new Natools.Chunked_Strings
+     (Default_Allocation_Unit => 6,
+      Default_Chunk_Size      => 18);
+   package Even_Chunked_Strings_Tests is new Even_Chunked_Strings.Tests;
+
+   package Single_Chunked_Strings is new Natools.Chunked_Strings
+     (Default_Allocation_Unit => 10,
+      Default_Chunk_Size      => 10);
+   package Single_Chunked_Strings_Tests is new Single_Chunked_Strings.Tests;
+
    Report : Natools.Tests.Text_IO.Text_Reporter;
 begin
    Ada.Text_IO.Set_Line_Length (80);
    Report.Section ("All Tests");
+
+   Report.Section ("Chunked_String with uneven allocation unit");
+   Uneven_Chunked_Strings_Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("Chunked_String with even allocation unit");
+   Even_Chunked_Strings_Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("Chunked_String with single allocation unit");
+   Single_Chunked_Strings_Tests.All_Tests (Report);
+   Report.End_Section;
 
    Report.Section ("Getopt_Long");
    Natools.Getopt_Long_Tests.All_Tests (Report);
