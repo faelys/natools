@@ -19,8 +19,7 @@
 -- processor for command line arguments.                                    --
 --                                                                          --
 -- This package is generic, and its only formal parameter is a descrete     --
--- type supposed to cover all command-line flags, including a special value --
--- for non-flag command-line arguments.                                     --
+-- type supposed to cover all command-line options.                         --
 --                                                                          --
 -- Option_Definitions objects hold the list of recognized flags. Flags can  --
 -- have a single-character short name or a multiple-character long name.    --
@@ -28,15 +27,15 @@
 -- same Option_Id value.                                                    --
 --                                                                          --
 -- Once the Option_Definitions object has been filled with flags recognized --
--- by the client, the actual command-line arguments can be processed.       --
--- Process subprogram uses an Option_Definitions objects and a callback     --
--- procedure that is repeatedly called for each command-line flag and       --
--- argument found in the command line.                                      --
+-- by the client, the actual command-line arguments can be processed,       --
+-- using the handler callbacks from a Handlers.Callback'Class object.       --
 --                                                                          --
--- Process also optionally uses callbacks for error conditions, which       --
--- allows the client application to recover from it and allow command-line  --
--- processing to continue. If there is no error callback (null access),     --
--- an Option_Error exception is raised.                                     --
+-- Callback subprograms for normal operation are Option, for command-line   --
+-- flags identified by their Option_Id, and Argument, for top-level command --
+-- line arguments. There are also callbacks for error conditions (missing   --
+-- or unexpected argument, unknown option), whose implementation in         --
+-- Handlers.Callback are simply to raise Option_Error with an appropriate   --
+-- message.                                                                 --
 ------------------------------------------------------------------------------
 
 
@@ -49,10 +48,80 @@ generic
 package Natools.Getopt_Long is
    pragma Preelaborate (Getopt_Long);
 
-   Option_Error : exception;
-
    Null_Long_Name : constant String := "";
    Null_Short_Name : constant Character := Character'Val (0);
+
+
+
+   ------------------------------------------
+   -- Holder for both short and long names --
+   ------------------------------------------
+
+   type Name_Style is (Long, Short);
+
+   type Any_Name (Style : Name_Style; Size : Positive) is record
+      case Style is
+         when Short =>
+            Short : Character;
+         when Long =>
+            Long : String (1 .. Size);
+      end case;
+   end record;
+
+   function To_Name (Long_Name : String) return Any_Name;
+   function To_Name (Short_Name : Character) return Any_Name;
+   function Image (Name : Any_Name) return String;
+
+
+
+   ------------------------
+   -- Callback interface --
+   ------------------------
+
+   Option_Error : exception;
+
+   package Handlers is
+
+      type Callback is abstract tagged null record;
+
+      procedure Option
+        (Handler  : in out Callback;
+         Id       : Option_Id;
+         Argument : String)
+         is abstract;
+         --  Callback for successfully-parsed options.
+
+      procedure Argument
+        (Handler  : in out Callback;
+         Argument : String)
+         is abstract;
+         --  Callback for non-flag arguments.
+
+      procedure Missing_Argument
+        (Handler : in out Callback;
+         Id      : Option_Id;
+         Name    : Any_Name);
+         --  Raise Option_Error (default error handler).
+
+      procedure Unexpected_Argument
+        (Handler  : in out Callback;
+         Id       : Option_Id;
+         Name     : Any_Name;
+         Argument : String);
+         --  Raise Option_Error (default error handler).
+
+      procedure Unknown_Option
+        (Handler : in out Callback;
+         Name    : Any_Name);
+         --  Raise Option_Error (default error handler).
+
+   end Handlers;
+
+
+
+   ---------------------
+   -- Option database --
+   ---------------------
 
    type Argument_Requirement is
      (No_Argument, Required_Argument, Optional_Argument);
@@ -163,16 +232,15 @@ package Natools.Getopt_Long is
       --    Long_Name is "", and for options lacking a short name, Short_Name
       --    is Character'Val (0).
 
+
+
+   --------------------------------------
+   -- Command line argument processing --
+   --------------------------------------
+
    procedure Process
      (Options : Option_Definitions;
-      Top_Level_Argument : Option_Id;
-      Callback : not null access procedure (Id : Option_Id;
-                                            Argument : String);
-      Missing_Argument : access procedure (Id : Option_Id) := null;
-      Unexpected_Argument : access procedure (Id : Option_Id;
-                                              Arg : String) := null;
-      Unknown_Long_Option : access procedure (Name : String) := null;
-      Unknown_Short_Option : access procedure (Name : Character) := null;
+      Handler : in out Handlers.Callback'Class;
       Posixly_Correct : Boolean := True;
       Long_Only : Boolean := False;
       Argument_Count : not null access function return Natural
@@ -180,13 +248,7 @@ package Natools.Getopt_Long is
       Argument : not null access function (Number : Positive) return String
         := Ada.Command_Line.Argument'Access);
       --  Process system command line argument list, using the provided option
-      --    definitions. Callback is called for each identified option with its
-      --    idea and the option argument if any, or the empty string otherwise.
-      --  When encountering a command-line argument not attached to an option,
-      --    Callback is called with Top_Level_Argument and the argument string.
-      --  When encontering an option missing a required argument or an unkonwn
-      --    option name, the relevant callback is called if not null, otherwise
-      --    Option_Error is raised.
+      --    definitions and handler callbacks.
 
 private
 

@@ -63,58 +63,12 @@ package body Natools.Getopt_Long_Tests is
 
    type Flag_Argument_Array is array (Option_Id) of US.Unbounded_String;
 
-   package Getopt is new Natools.Getopt_Long (Option_Id);
-
-   Flag_Seen : Flag_Seen_Array;
-   Flag_Argument : Flag_Argument_Array;
-   Flag_Error : String_Vectors.Vector;
    Separator : constant Character := ';';
 
-   procedure Callback (Id : Option_Id; Argument : String);
-      --  Process the given argument, by recording it as seen in Flag_Seen
-      --    and appending the argument to Flag_Argument.
-   procedure Dump (Report : in out NT.Reporter'Class);
-      --  Dump the current state (Flag_* variables) into the Report.
+   package Getopt is new Natools.Getopt_Long (Option_Id);
+
    function Option_Definitions return Getopt.Option_Definitions;
       --  Create the Option_Definitions object used for these tests.
-   procedure Reset_Flags;
-      --  Reset Flag_* variables for a new test.
-
-
-
-   procedure Callback (Id : Option_Id; Argument : String) is
-   begin
-      Flag_Seen (Id) := True;
-      US.Append (Flag_Argument (Id), Argument & Separator);
-   end Callback;
-
-
-   procedure Dump (Report : in out NT.Reporter'Class) is
-      procedure Process (Position : String_Vectors.Cursor);
-      function Seen_String (Seen : Boolean) return String;
-
-      procedure Process (Position : String_Vectors.Cursor) is
-      begin
-         Report.Info ("Error """ & String_Vectors.Element (Position) & '"');
-      end Process;
-
-      function Seen_String (Seen : Boolean) return String is
-      begin
-         if Seen then
-            return "Seen";
-         else
-            return "Not seen";
-         end if;
-      end Seen_String;
-   begin
-      Report.Info ("Flags:");
-      for Id in Option_Id loop
-         Report.Info ("  " & Option_Id'Image (Id) & ": "
-                           & Seen_String (Flag_Seen (Id)) & ", """
-                           & US.To_String (Flag_Argument (Id)) & '"');
-      end loop;
-      Flag_Error.Iterate (Process'Access);
-   end Dump;
 
 
    function Option_Definitions return Getopt.Option_Definitions is
@@ -135,14 +89,178 @@ package body Natools.Getopt_Long_Tests is
    end Option_Definitions;
 
 
-   procedure Reset_Flags is
-   begin
-      for Id in Option_Id loop
-         Flag_Seen (Id) := False;
-         Flag_Argument (Id) := US.Null_Unbounded_String;
-      end loop;
-      Flag_Error.Clear;
-   end Reset_Flags;
+
+   -------------------
+   -- Test Handlers --
+   -------------------
+
+   package Handlers is
+
+      type Basic is new Getopt.Handlers.Callback with record
+         Flag_Seen : Flag_Seen_Array := (others => False);
+         Flag_Argument : Flag_Argument_Array;
+         Flag_Error : String_Vectors.Vector;
+      end record;
+
+      overriding
+      procedure Option (Handler : in out Basic;
+                        Id : Option_Id;
+                        Argument : String);
+         --  Process the given option, by recording it as seen in Flag_Seen
+         --    and appending the argument to Flag_Argument.
+
+      overriding
+      procedure Argument (Handler : in out Basic;
+                          Argument : String);
+         --  Process the given argument, by recording it
+         --    in Flag_Seen (Command_Argument) and appending it
+         --    to Flag_Argument (Command_Argument).
+
+      not overriding
+      procedure Dump (Handler : Basic;
+                      Report : in out NT.Reporter'Class);
+         --  Dump the current state (Flag_* variables) into the Report.
+
+
+      type Error_Count is record
+         Missing_Argument_Long  : Natural := 0;
+         Missing_Argument_Short : Natural := 0;
+         Unexpected_Argument    : Natural := 0;
+         Unknown_Long_Option    : Natural := 0;
+         Unknown_Short_Option   : Natural := 0;
+      end record;
+
+      type Recovering is new Basic with record
+         Count : Error_Count;
+      end record;
+
+      procedure Increment (Number : in out Natural);
+
+      overriding
+      procedure Missing_Argument
+        (Handler : in out Recovering;
+         Id      : Option_Id;
+         Name    : Getopt.Any_Name);
+
+      overriding
+      procedure Unexpected_Argument
+        (Handler  : in out Recovering;
+         Id       : Option_Id;
+         Name     : Getopt.Any_Name;
+         Argument : String);
+
+      overriding
+      procedure Unknown_Option
+        (Handler : in out Recovering;
+         Name    : Getopt.Any_Name);
+
+   end Handlers;
+
+
+
+   package body Handlers is
+
+      overriding
+      procedure Option (Handler : in out Basic;
+                        Id : Option_Id;
+                        Argument : String) is
+      begin
+         Handler.Flag_Seen (Id) := True;
+         US.Append (Handler.Flag_Argument (Id), Argument & Separator);
+      end Option;
+
+
+      overriding
+      procedure Argument (Handler : in out Basic;
+                          Argument : String) is
+      begin
+         Option (Handler, Command_Argument, Argument);
+      end Argument;
+
+
+      not overriding
+      procedure Dump (Handler : Basic;
+                      Report : in out NT.Reporter'Class)
+      is
+         procedure Process (Position : String_Vectors.Cursor);
+         function Seen_String (Seen : Boolean) return String;
+
+         procedure Process (Position : String_Vectors.Cursor) is
+         begin
+            Report.Info ("Error """ & String_Vectors.Element (Position) & '"');
+         end Process;
+
+         function Seen_String (Seen : Boolean) return String is
+         begin
+            if Seen then
+               return "Seen";
+            else
+               return "Not seen";
+            end if;
+         end Seen_String;
+      begin
+         Report.Info ("Flags:");
+         for Id in Option_Id loop
+            Report.Info ("  "
+                         & Option_Id'Image (Id) & ": "
+                         & Seen_String (Handler.Flag_Seen (Id)) & ", """
+                         & US.To_String (Handler.Flag_Argument (Id)) & '"');
+         end loop;
+         Handler.Flag_Error.Iterate (Process'Access);
+      end Dump;
+
+
+      procedure Increment (Number : in out Natural) is
+      begin
+         Number := Number + 1;
+      end Increment;
+
+
+      overriding
+      procedure Missing_Argument
+        (Handler : in out Recovering;
+         Id      : Option_Id;
+         Name    : Getopt.Any_Name)
+      is
+         pragma Unreferenced (Id);
+      begin
+         case Name.Style is
+            when Getopt.Short =>
+               Increment (Handler.Count.Missing_Argument_Short);
+            when Getopt.Long  =>
+               Increment (Handler.Count.Missing_Argument_Long);
+         end case;
+      end Missing_Argument;
+
+      overriding
+      procedure Unexpected_Argument
+        (Handler  : in out Recovering;
+         Id       : Option_Id;
+         Name     : Getopt.Any_Name;
+         Argument : String)
+      is
+         pragma Unreferenced (Id);
+         pragma Unreferenced (Name);
+         pragma Unreferenced (Argument);
+      begin
+         Increment (Handler.Count.Unexpected_Argument);
+      end Unexpected_Argument;
+
+
+      overriding
+      procedure Unknown_Option
+        (Handler : in out Recovering;
+         Name    : Getopt.Any_Name) is
+      begin
+         case Name.Style is
+            when Getopt.Short =>
+               Increment (Handler.Count.Unknown_Short_Option);
+            when Getopt.Long =>
+               Increment (Handler.Count.Unknown_Long_Option);
+         end case;
+      end Unknown_Option;
+
+   end Handlers;
 
 
 
@@ -171,34 +289,34 @@ package body Natools.Getopt_Long_Tests is
    is
       use type String_Vectors.Vector;
       Options : constant Getopt.Option_Definitions := Option_Definitions;
+      Handler : Handlers.Basic;
    begin
-      Reset_Flags;
       begin
          Options.Process
-           (Top_Level_Argument => Command_Argument,
-            Callback           => Callback'Access,
+           (Handler            => Handler,
             Posixly_Correct    => Posixly_Correct,
             Long_Only          => Long_Only,
             Argument_Count     => Argument_Count'Access,
             Argument           => Argument'Access);
       exception
          when Error : Getopt.Option_Error =>
-            Flag_Error.Append (Ada.Exceptions.Exception_Message (Error));
+            Handler.Flag_Error.Append
+              (Ada.Exceptions.Exception_Message (Error));
       end;
 
-      if Flag_Seen = Expected_Seen and
-         Flag_Argument = Expected_Argument and
-         Flag_Error = Expected_Error
+      if Handler.Flag_Seen = Expected_Seen and
+         Handler.Flag_Argument = Expected_Argument and
+         Handler.Flag_Error = Expected_Error
       then
          Report.Item (Name, NT.Success);
       else
          Report.Item (Name, NT.Fail);
-         Dump (Report);
+         Handler.Dump (Report);
       end if;
    exception
       when Error : others =>
          Report.Report_Exception (Name, Error);
-         Dump (Report);
+         Handler.Dump (Report);
    end Test;
 
 
@@ -260,110 +378,78 @@ package body Natools.Getopt_Long_Tests is
         (Name : String;
          Expected_Seen : Flag_Seen_Array;
          Expected_Argument : Flag_Argument_Array;
-         Expected_Missing_Argument : Natural := 0;
-         Expected_Unexpected_Argument : Natural := 0;
-         Expected_Unknown_Long_Option : Natural := 0;
-         Expected_Unknown_Short_Option : Natural := 0);
-      procedure Missing_Argument (Id : Option_Id);
-      procedure Unexpected_Argument (Id : Option_Id; Arg : String);
-      procedure Unknown_Long_Option (Name : String);
-      procedure Unknown_Short_Option (Name : Character);
+         Expected_Count : Handlers.Error_Count);
 
-      Missing_Argument_Nb, Unexpected_Argument_Nb,
-      Unknown_Long_Option_Nb, Unknown_Short_Option_Nb : Natural;
 
       procedure Local_Test
         (Name : String;
          Expected_Seen : Flag_Seen_Array;
          Expected_Argument : Flag_Argument_Array;
-         Expected_Missing_Argument : Natural := 0;
-         Expected_Unexpected_Argument : Natural := 0;
-         Expected_Unknown_Long_Option : Natural := 0;
-         Expected_Unknown_Short_Option : Natural := 0)
+         Expected_Count : Handlers.Error_Count)
       is
+         use type Handlers.Error_Count;
          Options : constant Getopt.Option_Definitions := Option_Definitions;
+         Handler : Handlers.Recovering;
       begin
-         Reset_Flags;
-         Missing_Argument_Nb := 0;
-         Unexpected_Argument_Nb := 0;
-         Unknown_Long_Option_Nb := 0;
-         Unknown_Short_Option_Nb := 0;
          Options.Process
-           (Top_Level_Argument   => Command_Argument,
-            Callback             => Callback'Access,
-            Missing_Argument     => Missing_Argument'Access,
-            Unexpected_Argument  => Unexpected_Argument'Access,
-            Unknown_Long_Option  => Unknown_Long_Option'Access,
-            Unknown_Short_Option => Unknown_Short_Option'Access,
-            Argument_Count       => Argument_Count'Access,
-            Argument             => Argument'Access);
-         if Missing_Argument_Nb /= Expected_Missing_Argument or
-           Unexpected_Argument_Nb /= Expected_Unexpected_Argument or
-           Unknown_Long_Option_Nb /= Expected_Unknown_Long_Option or
-           Unknown_Short_Option_Nb /= Expected_Unknown_Short_Option
-         then
+           (Handler        => Handler,
+            Argument_Count => Argument_Count'Access,
+            Argument       => Argument'Access);
+         if Handler.Count /= Expected_Count then
             Report.Item (Name, NT.Fail);
-            if Missing_Argument_Nb /= Expected_Missing_Argument then
-               Report.Info ("Missing argument callback called"
-                            & Natural'Image (Missing_Argument_Nb)
-                            & " times, expected"
-                            & Natural'Image (Expected_Missing_Argument));
+            if Handler.Count.Missing_Argument_Long
+              /= Expected_Count.Missing_Argument_Long
+            then
+               Report.Info ("Missing argument to long option callback called"
+                 & Natural'Image (Handler.Count.Missing_Argument_Long)
+                 & " times, expected"
+                 & Natural'Image (Expected_Count.Missing_Argument_Long));
             end if;
-            if Unexpected_Argument_Nb /= Expected_Unexpected_Argument then
+            if Handler.Count.Missing_Argument_Short
+              /= Expected_Count.Missing_Argument_Short
+            then
+               Report.Info ("Missing argument to short option callback called"
+                 & Natural'Image (Handler.Count.Missing_Argument_Short)
+                 & " times, expected"
+                 & Natural'Image (Expected_Count.Missing_Argument_Short));
+            end if;
+            if Handler.Count.Unexpected_Argument
+              /= Expected_Count.Unexpected_Argument
+            then
                Report.Info ("Unexpected argument callback called"
-                            & Natural'Image (Unexpected_Argument_Nb)
-                            & " times, expected"
-                            & Natural'Image (Expected_Unexpected_Argument));
+                 & Natural'Image (Handler.Count.Unexpected_Argument)
+                 & " times, expected"
+                 & Natural'Image (Expected_Count.Unexpected_Argument));
             end if;
-            if Unknown_Long_Option_Nb /= Expected_Unknown_Long_Option then
+            if Handler.Count.Unknown_Long_Option
+              /= Expected_Count.Unknown_Long_Option
+            then
                Report.Info ("Unknown long option callback called"
-                            & Natural'Image (Unknown_Long_Option_Nb)
-                            & " times, expected"
-                            & Natural'Image (Expected_Unknown_Long_Option));
+                 & Natural'Image (Handler.Count.Unknown_Long_Option)
+                 & " times, expected"
+                 & Natural'Image (Expected_Count.Unknown_Long_Option));
             end if;
-            if Unknown_Short_Option_Nb /= Expected_Unknown_Short_Option then
+            if Handler.Count.Unknown_Short_Option
+              /= Expected_Count.Unknown_Short_Option
+            then
                Report.Info ("Unknown short option callback called"
-                            & Natural'Image (Unknown_Short_Option_Nb)
-                            & " times, expected"
-                            & Natural'Image (Expected_Unknown_Short_Option));
+                 & Natural'Image (Handler.Count.Unknown_Short_Option)
+                 & " times, expected"
+                 & Natural'Image (Expected_Count.Unknown_Short_Option));
             end if;
-         elsif Flag_Seen /= Expected_Seen or
-           Flag_Argument /= Expected_Argument
+         elsif Handler.Flag_Seen /= Expected_Seen or
+           Handler.Flag_Argument /= Expected_Argument
          then
             Report.Item (Name, NT.Fail);
-            Dump (Report);
+            Handler.Dump (Report);
          else
             Report.Item (Name, NT.Success);
          end if;
       exception
          when Error : others =>
             Report.Report_Exception (Name, Error);
-            Dump (Report);
+            Handler.Dump (Report);
       end Local_Test;
-
-      procedure Missing_Argument (Id : Option_Id) is
-         pragma Unreferenced (Id);
-      begin
-         Missing_Argument_Nb := Missing_Argument_Nb + 1;
-      end Missing_Argument;
-
-      procedure Unexpected_Argument (Id : Option_Id; Arg : String) is
-         pragma Unreferenced (Id, Arg);
-      begin
-         Unexpected_Argument_Nb := Unexpected_Argument_Nb + 1;
-      end Unexpected_Argument;
-
-      procedure Unknown_Long_Option (Name : String) is
-         pragma Unreferenced (Name);
-      begin
-         Unknown_Long_Option_Nb := Unknown_Long_Option_Nb + 1;
-      end Unknown_Long_Option;
-
-      procedure Unknown_Short_Option (Name : Character) is
-         pragma Unreferenced (Name);
-      begin
-         Unknown_Short_Option_Nb := Unknown_Short_Option_Nb + 1;
-      end Unknown_Short_Option;
    begin
       Report.Section ("Error-handling callbacks");
 
@@ -373,7 +459,7 @@ package body Natools.Getopt_Long_Tests is
                   (Short_No_Arg => True, others => False),
                   (Short_No_Arg => US.To_Unbounded_String (";"),
                    others => US.Null_Unbounded_String),
-                  Expected_Missing_Argument => 1);
+                  (Missing_Argument_Short => 1, others => 0));
 
       Command_Line.Clear;
       Command_Line.Append ("--color");
@@ -382,14 +468,14 @@ package body Natools.Getopt_Long_Tests is
                   (Long_Opt_Arg => True, others => False),
                   (Long_Opt_Arg => US.To_Unbounded_String (";"),
                    others => US.Null_Unbounded_String),
-                  Expected_Missing_Argument => 1);
+                  (Missing_Argument_Long => 1, others => 0));
 
       Command_Line.Clear;
       Command_Line.Append ("--aquatic=extra");
       Local_Test ("Unexpected argument",
                   (others => False),
                   (others => US.Null_Unbounded_String),
-                  Expected_Unexpected_Argument => 1);
+                  (Unexpected_Argument => 1, others => 0));
 
       Command_Line.Clear;
       Command_Line.Append ("-a");
@@ -404,7 +490,7 @@ package body Natools.Getopt_Long_Tests is
                    Mixed_Arg => US.To_Unbounded_String ("command;"),
                    Command_Argument => US.To_Unbounded_String ("file;"),
                    others => US.Null_Unbounded_String),
-                  Expected_Unexpected_Argument => 1);
+                  (Unexpected_Argument => 1, others => 0));
 
       Command_Line.Clear;
       Command_Line.Append ("-abqffoo");
@@ -415,7 +501,7 @@ package body Natools.Getopt_Long_Tests is
                    Short_No_Arg_2 => US.To_Unbounded_String (";"),
                    Short_Arg => US.To_Unbounded_String ("foo;"),
                    others => US.Null_Unbounded_String),
-                  Expected_Unknown_Short_Option => 1);
+                  (Unknown_Short_Option => 1, others => 0));
 
       Command_Line.Clear;
       Command_Line.Append ("--execute");
@@ -427,7 +513,7 @@ package body Natools.Getopt_Long_Tests is
                   (Mixed_Arg => US.To_Unbounded_String ("command;"),
                    Command_Argument => US.To_Unbounded_String ("file;"),
                    others => US.Null_Unbounded_String),
-                  Expected_Unknown_Long_Option => 1);
+                  (Unknown_Long_Option => 1, others => 0));
 
       Command_Line.Clear;
       Command_Line.Append ("--ignore-case");
@@ -443,10 +529,11 @@ package body Natools.Getopt_Long_Tests is
                    Mixed_Arg => US.To_Unbounded_String ("command;"),
                    Mixed_No_Arg => US.To_Unbounded_String (";"),
                    others => US.Null_Unbounded_String),
-                  Expected_Missing_Argument => 1,
-                  Expected_Unexpected_Argument => 1,
-                  Expected_Unknown_Long_Option => 1,
-                  Expected_Unknown_Short_Option => 1);
+                  (Missing_Argument_Long => 1,
+                   Missing_Argument_Short => 0,
+                   Unexpected_Argument => 1,
+                   Unknown_Long_Option => 1,
+                   Unknown_Short_Option => 1));
 
       Report.End_Section;
    end Test_Error_Callbacks;
@@ -555,7 +642,7 @@ package body Natools.Getopt_Long_Tests is
       Test (Report, "Ambiguous partial match for long flags",
             (others => False),
             (others => US.Null_Unbounded_String),
-            String_Vectors.To_Vector ("Unknown long option i", 1));
+            String_Vectors.To_Vector ("Unknown option --i", 1));
 
       Command_Line.Clear;
       Command_Line.Append ("--aq");
@@ -577,7 +664,8 @@ package body Natools.Getopt_Long_Tests is
             (Long_Opt_Arg => True, others => False),
             (Long_Opt_Arg => US.To_Unbounded_String (";"),
              others => US.Null_Unbounded_String),
-            String_Vectors.To_Vector ("Missing argument to option input", 1));
+            String_Vectors.To_Vector
+              ("Missing argument to option --input", 1));
    end Test_Missing_Argument_Long;
 
 
@@ -590,7 +678,7 @@ package body Natools.Getopt_Long_Tests is
             (Short_Opt_Arg => True, others => False),
             (Short_Opt_Arg => US.To_Unbounded_String (";"),
              others => US.Null_Unbounded_String),
-            String_Vectors.To_Vector ("Missing argument to option f", 1));
+            String_Vectors.To_Vector ("Missing argument to option -f", 1));
    end Test_Missing_Argument_Short;
 
 
@@ -713,7 +801,8 @@ package body Natools.Getopt_Long_Tests is
             (Long_Opt_Arg => True, others => False),
             (Long_Opt_Arg => US.To_Unbounded_String ("foo;"),
              others => US.Null_Unbounded_String),
-            String_Vectors.To_Vector ("Unexpected argument ""bar"" to aq", 1));
+            String_Vectors.To_Vector
+              ("Unexpected argument ""bar"" to option --aq", 1));
    end Test_Unexpected_Argument;
 
 
@@ -723,7 +812,7 @@ package body Natools.Getopt_Long_Tests is
       Command_Line.Append ("--long-flag");
       Test (Report, "Unknown long flag",
             (others => False), (others => US.Null_Unbounded_String),
-            String_Vectors.To_Vector ("Unknown long option long-flag", 1));
+            String_Vectors.To_Vector ("Unknown option --long-flag", 1));
    end Test_Unknown_Long;
 
 
@@ -733,7 +822,7 @@ package body Natools.Getopt_Long_Tests is
       Command_Line.Append ("-g");
       Test (Report, "Unknown short flag",
             (others => False), (others => US.Null_Unbounded_String),
-            String_Vectors.To_Vector ("Unknown short option g", 1));
+            String_Vectors.To_Vector ("Unknown option -g", 1));
    end Test_Unknown_Short;
 
 end Natools.Getopt_Long_Tests;

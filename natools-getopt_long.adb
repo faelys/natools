@@ -22,6 +22,87 @@ package body Natools.Getopt_Long is
    package Fixed renames Ada.Strings.Fixed;
    package Maps renames Ada.Strings.Maps;
 
+
+   ---------------------------
+   -- Any_Name constructors --
+   ---------------------------
+
+   function To_Name (Long_Name : String) return Any_Name is
+   begin
+      return Any_Name'(Style => Long,
+                       Size => Long_Name'Length,
+                       Long => Long_Name);
+   end To_Name;
+
+
+   function To_Name (Short_Name : Character) return Any_Name is
+   begin
+      return Any_Name'(Style => Short, Size => 1, Short => Short_Name);
+   end To_Name;
+
+
+   function Image (Name : Any_Name) return String is
+   begin
+      case Name.Style is
+         when Short => return '-' & Name.Short;
+         when Long  => return "--" & Name.Long;
+      end case;
+--  Alternate implementation:
+--    case Name.Style is
+--       when Short => return String'(1 => Name.Short);
+--       when Long  => return '"' & Name.Long & '"';
+--    end case;
+   end Image;
+
+
+
+   ----------------------
+   -- Default handlers --
+   ----------------------
+
+   package body Handlers is
+
+      procedure Missing_Argument
+        (Handler : in out Callback;
+         Id      : Option_Id;
+         Name    : Any_Name)
+      is
+         pragma Unreferenced (Handler);
+         pragma Unreferenced (Id);
+      begin
+         raise Option_Error with
+           "Missing argument to option " & Image (Name);
+      end Missing_Argument;
+
+
+      procedure Unexpected_Argument
+        (Handler  : in out Callback;
+         Id       : Option_Id;
+         Name     : Any_Name;
+         Argument : String)
+      is
+         pragma Unreferenced (Handler);
+         pragma Unreferenced (Id);
+      begin
+         raise Option_Error with
+           "Unexpected argument """ & Argument
+           & """ to option " & Image (Name);
+      end Unexpected_Argument;
+
+
+      procedure Unknown_Option
+        (Handler : in out Callback;
+         Name    : Any_Name)
+      is
+         pragma Unreferenced (Handler);
+      begin
+         raise Option_Error with "Unknown option " & Image (Name);
+      end Unknown_Option;
+
+   end Handlers;
+
+
+
    ----------------------------
    -- Option list management --
    ----------------------------
@@ -393,14 +474,7 @@ package body Natools.Getopt_Long is
 
    procedure Process
      (Options : Option_Definitions;
-      Top_Level_Argument : Option_Id;
-      Callback : not null access procedure (Id : Option_Id;
-                                            Argument : String);
-      Missing_Argument : access procedure (Id : Option_Id) := null;
-      Unexpected_Argument : access procedure (Id : Option_Id;
-                                              Arg : String) := null;
-      Unknown_Long_Option : access procedure (Name : String) := null;
-      Unknown_Short_Option : access procedure (Name : Character) := null;
+      Handler : in out Handlers.Callback'Class;
       Posixly_Correct : Boolean := True;
       Long_Only : Boolean := False;
       Argument_Count : not null access function return Natural
@@ -445,12 +519,8 @@ package body Natools.Getopt_Long is
                  not Has_Prefix (Cursor, Arg_Name) or else
                  Has_Prefix (Long_Option_Maps.Next (Cursor), Arg_Name)
                then
-                  if Unknown_Long_Option = null then
-                     raise Option_Error with "Unknown long option " & Arg_Name;
-                  else
-                     Unknown_Long_Option (Arg_Name);
-                     return;
-                  end if;
+                  Handler.Unknown_Option (To_Name (Arg_Name));
+                  return;
                end if;
             end if;
             --  At this point, Cursor points to the selected argument
@@ -460,38 +530,30 @@ package body Natools.Getopt_Long is
                case Opt.Has_Arg is
                   when No_Argument =>
                      if Equal = 0 then
-                        Callback (Opt.Id, "");
+                        Handler.Option (Opt.Id, "");
                      else
-                        if Unexpected_Argument = null then
-                           raise Option_Error with "Unexpected argument """
-                             & Arg (Equal + 1 .. Arg'Last) & """ to "
-                             & Opt.Long_Name;
-                        else
-                           Unexpected_Argument (Opt.Id,
-                                                Arg (Equal + 1 .. Arg'Last));
-                        end if;
+                        Handler.Unexpected_Argument
+                          (Opt.Id,
+                           To_Name (Opt.Long_Name),
+                           Arg (Equal + 1 .. Arg'Last));
                      end if;
                   when Optional_Argument =>
                      if Equal = 0 then
-                        Callback (Opt.Id, "");
+                        Handler.Option (Opt.Id, "");
                      else
-                        Callback (Opt.Id, Arg (Equal + 1 .. Arg'Last));
+                        Handler.Option (Opt.Id, Arg (Equal + 1 .. Arg'Last));
                      end if;
                   when Required_Argument =>
                      if Equal = 0 then
                         if Arg_N = Arg_Count then
-                           if Missing_Argument = null then
-                              raise Option_Error with "Missing argument to "
-                                                 & "option " & Opt.Long_Name;
-                           else
-                              Missing_Argument (Opt.Id);
-                           end if;
+                           Handler.Missing_Argument
+                             (Opt.Id, To_Name (Opt.Long_Name));
                         else
-                           Callback (Opt.Id, Argument (Arg_N + 1));
+                           Handler.Option (Opt.Id, Argument (Arg_N + 1));
                            Arg_N := Arg_N + 1;
                         end if;
                      else
-                        Callback (Opt.Id, Arg (Equal + 1 .. Arg'Last));
+                        Handler.Option (Opt.Id, Arg (Equal + 1 .. Arg'Last));
                      end if;
                end case;
             end;
@@ -508,15 +570,16 @@ package body Natools.Getopt_Long is
                if Posixly_Correct then
                   exit;
                else
-                  Callback (Top_Level_Argument, Arg);
+                  Handler.Argument (Arg);
                   Arg_N := Arg_N + 1;
                end if;
             elsif Arg (Arg'First + 1) = '-' then
-               --  Argument starting with "--": long option.
+               --  "--" stops option processing.
                if Arg'Length = 2 then
                   Arg_N := Arg_N + 1;
                   exit;
                end if;
+               --  Argument starting with "--": long option.
                Process_Long_Option (Arg (Arg'First + 2 .. Arg'Last));
                Arg_N := Arg_N + 1;
             elsif Long_Only then
@@ -539,34 +602,25 @@ package body Natools.Getopt_Long is
                            if Opt.Has_Arg = Required_Argument then
                               if Arg_I = Arg'Last then
                                  if Arg_N = Arg_Count then
-                                    if Missing_Argument = null then
-                                       raise Option_Error with "Missing "
-                                         & "argument to option "
-                                         & Opt.Short_Name;
-                                    else
-                                       Missing_Argument (Opt.Id);
-                                    end if;
+                                    Handler.Missing_Argument
+                                      (Opt.Id, To_Name (Opt.Short_Name));
                                  else
-                                    Callback (Opt.Id, Argument (Arg_N + 1));
+                                    Handler.Option
+                                      (Opt.Id, Argument (Arg_N + 1));
                                     Arg_N := Arg_N + 1;
                                     exit;
                                  end if;
                               else
-                                 Callback (Opt.Id,
-                                           Arg (Arg_I + 1 .. Arg'Last));
+                                 Handler.Option
+                                   (Opt.Id, Arg (Arg_I + 1 .. Arg'Last));
                                  exit;
                               end if;
                            else
-                              Callback (Opt.Id, "");
+                              Handler.Option (Opt.Id, "");
                            end if;
                         end;
                      else
-                        if Unknown_Short_Option = null then
-                           raise Option_Error with "Unknown short option "
-                                                 & Arg (Arg_I);
-                        else
-                           Unknown_Short_Option (Arg (Arg_I));
-                        end if;
+                        Handler.Unknown_Option (To_Name (Arg (Arg_I)));
                      end if;
                   end;
                end loop;
@@ -577,7 +631,7 @@ package body Natools.Getopt_Long is
 
       --  Only non-flag arguments remain
       while Arg_N <= Arg_Count loop
-         Callback (Top_Level_Argument, Argument (Arg_N));
+         Handler.Argument (Argument (Arg_N));
          Arg_N := Arg_N + 1;
       end loop;
    end Process;
