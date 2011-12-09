@@ -128,6 +128,24 @@ package Natools.Getopt_Long is
 
    type Configuration is tagged private;
 
+
+   -- Simple parameters --
+
+   function Posixly_Correct (Config : Configuration) return Boolean;
+
+   procedure Posixly_Correct
+     (Config : in out Configuration;
+      To     : Boolean := True);
+
+   function Long_Only (Config : Configuration) return Boolean;
+
+   procedure Use_Long_Only
+     (Config : in out Configuration;
+      Value  : Boolean := True);
+
+
+   -- Option list management --
+
    procedure Add_Option
      (Config     : in out Configuration;
       Long_Name  : String;
@@ -164,6 +182,9 @@ package Natools.Getopt_Long is
      (Config     : in out Configuration;
       Short_Name : Character);
       --  Remove from the database an option identified by its short name.
+
+
+   -- Formatting subprograms --
 
    function Format_Long_Names
      (Config      : Configuration;
@@ -241,8 +262,6 @@ package Natools.Getopt_Long is
    procedure Process
      (Config : Configuration;
       Handler : in out Handlers.Callback'Class;
-      Posixly_Correct : Boolean := True;
-      Long_Only : Boolean := False;
       Argument_Count : not null access function return Natural
         := Ada.Command_Line.Argument_Count'Access;
       Argument : not null access function (Number : Positive) return String
@@ -268,6 +287,8 @@ private
    type Configuration is tagged record
       By_Long_Name : Long_Option_Maps.Map;
       By_Short_Name : Short_Option_Maps.Map;
+      Posixly_Correct : Boolean := True;
+      Long_Only : Boolean := False;
    end record;
 
 end Natools.Getopt_Long;

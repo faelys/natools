@@ -103,6 +103,39 @@ package body Natools.Getopt_Long is
 
 
 
+   -------------------------------------
+   -- Simple configuration parameters --
+   -------------------------------------
+
+   function Posixly_Correct (Config : Configuration) return Boolean is
+   begin
+      return Config.Posixly_Correct;
+   end Posixly_Correct;
+
+
+   procedure Posixly_Correct
+     (Config : in out Configuration;
+      To     : Boolean := True) is
+   begin
+      Config.Posixly_Correct := To;
+   end Posixly_Correct;
+
+
+   function Long_Only (Config : Configuration) return Boolean is
+   begin
+      return Config.Long_Only;
+   end Long_Only;
+
+
+   procedure Use_Long_Only
+     (Config : in out Configuration;
+      Value  : Boolean := True) is
+   begin
+      Config.Long_Only := Value;
+   end Use_Long_Only;
+
+
+
    ----------------------------
    -- Option list management --
    ----------------------------
@@ -475,8 +508,6 @@ package body Natools.Getopt_Long is
    procedure Process
      (Config : Configuration;
       Handler : in out Handlers.Callback'Class;
-      Posixly_Correct : Boolean := True;
-      Long_Only : Boolean := False;
       Argument_Count : not null access function return Natural
         := Ada.Command_Line.Argument_Count'Access;
       Argument : not null access function (Number : Positive) return String
@@ -567,7 +598,7 @@ package body Natools.Getopt_Long is
             if Arg'Length <= 1 or else Arg (Arg'First) /= '-' then
                --  This is a non-flag argument, abort option processing if
                --    posixly correct.
-               if Posixly_Correct then
+               if Config.Posixly_Correct then
                   exit;
                else
                   Handler.Argument (Arg);
@@ -582,7 +613,7 @@ package body Natools.Getopt_Long is
                --  Argument starting with "--": long option.
                Process_Long_Option (Arg (Arg'First + 2 .. Arg'Last));
                Arg_N := Arg_N + 1;
-            elsif Long_Only then
+            elsif Config.Long_Only then
                --  Force long option on a single dash prefix.
                Process_Long_Option (Arg (Arg'First + 1 .. Arg'Last));
                Arg_N := Arg_N + 1;

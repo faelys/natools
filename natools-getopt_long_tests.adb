@@ -67,11 +67,15 @@ package body Natools.Getopt_Long_Tests is
 
    package Getopt is new Natools.Getopt_Long (Option_Id);
 
-   function Getopt_Config return Getopt.Configuration;
+   function Getopt_Config
+     (Posixly_Correct, Long_Only : Boolean)
+      return Getopt.Configuration;
       --  Create the Getopt.Configuration object used for these tests.
 
 
-   function Getopt_Config return Getopt.Configuration is
+   function Getopt_Config
+     (Posixly_Correct, Long_Only : Boolean)
+      return Getopt.Configuration is
    begin
       return OD : Getopt.Configuration do
          OD.Add_Option ('a', Getopt.No_Argument, Short_No_Arg);
@@ -85,6 +89,8 @@ package body Natools.Getopt_Long_Tests is
          OD.Add_Option ("execute", 'e', Getopt.Required_Argument, Mixed_Arg);
          OD.Add_Option ("ignore-case", 'i', Getopt.No_Argument, Mixed_No_Arg);
          OD.Add_Option ("write", 'w', Getopt.Optional_Argument, Mixed_Opt_Arg);
+         OD.Posixly_Correct (Posixly_Correct);
+         OD.Use_Long_Only (Long_Only);
       end return;
    end Getopt_Config;
 
@@ -288,15 +294,14 @@ package body Natools.Getopt_Long_Tests is
       Long_Only : Boolean := False)
    is
       use type String_Vectors.Vector;
-      Config : constant Getopt.Configuration := Getopt_Config;
+      Config : constant Getopt.Configuration
+        := Getopt_Config (Posixly_Correct, Long_Only);
       Handler : Handlers.Basic;
    begin
       begin
          Getopt.Process
            (Config             => Config,
             Handler            => Handler,
-            Posixly_Correct    => Posixly_Correct,
-            Long_Only          => Long_Only,
             Argument_Count     => Argument_Count'Access,
             Argument           => Argument'Access);
       exception
@@ -389,7 +394,7 @@ package body Natools.Getopt_Long_Tests is
          Expected_Count : Handlers.Error_Count)
       is
          use type Handlers.Error_Count;
-         Config : constant Getopt.Configuration := Getopt_Config;
+         Config : constant Getopt.Configuration := Getopt_Config (True, False);
          Handler : Handlers.Recovering;
       begin
          Getopt.Process
