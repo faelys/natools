@@ -67,13 +67,13 @@ package body Natools.Getopt_Long_Tests is
 
    package Getopt is new Natools.Getopt_Long (Option_Id);
 
-   function Option_Definitions return Getopt.Option_Definitions;
-      --  Create the Option_Definitions object used for these tests.
+   function Getopt_Config return Getopt.Configuration;
+      --  Create the Getopt.Configuration object used for these tests.
 
 
-   function Option_Definitions return Getopt.Option_Definitions is
+   function Getopt_Config return Getopt.Configuration is
    begin
-      return OD : Getopt.Option_Definitions do
+      return OD : Getopt.Configuration do
          OD.Add_Option ('a', Getopt.No_Argument, Short_No_Arg);
          OD.Add_Option ('q', Getopt.No_Argument, Short_No_Arg_2);
          OD.Add_Option ('f', Getopt.Required_Argument, Short_Arg);
@@ -86,7 +86,7 @@ package body Natools.Getopt_Long_Tests is
          OD.Add_Option ("ignore-case", 'i', Getopt.No_Argument, Mixed_No_Arg);
          OD.Add_Option ("write", 'w', Getopt.Optional_Argument, Mixed_Opt_Arg);
       end return;
-   end Option_Definitions;
+   end Getopt_Config;
 
 
 
@@ -288,12 +288,13 @@ package body Natools.Getopt_Long_Tests is
       Long_Only : Boolean := False)
    is
       use type String_Vectors.Vector;
-      Options : constant Getopt.Option_Definitions := Option_Definitions;
+      Config : constant Getopt.Configuration := Getopt_Config;
       Handler : Handlers.Basic;
    begin
       begin
-         Options.Process
-           (Handler            => Handler,
+         Getopt.Process
+           (Config             => Config,
+            Handler            => Handler,
             Posixly_Correct    => Posixly_Correct,
             Long_Only          => Long_Only,
             Argument_Count     => Argument_Count'Access,
@@ -388,11 +389,12 @@ package body Natools.Getopt_Long_Tests is
          Expected_Count : Handlers.Error_Count)
       is
          use type Handlers.Error_Count;
-         Options : constant Getopt.Option_Definitions := Option_Definitions;
+         Config : constant Getopt.Configuration := Getopt_Config;
          Handler : Handlers.Recovering;
       begin
-         Options.Process
-           (Handler        => Handler,
+         Getopt.Process
+           (Config         => Config,
+            Handler        => Handler,
             Argument_Count => Argument_Count'Access,
             Argument       => Argument'Access);
          if Handler.Count /= Expected_Count then

@@ -108,7 +108,7 @@ package body Natools.Getopt_Long is
    ----------------------------
 
    procedure Add_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Long_Name  : String;
       Short_Name : Character;
       Has_Arg    : Argument_Requirement;
@@ -124,13 +124,13 @@ package body Natools.Getopt_Long is
       if Long_Name = Null_Long_Name or Short_Name = Null_Short_Name then
          raise Constraint_Error;
       end if;
-      Options.By_Long_Name.Insert (Long_Name, New_Option);
-      Options.By_Short_Name.Insert (Short_Name, New_Option);
+      Config.By_Long_Name.Insert (Long_Name, New_Option);
+      Config.By_Short_Name.Insert (Short_Name, New_Option);
    end Add_Option;
 
 
    procedure Add_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Long_Name  : String;
       Has_Arg    : Argument_Requirement;
       Id         : Option_Id)
@@ -145,12 +145,12 @@ package body Natools.Getopt_Long is
       if Long_Name = Null_Long_Name then
          raise Constraint_Error;
       end if;
-      Options.By_Long_Name.Insert (Long_Name, New_Option);
+      Config.By_Long_Name.Insert (Long_Name, New_Option);
    end Add_Option;
 
 
    procedure Add_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Short_Name : Character;
       Has_Arg    : Argument_Requirement;
       Id         : Option_Id)
@@ -165,18 +165,18 @@ package body Natools.Getopt_Long is
       if Short_Name = Null_Short_Name then
          raise Constraint_Error;
       end if;
-      Options.By_Short_Name.Insert (Short_Name, New_Option);
+      Config.By_Short_Name.Insert (Short_Name, New_Option);
    end Add_Option;
 
 
    procedure Del_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Id         : Option_Id)
    is
       Short_Name_Cursor : Short_Option_Maps.Cursor
-        := Options.By_Short_Name.First;
+        := Config.By_Short_Name.First;
       Long_Name_Cursor : Long_Option_Maps.Cursor
-        := Options.By_Long_Name.First;
+        := Config.By_Long_Name.First;
    begin
       while Short_Option_Maps.Has_Element (Short_Name_Cursor) loop
          declare
@@ -184,7 +184,7 @@ package body Natools.Getopt_Long is
               := Short_Option_Maps.Next (Short_Name_Cursor);
          begin
             if Short_Option_Maps.Element (Short_Name_Cursor).Id = Id then
-               Options.By_Short_Name.Delete (Short_Name_Cursor);
+               Config.By_Short_Name.Delete (Short_Name_Cursor);
             end if;
             Short_Name_Cursor := Next;
          end;
@@ -195,7 +195,7 @@ package body Natools.Getopt_Long is
               := Long_Option_Maps.Next (Long_Name_Cursor);
          begin
             if Long_Option_Maps.Element (Long_Name_Cursor).Id = Id then
-               Options.By_Long_Name.Delete (Long_Name_Cursor);
+               Config.By_Long_Name.Delete (Long_Name_Cursor);
             end if;
             Long_Name_Cursor := Next;
          end;
@@ -204,18 +204,18 @@ package body Natools.Getopt_Long is
 
 
    procedure Del_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Long_Name  : String) is
    begin
-      Options.By_Long_Name.Delete (Long_Name);
+      Config.By_Long_Name.Delete (Long_Name);
    end Del_Option;
 
 
    procedure Del_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Short_Name : Character) is
    begin
-      Options.By_Short_Name.Delete (Short_Name);
+      Config.By_Short_Name.Delete (Short_Name);
    end Del_Option;
 
 
@@ -225,13 +225,13 @@ package body Natools.Getopt_Long is
    ----------------------------
 
    function Format_Long_Names
-     (Options     : Option_Definitions;
+     (Config      : Configuration;
       Id          : Option_Id;
       Separator   : String := ", ";
       Name_Prefix : String := "--")
       return String
    is
-      Long_Name_Count : constant Natural := Get_Long_Name_Count (Options, Id);
+      Long_Name_Count : constant Natural := Get_Long_Name_Count (Config, Id);
       Space_Per_Name : constant Positive
         := Name_Prefix'Length + 1 + Separator'Length;
       Result : String (1 .. Long_Name_Count * Space_Per_Name);
@@ -243,7 +243,7 @@ package body Natools.Getopt_Long is
          declare
             First : constant Positive
               := Result'First + (J - 1) * Space_Per_Name;
-            Name : constant String := Get_Long_Name (Options, Id, J);
+            Name : constant String := Get_Long_Name (Config, Id, J);
          begin
             Result (First .. First + Name_Prefix'Length - 1) := Name_Prefix;
             Result (First + Name_Prefix'Length ..
@@ -259,7 +259,7 @@ package body Natools.Getopt_Long is
 
 
    function Format_Names
-     (Options           : Option_Definitions;
+     (Config            : Configuration;
       Id                : Option_Id;
       Separator         : String := ", ";
       Long_Name_Prefix  : String := "--";
@@ -268,9 +268,9 @@ package body Natools.Getopt_Long is
       return String
    is
       Long_Names : constant String
-        := Format_Long_Names (Options, Id, Separator, Long_Name_Prefix);
+        := Format_Long_Names (Config, Id, Separator, Long_Name_Prefix);
       Short_Names : constant String
-        := Format_Short_Names (Options, Id, Separator, Short_Name_Prefix);
+        := Format_Short_Names (Config, Id, Separator, Short_Name_Prefix);
    begin
       if Long_Names = "" then
          return Short_Names;
@@ -285,13 +285,13 @@ package body Natools.Getopt_Long is
 
 
    function Format_Short_Names
-     (Options     : Option_Definitions;
+     (Config      : Configuration;
       Id          : Option_Id;
       Separator   : String := ", ";
       Name_Prefix : String := "-")
       return String
    is
-      Short_Names : constant String := Get_Short_Names (Options, Id);
+      Short_Names : constant String := Get_Short_Names (Config, Id);
       Space_Per_Name : constant Positive
         := Name_Prefix'Length + 1 + Separator'Length;
       Result : String (1 .. Short_Names'Length * Space_Per_Name);
@@ -316,13 +316,13 @@ package body Natools.Getopt_Long is
 
 
    function Get_Long_Name
-     (Options    : Option_Definitions;
+     (Config     : Configuration;
       Id         : Option_Id;
       Index      : Positive := 1)
       return String
    is
       Seen : Natural := 0;
-      Cursor : Long_Option_Maps.Cursor := Options.By_Long_Name.First;
+      Cursor : Long_Option_Maps.Cursor := Config.By_Long_Name.First;
    begin
       while Long_Option_Maps.Has_Element (Cursor) loop
          declare
@@ -342,7 +342,7 @@ package body Natools.Getopt_Long is
 
 
    function Get_Long_Name_Count
-     (Options    : Option_Definitions;
+     (Config     : Configuration;
       Id         : Option_Id)
       return Natural
    is
@@ -364,13 +364,13 @@ package body Natools.Getopt_Long is
          Long_Option_Maps.Query_Element (Cursor, Process'Access);
       end Process;
    begin
-      Options.By_Long_Name.Iterate (Process'Access);
+      Config.By_Long_Name.Iterate (Process'Access);
       return Result;
    end Get_Long_Name_Count;
 
 
    function Get_Short_Name_Count
-     (Options    : Option_Definitions;
+     (Config     : Configuration;
       Id         : Option_Id)
       return Natural
    is
@@ -392,20 +392,20 @@ package body Natools.Getopt_Long is
          Short_Option_Maps.Query_Element (Cursor, Process'Access);
       end Process;
    begin
-      Options.By_Short_Name.Iterate (Process'Access);
+      Config.By_Short_Name.Iterate (Process'Access);
       return Result;
    end Get_Short_Name_Count;
 
 
    function Get_Short_Names
-     (Options    : Option_Definitions;
+     (Config     : Configuration;
       Id         : Option_Id)
       return String
    is
       procedure Process (Key : Character; Element : Option);
       procedure Process (Cursor : Short_Option_Maps.Cursor);
 
-      Result : String (1 .. Options.Get_Short_Name_Count (Id));
+      Result : String (1 .. Config.Get_Short_Name_Count (Id));
       J : Positive := Result'First;
 
       procedure Process (Key : Character; Element : Option) is
@@ -421,13 +421,13 @@ package body Natools.Getopt_Long is
          Short_Option_Maps.Query_Element (Cursor, Process'Access);
       end Process;
    begin
-      Options.By_Short_Name.Iterate (Process'Access);
+      Config.By_Short_Name.Iterate (Process'Access);
       return Result;
    end Get_Short_Names;
 
 
    procedure Iterate
-     (Options : Option_Definitions;
+     (Config  : Configuration;
       Process : not null access procedure (Id : Option_Id;
                                            Long_Name : String;
                                            Short_Name : Character;
@@ -462,8 +462,8 @@ package body Natools.Getopt_Long is
          Short_Option_Maps.Query_Element (C, Short_Process'Access);
       end Short_Query;
    begin
-      Options.By_Short_Name.Iterate (Short_Query'Access);
-      Options.By_Long_Name.Iterate (Long_Query'Access);
+      Config.By_Short_Name.Iterate (Short_Query'Access);
+      Config.By_Long_Name.Iterate (Long_Query'Access);
    end Iterate;
 
 
@@ -473,7 +473,7 @@ package body Natools.Getopt_Long is
    -----------------------------
 
    procedure Process
-     (Options : Option_Definitions;
+     (Config : Configuration;
       Handler : in out Handlers.Callback'Class;
       Posixly_Correct : Boolean := True;
       Long_Only : Boolean := False;
@@ -511,10 +511,10 @@ package body Natools.Getopt_Long is
             Arg_Name : String renames Arg (Arg'First .. Arg_Name_Last);
          begin
             --  Looking for an exact match
-            Cursor := Options.By_Long_Name.Find (Arg_Name);
+            Cursor := Config.By_Long_Name.Find (Arg_Name);
             if not Long_Option_Maps.Has_Element (Cursor) then
                --  Looking for a unique partial match
-               Cursor := Options.By_Long_Name.Ceiling (Arg_Name);
+               Cursor := Config.By_Long_Name.Ceiling (Arg_Name);
                if not Long_Option_Maps.Has_Element (Cursor) or else
                  not Has_Prefix (Cursor, Arg_Name) or else
                  Has_Prefix (Long_Option_Maps.Next (Cursor), Arg_Name)
@@ -592,7 +592,7 @@ package body Natools.Getopt_Long is
                for Arg_I in Arg'First + 1 .. Arg'Last loop
                   declare
                      Cursor : constant Short_Option_Maps.Cursor
-                       := Options.By_Short_Name.Find (Arg (Arg_I));
+                       := Config.By_Short_Name.Find (Arg (Arg_I));
                   begin
                      if Short_Option_Maps.Has_Element (Cursor) then
                         declare

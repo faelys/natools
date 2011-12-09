@@ -21,12 +21,12 @@
 -- This package is generic, and its only formal parameter is a descrete     --
 -- type supposed to cover all command-line options.                         --
 --                                                                          --
--- Option_Definitions objects hold the list of recognized flags. Flags can  --
--- have a single-character short name or a multiple-character long name.    --
--- Moreover, there is no limit to the number of flag names referring to the --
--- same Option_Id value.                                                    --
+-- Configuration objects hold the list of recognized options and parameters --
+-- about how to process them. Options can have a single-character short     --
+-- name or a multiple-character long name. Moreover, there is no limit to   --
+-- the number of flag names referring to the same Option_Id value.          --
 --                                                                          --
--- Once the Option_Definitions object has been filled with flags recognized --
+-- Once the Configuration object has been filled with flags recognized      --
 -- by the client, the actual command-line arguments can be processed,       --
 -- using the handler callbacks from a Handlers.Callback'Class object.       --
 --                                                                          --
@@ -119,17 +119,17 @@ package Natools.Getopt_Long is
 
 
 
-   ---------------------
-   -- Option database --
-   ---------------------
+   ----------------------------
+   -- Configuration database --
+   ----------------------------
 
    type Argument_Requirement is
      (No_Argument, Required_Argument, Optional_Argument);
 
-   type Option_Definitions is tagged private;
+   type Configuration is tagged private;
 
    procedure Add_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Long_Name  : String;
       Short_Name : Character;
       Has_Arg    : Argument_Requirement;
@@ -137,36 +137,36 @@ package Natools.Getopt_Long is
       --  Add an option with both a short and a long name to the database.
 
    procedure Add_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Long_Name  : String;
       Has_Arg    : Argument_Requirement;
       Id         : Option_Id);
       --  Add an option with only a long name to the database.
 
    procedure Add_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Short_Name : Character;
       Has_Arg    : Argument_Requirement;
       Id         : Option_Id);
       --  Add an option with only a short name to the database.
 
    procedure Del_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Id         : Option_Id);
       --  Remove from the database an option identified by its id.
 
    procedure Del_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Long_Name  : String);
       --  Remove from the database an option identified by its long name.
 
    procedure Del_Option
-     (Options    : in out Option_Definitions;
+     (Config     : in out Configuration;
       Short_Name : Character);
       --  Remove from the database an option identified by its short name.
 
    function Format_Long_Names
-     (Options     : Option_Definitions;
+     (Config      : Configuration;
       Id          : Option_Id;
       Separator   : String := ", ";
       Name_Prefix : String := "--")
@@ -174,7 +174,7 @@ package Natools.Getopt_Long is
       --  Return a human-readable list of long names for the given option.
 
    function Format_Names
-     (Options           : Option_Definitions;
+     (Config            : Configuration;
       Id                : Option_Id;
       Separator         : String := ", ";
       Long_Name_Prefix  : String := "--";
@@ -184,7 +184,7 @@ package Natools.Getopt_Long is
       --  Return a human-readable list of all names for the given option.
 
    function Format_Short_Names
-     (Options     : Option_Definitions;
+     (Config      : Configuration;
       Id          : Option_Id;
       Separator   : String := ", ";
       Name_Prefix : String := "-")
@@ -192,35 +192,35 @@ package Natools.Getopt_Long is
       --  Return a human-readable list of short names for the given option.
 
    function Get_Long_Name
-     (Options    : Option_Definitions;
+     (Config     : Configuration;
       Id         : Option_Id;
       Index      : Positive := 1)
       return String;
       --  Return the "Index"th long name for the given option id.
       --  Raise Constraint_Error when Index is not
-      --     in range 1 .. Get_Long_Name_Count (Options, Id)
+      --     in range 1 .. Get_Long_Name_Count (Config, Id)
 
    function Get_Long_Name_Count
-     (Options    : Option_Definitions;
+     (Config     : Configuration;
       Id         : Option_Id)
       return Natural;
       --  Return the number of long names for the given option id.
 
    function Get_Short_Name_Count
-     (Options    : Option_Definitions;
+     (Config     : Configuration;
       Id         : Option_Id)
       return Natural;
       --  Return the number of short names for the given option id.
 
    function Get_Short_Names
-     (Options    : Option_Definitions;
+     (Config     : Configuration;
       Id         : Option_Id)
       return String;
       --  Return a string containing the characters for short names for
       --    the given option id.
 
    procedure Iterate
-     (Options : Option_Definitions;
+     (Config  : Configuration;
       Process : not null access procedure (Id : Option_Id;
                                            Long_Name : String;
                                            Short_Name : Character;
@@ -239,7 +239,7 @@ package Natools.Getopt_Long is
    --------------------------------------
 
    procedure Process
-     (Options : Option_Definitions;
+     (Config : Configuration;
       Handler : in out Handlers.Callback'Class;
       Posixly_Correct : Boolean := True;
       Long_Only : Boolean := False;
@@ -265,7 +265,7 @@ private
    package Short_Option_Maps is
       new Ada.Containers.Indefinite_Ordered_Maps (Character, Option);
 
-   type Option_Definitions is tagged record
+   type Configuration is tagged record
       By_Long_Name : Long_Option_Maps.Map;
       By_Short_Name : Short_Option_Maps.Map;
    end record;
