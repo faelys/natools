@@ -265,29 +265,40 @@ package body Natools.Getopt_Long is
       return String
    is
       Long_Name_Count : constant Natural := Get_Long_Name_Count (Config, Id);
-      Space_Per_Name : constant Positive
-        := Name_Prefix'Length + 1 + Separator'Length;
-      Result : String (1 .. Long_Name_Count * Space_Per_Name);
+      Result_Length : Natural;
+      Position : Positive;
    begin
       if Long_Name_Count = 0 then
          return "";
       end if;
+
+      Result_Length := Long_Name_Count * Name_Prefix'Length
+                     + (Long_Name_Count - 1) * Separator'Length;
       for J in 1 .. Long_Name_Count loop
-         declare
-            First : constant Positive
-              := Result'First + (J - 1) * Space_Per_Name;
-            Name : constant String := Get_Long_Name (Config, Id, J);
-         begin
-            Result (First .. First + Name_Prefix'Length - 1) := Name_Prefix;
-            Result (First + Name_Prefix'Length ..
-                    First + Name_Prefix'Length + Name'Length - 1)
-              := Name;
-            Result (First + Name_Prefix'Length + Name'Length ..
-                    First + Space_Per_Name - 1)
-              := Separator;
-         end;
+         Result_Length := Result_Length + Get_Long_Name (Config, Id, J)'Length;
       end loop;
-      return Result (1 .. Long_Name_Count * Space_Per_Name - Separator'Length);
+
+      return Result : String (1 .. Result_Length) do
+         Position := Result'First;
+         for J in 1 .. Long_Name_Count loop
+            if J > 1 then
+               Result (Position .. Position + Separator'Length - 1)
+                 := Separator;
+               Position := Position + Separator'Length;
+            end if;
+
+            Result (Position .. Position + Name_Prefix'Length - 1)
+              := Name_Prefix;
+            Position := Position + Name_Prefix'Length;
+
+            declare
+               Name : constant String := Get_Long_Name (Config, Id, J);
+            begin
+               Result (Position .. Position + Name'Length - 1) := Name;
+               Position := Position + Name'Length;
+            end;
+         end loop;
+      end return;
    end Format_Long_Names;
 
 
