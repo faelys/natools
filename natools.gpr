@@ -1,7 +1,30 @@
 project Natools is
+   type Build_Type is ("Release", "Coverage");
+   Mode : Build_Type := external ("MODE", "Release");
+
+   Prefix := "";
+   Extra_Switches := ();
+
+   case Mode is
+      when "Release" =>
+         Prefix := "";
+      when "Coverage" =>
+         Prefix := "coverage/";
+   end case;
+
    --  Source_Dirs is left to default "."
    for Source_Dirs use ("src");
-   for Object_Dir use "obj";
+   for Object_Dir use Prefix & "obj";
+   for Exec_Dir use Prefix & "bin";
+
+   case Mode is
+      when "Release" =>
+         Extra_Switches := ("-O3");
+      when "Coverage" =>
+         Extra_Switches :=
+           ("-g", "-O0", "-fprofile-arcs", "-ftest-coverage");
+   end case;
+
 
    package Compiler is
       for Default_Switches ("Ada") use
@@ -33,11 +56,11 @@ project Natools is
          "-gnatwae",
             --  a: turn on most warnings
             --  e: treat all warnings as errors
-         "-fstack-check",
-         "-O3");
+         "-fstack-check")
+        & Extra_Switches;
    end Compiler;
 
    package Linker is
-      for Default_Switches ("Ada") use ("-O3");
+      for Default_Switches ("Ada") use Extra_Switches;
    end Linker;
 end Natools;
