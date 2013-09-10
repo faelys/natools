@@ -19,6 +19,7 @@ with Natools.Chunked_Strings.Tests.CXA4011;
 with Natools.Chunked_Strings.Tests.CXA4030;
 with Natools.Chunked_Strings.Tests.CXA4031;
 with Natools.Chunked_Strings.Tests.CXA4032;
+with Natools.Accumulators.Tests;
 
 package body Natools.Chunked_Strings.Tests is
    package NT renames Natools.Tests;
@@ -37,6 +38,14 @@ package body Natools.Chunked_Strings.Tests is
       Test_CXA4030 (Report);
       Test_CXA4031 (Report);
       Test_CXA4032 (Report);
+
+      NT.Section (Report, "String_Accumulator interface");
+      declare
+         Acc : Chunked_String;
+      begin
+         Accumulators.Tests.Test (Report, Acc);
+      end;
+      NT.End_Section (Report);
       NT.End_Section (Report);
    end All_Blackbox_Tests;
 
