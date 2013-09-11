@@ -790,6 +790,7 @@ package body Natools.Chunked_Strings is
 
    procedure Hard_Reset (Str : in out Chunked_String) is
    begin
+      Str.Size := 0;
       Free (Str.Data);
    end Hard_Reset;
 
