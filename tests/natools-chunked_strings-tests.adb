@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2011, Natacha Porté                                        --
+-- Copyright (c) 2011-2013, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -14,6 +14,7 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
+with Natools.Chunked_Strings.Tests.Coverage;
 with Natools.Chunked_Strings.Tests.CXA4010;
 with Natools.Chunked_Strings.Tests.CXA4011;
 with Natools.Chunked_Strings.Tests.CXA4030;
@@ -50,10 +51,21 @@ package body Natools.Chunked_Strings.Tests is
    end All_Blackbox_Tests;
 
 
+   procedure All_Greybox_Tests (Report : in out Natools.Tests.Reporter'Class)
+   is
+      procedure Test_Coverage is new Coverage;
+   begin
+      NT.Section (Report, "Greybox tests for Chunked_Strings");
+      Test_Coverage (Report);
+      NT.End_Section (Report);
+   end All_Greybox_Tests;
+
+
    procedure All_Tests (Report : in out Natools.Tests.Reporter'Class) is
    begin
       NT.Section (Report, "All tests of Chunked_Strings");
       All_Blackbox_Tests (Report);
+      All_Greybox_Tests (Report);
       NT.End_Section (Report);
    end All_Tests;
 

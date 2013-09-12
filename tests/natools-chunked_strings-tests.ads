@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2011, Natacha Porté                                        --
+-- Copyright (c) 2011-2013, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -31,6 +31,8 @@ generic package Natools.Chunked_Strings.Tests is
    pragma Preelaborate (Tests);
 
    procedure All_Blackbox_Tests (Report : in out Natools.Tests.Reporter'Class);
+
+   procedure All_Greybox_Tests (Report : in out Natools.Tests.Reporter'Class);
 
    procedure All_Tests (Report : in out Natools.Tests.Reporter'Class);
 
