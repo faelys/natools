@@ -195,5 +195,85 @@ begin
       when Error : others => NT.Report_Exception (Report, Name, Error);
    end;
 
+   declare
+      Name : constant String := "Procedure Chunked_Slice";
+      CS : Chunked_String;
+      Low : constant Positive := 11;
+      High : constant Positive := 17;
+   begin
+      Chunked_Slice (To_Chunked_String (Name), CS, Low, High);
+
+      if To_String (CS) /= Name (Low .. High) then
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Final value: """ & To_String (CS) & '"');
+         NT.Info (Report, "Expected: """ & Name (Low .. High) & '"');
+      else
+         NT.Item (Report, Name, NT.Success);
+      end if;
+   exception
+      when Error : others => NT.Report_Exception (Report, Name, Error);
+   end;
+
+   declare
+      Name : constant String := "Procedure Chunked_Slice (empty)";
+      CS : Chunked_String;
+   begin
+      Chunked_Slice (To_Chunked_String (Name), CS, 1, 0);
+
+      if To_String (CS) /= "" then
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Final value: """ & To_String (CS) & '"');
+      else
+         NT.Item (Report, Name, NT.Success);
+      end if;
+   exception
+      when Error : others => NT.Report_Exception (Report, Name, Error);
+   end;
+
+   declare
+      Name : constant String := "Function Index_Non_Blank with From";
+      CS : constant Chunked_String := To_Chunked_String (Name);
+      M, N : Natural;
+   begin
+      M := Index (CS, " ");
+      N := Index_Non_Blank (CS, M);
+
+      if N /= M + 1 then
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Final value:" & Natural'Image (N));
+         NT.Info (Report, "Expected:" & Natural'Image (M + 1));
+      else
+         NT.Item (Report, Name, NT.Success);
+      end if;
+   exception
+      when Error : others => NT.Report_Exception (Report, Name, Error);
+   end;
+
+   declare
+      Name : constant String := "Function Find_Token at string end";
+      CS : constant Chunked_String := To_Chunked_String ("--end");
+      First : Positive;
+      Last : Natural;
+   begin
+      Find_Token
+        (Source => CS,
+         Set => Maps.To_Set ("abcdefghijklmnopqrst"),
+         Test => Ada.Strings.Inside,
+         First => First,
+         Last => Last);
+
+      if First /= 3 or Last /= 5 then
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report,
+            "Final interval:" & Natural'Image (First)
+            & " .." & Natural'Image (Last));
+         NT.Info (Report, "Expected: 3 .. 5");
+      else
+         NT.Item (Report, Name, NT.Success);
+      end if;
+   exception
+      when Error : others => NT.Report_Exception (Report, Name, Error);
+   end;
+
    Natools.Tests.End_Section (Report);
 end Natools.Chunked_Strings.Tests.Coverage;
