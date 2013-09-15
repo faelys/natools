@@ -20,6 +20,7 @@ with Natools.Chunked_Strings.Tests.CXA4011;
 with Natools.Chunked_Strings.Tests.CXA4030;
 with Natools.Chunked_Strings.Tests.CXA4031;
 with Natools.Chunked_Strings.Tests.CXA4032;
+with Natools.Chunked_Strings.Tests.Memory;
 with Natools.Accumulators.Tests;
 
 package body Natools.Chunked_Strings.Tests is
@@ -61,11 +62,22 @@ package body Natools.Chunked_Strings.Tests is
    end All_Greybox_Tests;
 
 
+   procedure All_Whitebox_Tests (Report : in out Natools.Tests.Reporter'Class)
+   is
+      procedure Test_Memory is new Memory;
+   begin
+      NT.Section (Report, "Whitebox tests for Chunked_Strings");
+      Test_Memory (Report);
+      NT.End_Section (Report);
+   end All_Whitebox_Tests;
+
+
    procedure All_Tests (Report : in out Natools.Tests.Reporter'Class) is
    begin
       NT.Section (Report, "All tests of Chunked_Strings");
       All_Blackbox_Tests (Report);
       All_Greybox_Tests (Report);
+      All_Whitebox_Tests (Report);
       NT.End_Section (Report);
    end All_Tests;
 

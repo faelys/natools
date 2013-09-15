@@ -17,10 +17,6 @@
 ------------------------------------------------------------------------------
 -- Natools.Chunked_Strings.Tests is the test suite for Chunked_String.      --
 --                                                                          --
--- It currently contains only black-box tests (i.e. without any assumption  --
--- on the internal implementaiton), taken from Unbounded_String tests in    --
--- ACATS.                                                                   --
---                                                                          --
 -- It also provides private helper functions used in more specialized test  --
 -- packages.                                                                --
 ------------------------------------------------------------------------------
@@ -33,6 +29,8 @@ generic package Natools.Chunked_Strings.Tests is
    procedure All_Blackbox_Tests (Report : in out Natools.Tests.Reporter'Class);
 
    procedure All_Greybox_Tests (Report : in out Natools.Tests.Reporter'Class);
+
+   procedure All_Whitebox_Tests (Report : in out Natools.Tests.Reporter'Class);
 
    procedure All_Tests (Report : in out Natools.Tests.Reporter'Class);
 
