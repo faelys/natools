@@ -22,6 +22,7 @@ with Ada.Command_Line;
 with Ada.Text_IO;
 with Natools.Chunked_Strings.Tests;
 with Natools.Getopt_Long_Tests;
+with Natools.Reference_Tests;
 with Natools.Tests.Text_IO;
 
 procedure Test_All is
@@ -59,6 +60,10 @@ begin
 
    Report.Section ("Getopt_Long");
    Natools.Getopt_Long_Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("References");
+   Natools.Reference_Tests.All_Tests (Report);
    Report.End_Section;
 
    Natools.Tests.Text_IO.Print_Results (Report.Total_Results);
