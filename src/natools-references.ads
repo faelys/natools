@@ -23,9 +23,12 @@
 ------------------------------------------------------------------------------
 
 with Ada.Finalization;
+with System.Storage_Pools;
 
 generic
    type Held_Data (<>) is limited private;
+   Counter_Pool : in out System.Storage_Pools.Root_Storage_Pool'Class;
+   Data_Pool : in out System.Storage_Pools.Root_Storage_Pool'Class;
 
 package Natools.References is
    pragma Preelaborate (References);
@@ -83,8 +86,10 @@ private
    type Counter is new Natural;
 
    type Counter_Access is access Counter;
+   for Counter_Access'Storage_Pool use Counter_Pool;
 
    type Data_Access is access Held_Data;
+   for Data_Access'Storage_Pool use Data_Pool;
 
    type Reference is new Ada.Finalization.Controlled with record
       Count : Counter_Access := null;

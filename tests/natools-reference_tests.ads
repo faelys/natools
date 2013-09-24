@@ -22,8 +22,9 @@
 with Natools.Tests;
 
 private with Ada.Finalization;
---  private with GNAT.Debug_Pools;
+private with GNAT.Debug_Pools;
 private with Natools.References;
+private with System.Storage_Pools;
 
 package Natools.Reference_Tests is
 
@@ -48,9 +49,11 @@ private
    function Factory return Counter;
    overriding procedure Finalize (Object : in out Counter);
 
---   Pool : GNAT.Debug_Pools.Debug_Pool;
+   Pool : GNAT.Debug_Pools.Debug_Pool;
 
-   package Refs is new Natools.References (Counter);
---     (Counter, System.Pool_Global.Global_Pool_Object, Pool);
+   package Refs is new Natools.References
+     (Counter,
+      System.Storage_Pools.Root_Storage_Pool'Class (Pool),
+      System.Storage_Pools.Root_Storage_Pool'Class (Pool));
 
 end Natools.Reference_Tests;
