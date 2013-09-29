@@ -68,6 +68,30 @@ begin
       Repeats : constant Positive := 50;
    begin
       Preallocate (CS, Repeats * Name'Length);
+      Append (CS, Name);
+      Memory_Ref := Allocated_Size (CS);
+      Free_Extra_Memory (CS);
+
+      if Memory_Ref <= Allocated_Size (CS) then
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Memory before:"
+           & Natural'Image (Memory_Ref));
+         NT.Info (Report, "Memory after:"
+           &  Natural'Image (Allocated_Size (CS)));
+      else
+         NT.Item (Report, Name, NT.Success);
+      end if;
+   exception
+      when Error : others => NT.Report_Exception (Report, Name, Error);
+   end;
+
+   declare
+      Name : constant String := "Procedure Free_Extra_Memory (empty)";
+      CS : Chunked_String;
+      Memory_Ref : Natural;
+      Repeats : constant Positive := 50;
+   begin
+      Preallocate (CS, Repeats * Name'Length);
       Memory_Ref := Allocated_Size (CS);
       Free_Extra_Memory (CS);
 

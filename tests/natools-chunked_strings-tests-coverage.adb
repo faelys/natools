@@ -21,6 +21,23 @@ procedure Natools.Chunked_Strings.Tests.Coverage
   (Report : in out Natools.Tests.Reporter'Class)
 is
    package NT renames Natools.Tests;
+
+   procedure Report_Result
+     (Name : in String;
+      Reported : in out Boolean;
+      Result : in NT.Result := NT.Fail);
+      --  Report Result unless already reported
+
+   procedure Report_Result
+     (Name : in String;
+      Reported : in out Boolean;
+      Result : in NT.Result := NT.Fail) is
+   begin
+      if not Reported then
+         NT.Item (Report, Name, Result);
+         Reported := True;
+      end if;
+   end Report_Result;
 begin
    NT.Section (Report, "Extra tests for complete coverage");
 
@@ -271,6 +288,48 @@ begin
       else
          NT.Item (Report, Name, NT.Success);
       end if;
+   exception
+      when Error : others => NT.Report_Exception (Report, Name, Error);
+   end;
+
+   declare
+      Name : constant String := "Comparisons of Chunked_Strings";
+      CS_Name : constant Chunked_String := To_Chunked_String (Name);
+      Prefix : constant Chunked_String := To_Chunked_String ("Comparisons");
+      Smaller : constant Chunked_String := To_Chunked_String ("Ca");
+      Reported : Boolean := False;
+   begin
+      if CS_Name <= Null_Chunked_String then
+         Report_Result (Name, Reported);
+         NT.Info (Report, "CS_Name <= Null_Chunked_String");
+      end if;
+
+      if Null_Chunked_String >= CS_Name then
+         Report_Result (Name, Reported);
+         NT.Info (Report, "Null_Chunked_String >= CS_Name");
+      end if;
+
+      if Prefix >= CS_Name then
+         Report_Result (Name, Reported);
+         NT.Info (Report, "Prefix >= CS_Name");
+      end if;
+
+      if CS_Name <= Prefix then
+         Report_Result (Name, Reported);
+         NT.Info (Report, "CS_Name <= Prefix");
+      end if;
+
+      if Smaller >= CS_Name then
+         Report_Result (Name, Reported);
+         NT.Info (Report, "Smaller >= CS_Name");
+      end if;
+
+      if CS_Name <= Smaller then
+         Report_Result (Name, Reported);
+         NT.Info (Report, "CS_Name <= Smaller");
+      end if;
+
+      Report_Result (Name, Reported, NT.Success);
    exception
       when Error : others => NT.Report_Exception (Report, Name, Error);
    end;
