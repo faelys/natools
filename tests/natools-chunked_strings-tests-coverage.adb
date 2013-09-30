@@ -16,6 +16,7 @@
 
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
+with Ada.Strings.Maps;
 
 procedure Natools.Chunked_Strings.Tests.Coverage
   (Report : in out Natools.Tests.Reporter'Class)
@@ -328,6 +329,59 @@ begin
          Report_Result (Name, Reported);
          NT.Info (Report, "CS_Name <= Smaller");
       end if;
+
+      Report_Result (Name, Reported, NT.Success);
+   exception
+      when Error : others => NT.Report_Exception (Report, Name, Error);
+   end;
+
+   declare
+      Name : constant String := "Procedure Index, backwards without match";
+      CS : constant Chunked_String := To_Chunked_String (Name);
+      N : Natural;
+   begin
+      N := Index
+        (Source => CS,
+         Set => Ada.Strings.Maps.To_Set ("."),
+         Test => Ada.Strings.Inside,
+         Going => Ada.Strings.Backward);
+
+      if N /= 0 then
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Unexpected match at" & Natural'Image (N));
+      else
+         NT.Item (Report, Name, NT.Success);
+      end if;
+   exception
+      when Error : others => NT.Report_Exception (Report, Name, Error);
+   end;
+
+   declare
+      Name : constant String := "Function Trim, one-sided";
+      Str : constant String := "   word  ";
+      Reported : Boolean := False;
+   begin
+      declare
+         CS : constant Chunked_String := To_Chunked_String (Str);
+         Left : constant String
+           := Ada.Strings.Fixed.Trim (Str, Ada.Strings.Left);
+         Right : constant String
+           := Ada.Strings.Fixed.Trim (Str, Ada.Strings.Right);
+         CS_Left : constant Chunked_String := Trim (CS, Ada.Strings.Left);
+         CS_Right : constant Chunked_String := Trim (CS, Ada.Strings.Right);
+      begin
+         if To_String (CS_Left) /= Left then
+            Report_Result (Name, Reported);
+            NT.Info (Report, "Found """ & To_String (CS_Left) & '"');
+            NT.Info (Report, "Expected """ & Left & '"');
+         end if;
+
+         if To_String (CS_Right) /= Right then
+            Report_Result (Name, Reported);
+            NT.Info (Report, "Found """ & To_String (CS_Right) & '"');
+            NT.Info (Report, "Expected """ & Right & '"');
+         end if;
+      end;
 
       Report_Result (Name, Reported, NT.Success);
    exception
