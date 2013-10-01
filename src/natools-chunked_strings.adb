@@ -357,22 +357,13 @@ package body Natools.Chunked_Strings is
          R_Pos := R_Pos + Step;
 
          if L_Pos > Left (L_Chunk).all'Last then
-            if L_Chunk = Left'Last then
-               if R_Pos <= Right (R_Chunk).all'Last
-                  or R_Chunk < Right'Last
-               then
-                  return Lesser;
-               else
-                  return Equal;
-               end if;
-            end if;
+            --  L_Chunk cannot be Left'Last because L_Remain > 0
             L_Chunk := L_Chunk + 1;
             L_Pos := Left (L_Chunk).all'First;
          end if;
+
          if R_Pos > Right (R_Chunk).all'Last then
-            if R_Chunk = Right'Last then
-               return Greater;
-            end if;
+            --  R_Chunk cannot be Right'Last because R_Remain > 0
             R_Chunk := R_Chunk + 1;
             R_Pos := Right (R_Chunk).all'First;
          end if;
