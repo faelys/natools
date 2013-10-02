@@ -79,6 +79,122 @@ begin
    end;
 
    declare
+      Name : constant String := "Index_Error raised in function Slice";
+      CS   : constant Chunked_String := To_Chunked_String (Name);
+      Str  : String (1 .. 10);
+   begin
+      Str := Slice (CS, Name'Length, Name'Length + Str'Length - 1);
+      NT.Item (Report, Name, NT.Fail);
+      NT.Info (Report, "No exception has been raised.");
+      NT.Info (Report, "Final value: """ & Str & '"');
+   exception
+      when Ada.Strings.Index_Error =>
+         NT.Item (Report, Name, NT.Success);
+      when Error : others =>
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Wrong exception "
+                          & Ada.Exceptions.Exception_Name (Error)
+                          & "has been raised.");
+   end;
+
+   declare
+      Name : constant String := "Index_Error raised in function Chunked_Slice";
+      CS   : constant Chunked_String := To_Chunked_String (Name);
+      Dest : Chunked_String;
+   begin
+      Dest := Chunked_Slice (CS, Name'Length, Name'Length + 10);
+      NT.Item (Report, Name, NT.Fail);
+      NT.Info (Report, "No exception has been raised.");
+      NT.Info (Report, "Final value: """ & To_String (Dest) & '"');
+   exception
+      when Ada.Strings.Index_Error =>
+         NT.Item (Report, Name, NT.Success);
+      when Error : others =>
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Wrong exception "
+                          & Ada.Exceptions.Exception_Name (Error)
+                          & "has been raised.");
+   end;
+
+   declare
+      Name : constant String
+        := "Index_Error raised in procedure Chunked_Slice";
+      CS   : constant Chunked_String := To_Chunked_String (Name);
+      Dest : Chunked_String;
+   begin
+      Chunked_Slice (CS, Dest, Name'Length + 10, Name'Length + 20);
+      NT.Item (Report, Name, NT.Fail);
+      NT.Info (Report, "No exception has been raised.");
+      NT.Info (Report, "Final value: """ & To_String (Dest) & '"');
+   exception
+      when Ada.Strings.Index_Error =>
+         NT.Item (Report, Name, NT.Success);
+      when Error : others =>
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Wrong exception "
+                          & Ada.Exceptions.Exception_Name (Error)
+                          & "has been raised.");
+   end;
+
+   declare
+      Name : constant String
+        := "Index_Error raised in function Index (pattern)";
+      CS   : constant Chunked_String := To_Chunked_String (Name);
+      N : Natural;
+   begin
+      N := Index (CS, ".", Name'Length + 1);
+      NT.Item (Report, Name, NT.Fail);
+      NT.Info (Report, "No exception has been raised.");
+      NT.Info (Report, "Final value:" & Integer'Image (N));
+   exception
+      when Ada.Strings.Index_Error =>
+         NT.Item (Report, Name, NT.Success);
+      when Error : others =>
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Wrong exception "
+                          & Ada.Exceptions.Exception_Name (Error)
+                          & "has been raised.");
+   end;
+
+   declare
+      Name : constant String := "Index_Error raised in function Index (set)";
+      CS   : constant Chunked_String := To_Chunked_String (Name);
+      N : Natural;
+   begin
+      N := Index (CS, Maps.To_Set ("."), Name'Length + 1);
+      NT.Item (Report, Name, NT.Fail);
+      NT.Info (Report, "No exception has been raised.");
+      NT.Info (Report, "Final value:" & Integer'Image (N));
+   exception
+      when Ada.Strings.Index_Error =>
+         NT.Item (Report, Name, NT.Success);
+      when Error : others =>
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Wrong exception "
+                          & Ada.Exceptions.Exception_Name (Error)
+                          & "has been raised.");
+   end;
+
+   declare
+      Name : constant String := "Index_Error raised in function Replace_Slice";
+      CS   : constant Chunked_String := To_Chunked_String (Name);
+      Dest : Chunked_String;
+   begin
+      Dest := Replace_Slice (CS, Name'Length + 10, 0, "Hello");
+      NT.Item (Report, Name, NT.Fail);
+      NT.Info (Report, "No exception has been raised.");
+      NT.Info (Report, "Final value: """ & To_String (Dest) & '"');
+   exception
+      when Ada.Strings.Index_Error =>
+         NT.Item (Report, Name, NT.Success);
+      when Error : others =>
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Wrong exception "
+                          & Ada.Exceptions.Exception_Name (Error)
+                          & "has been raised.");
+   end;
+
+   declare
       Name : constant String := "Function Duplicate";
       S, T : Chunked_String;
    begin
