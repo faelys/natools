@@ -452,6 +452,32 @@ begin
    end;
 
    declare
+      Name : constant String := "Comparisons of Chunked_Strings with Strings";
+      CS_Name : constant Chunked_String := To_Chunked_String (Name);
+      Double_Name : constant String := Name & Name;
+      Reported : Boolean := False;
+   begin
+      if CS_Name >= Double_Name then
+         Report_Result (Name, Reported);
+         NT.Info (Report, "CS_Name >= Double_Name");
+      end if;
+
+      if Null_Chunked_String >= Name then
+         Report_Result (Name, Reported);
+         NT.Info (Report, "Null_Chunked_String >= Name");
+      end if;
+
+      if CS_Name <= "" then
+         Report_Result (Name, Reported);
+         NT.Info (Report, "CS_Name <= """"");
+      end if;
+
+      Report_Result (Name, Reported, NT.Success);
+   exception
+      when Error : others => NT.Report_Exception (Report, Name, Error);
+   end;
+
+   declare
       Name : constant String := "Procedure Index, backwards without match";
       CS : constant Chunked_String := To_Chunked_String (Name);
       N : Natural;
