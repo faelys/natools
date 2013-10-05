@@ -23,6 +23,7 @@ with Ada.Text_IO;
 with Natools.Chunked_Strings.Tests;
 with Natools.Getopt_Long_Tests;
 with Natools.Reference_Tests;
+with Natools.String_Slice_Set_Tests;
 with Natools.String_Slice_Tests;
 with Natools.Tests.Text_IO;
 
@@ -69,6 +70,10 @@ begin
 
    Report.Section ("String_Slices");
    Natools.String_Slice_Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("String_Slices.Slice_Sets");
+   Natools.String_Slice_Set_Tests.All_Tests (Report);
    Report.End_Section;
 
    Natools.Tests.Text_IO.Print_Results (Report.Total_Results);
