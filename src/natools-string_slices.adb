@@ -32,9 +32,10 @@ package body Natools.String_Slices is
 
    function Is_Subrange (Sample, Reference : String_Range) return Boolean is
    begin
-      return Sample.First >= Reference.First
-        and then Sample.First + Sample.Length
-                   <= Reference.First + Reference.Length;
+      return Sample.Length = 0
+        or else (Sample.First >= Reference.First
+                 and then Sample.First + Sample.Length
+                            <= Reference.First + Reference.Length);
    end Is_Subrange;
 
 
