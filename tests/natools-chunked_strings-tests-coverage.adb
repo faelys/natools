@@ -384,7 +384,7 @@ begin
    end;
 
    declare
-      Name : constant String := "Function Find_Token at string end";
+      Name : constant String := "Procedure Find_Token at string end";
       CS : constant Chunked_String := To_Chunked_String ("--end");
       First : Positive;
       Last : Natural;

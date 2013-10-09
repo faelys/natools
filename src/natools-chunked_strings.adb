@@ -1606,22 +1606,12 @@ package body Natools.Chunked_Strings is
                          First  :    out Positive;
                          Last   :    out Natural)
    is
-      function Invert (M : Ada.Strings.Membership)
-         return Ada.Strings.Membership;
-      pragma Inline (Invert);
+      Invert : constant array (Ada.Strings.Membership)
+        of Ada.Strings.Membership
+        := (Ada.Strings.Inside  => Ada.Strings.Outside,
+            Ada.Strings.Outside => Ada.Strings.Inside);
 
       N : Natural;
-
-      function Invert (M : Ada.Strings.Membership)
-         return Ada.Strings.Membership
-      is
-         use Ada.Strings;
-      begin
-         case M is
-            when Inside  => return Outside;
-            when Outside => return Inside;
-         end case;
-      end Invert;
    begin
       N := Index (Source, Set, Test);
 
