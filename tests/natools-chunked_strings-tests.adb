@@ -14,6 +14,7 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
+with Natools.Chunked_Strings.Tests.Bugfixes;
 with Natools.Chunked_Strings.Tests.Coverage;
 with Natools.Chunked_Strings.Tests.CXA4010;
 with Natools.Chunked_Strings.Tests.CXA4011;
@@ -33,6 +34,7 @@ package body Natools.Chunked_Strings.Tests is
       procedure Test_CXA4030 is new CXA4030;
       procedure Test_CXA4031 is new CXA4031;
       procedure Test_CXA4032 is new CXA4032;
+      procedure Test_Bugfixes is new Bugfixes;
    begin
       NT.Section (Report, "Blackbox tests of Chunked_Strings");
       Test_CXA4010 (Report);
@@ -48,6 +50,8 @@ package body Natools.Chunked_Strings.Tests is
          Accumulators.Tests.Test (Report, Acc);
       end;
       NT.End_Section (Report);
+
+      Test_Bugfixes (Report);
       NT.End_Section (Report);
    end All_Blackbox_Tests;
 
