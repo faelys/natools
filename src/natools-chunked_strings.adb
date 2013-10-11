@@ -1454,7 +1454,11 @@ package body Natools.Chunked_Strings is
       when Ada.Strings.Forward =>
          loop
             Result := Ada.Strings.Fixed.Index
-              (Source.Data (Chunk).all, Set, Offset, Test, Going);
+              (Source.Data (Chunk).all
+                 (1 .. Positive'Min (Source.Size
+                                       - (Chunk - 1) * Source.Chunk_Size,
+                                     Source.Chunk_Size)),
+               Set, Offset, Test, Going);
             if Result /= 0 then
                return (Chunk - 1) * Source.Chunk_Size + Result;
             end if;
@@ -1467,7 +1471,11 @@ package body Natools.Chunked_Strings is
       when Ada.Strings.Backward =>
          loop
             Result := Ada.Strings.Fixed.Index
-              (Source.Data (Chunk).all, Set, Offset, Test, Going);
+              (Source.Data (Chunk).all
+                 (1 .. Positive'Min (Source.Size
+                                       - (Chunk - 1) * Source.Chunk_Size,
+                                     Source.Chunk_Size)),
+               Set, Offset, Test, Going);
             if Result /= 0 then
                return (Chunk - 1) * Source.Chunk_Size + Result;
             end if;
