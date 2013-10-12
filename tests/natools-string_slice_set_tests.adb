@@ -14,6 +14,7 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
+with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Maps;
 with Ada.Strings.Unbounded;
@@ -104,6 +105,7 @@ package body Natools.String_Slice_Set_Tests is
    procedure All_Tests (Report : in out NT.Reporter'Class) is
    begin
       Test_Conversions (Report);
+      Test_Exceptions (Report);
       Test_Interval_Arithmetic (Report);
       Test_Navigation (Report);
       Test_Tokenization (Report);
@@ -285,6 +287,410 @@ package body Natools.String_Slice_Set_Tests is
    exception
       when Error : others => Report.Report_Exception (Name, Error);
    end Test_Conversions;
+
+
+   procedure Test_Exceptions (Report : in out NT.Reporter'Class) is
+      Parent_Slice : constant String_Slices.Slice
+        := String_Slices.To_Slice (Parent_String);
+      Set : Slice_Sets.Slice_Set;
+   begin
+      Report.Section ("Exceptions raised");
+
+      declare
+         Name : constant String := "Add_Slice to null set";
+      begin
+         Set.Add_Slice (15, 19);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Exclude_Slice from null set";
+      begin
+         Set.Exclude_Slice (15, 19);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Include_Slice to null set";
+      begin
+         Set.Include_Slice (15, 19);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Restrict null set";
+      begin
+         Set.Restrict (15, 19);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Subset of null set";
+         New_Set : Slice_Sets.Slice_Set;
+      begin
+         New_Set := Set.Subset (15, 19);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+         Report.Info ("Result: """ & New_Set.To_String & '"');
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Cut_Before in null set";
+      begin
+         Set.Cut_Before (15);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Find_Slice in null set";
+
+         function Find_Anything (Slice : String) return Boolean;
+
+         function Find_Anything (Slice : String) return Boolean is
+            pragma Unreferenced (Slice);
+         begin
+            return True;
+         end Find_Anything;
+
+         Result : String_Slices.String_Range;
+      begin
+         Result := Set.Find_Slice (Find_Anything'Access);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+         Report.Info ("Result: " & String_Slices.Image (Result));
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      Set := Slice_Sets.To_Slice_Set (Parent_Slice);
+      Set.Exclude_Slice (20, 29);
+
+      declare
+         Name : constant String := "Incorrect Index in Element";
+         C : Character;
+      begin
+         C := Set.Element (25);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+         Report.Info ("Return value: " & Character'Image (C));
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Include_Slice outside of parent string";
+      begin
+         Set.Include_Slice (Parent_String'Last + 10, Parent_String'Last + 19);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Add_Slice outside of parent string";
+      begin
+         Set.Add_Slice (Parent_String'Last + 10, Parent_String'Last + 19);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Add_Slice with overlapping range";
+      begin
+         Set.Add_Slice (15, 24);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Add_Slice with overlapping slice";
+      begin
+         Set.Add_Slice (Parent_Slice.Subslice (15, 24));
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Unrelated Add_Slice";
+      begin
+         Set.Add_Slice (String_Slices.To_Slice (Parent_String (22 .. 26)));
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Unrelated Include_Slice";
+      begin
+         Set.Include_Slice (String_Slices.To_Slice (Parent_String (22 .. 26)));
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Cut_Before before first";
+      begin
+         Set.Cut_Before (5);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Cut_Before after last";
+      begin
+         Set.Cut_Before (Parent_String'Last + 5);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Extender callback in Trim_Slices";
+
+         function Extender (Slice : String) return String_Slices.String_Range;
+
+         function Extender (Slice : String)
+           return String_Slices.String_Range is
+         begin
+            return String_Slices.To_Range (Slice'First, Slice'Last + 1);
+         end Extender;
+      begin
+         Set.Trim_Slices (Extender'Access);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Function Index with invalid From";
+         N : Natural;
+      begin
+         N := Set.Index (Ada.Strings.Maps.To_Set (" "), 5);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+         Report.Info ("Return value:" & Integer'Image (N));
+      exception
+         when Ada.Strings.Index_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      Set.Clear;
+
+      declare
+         Name : constant String := "Empty_Set.Next";
+         N : Natural;
+      begin
+         N := Set.Next (15);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+         Report.Info ("Return value:" & Integer'Image (N));
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Empty_Set.Previous";
+         N : Natural;
+      begin
+         N := Set.Previous (15);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+         Report.Info ("Return value:" & Integer'Image (N));
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      Set.Include_Slice (Parent_String'First, Parent_String'Last);
+
+      declare
+         Name : constant String := "Invalid input Index for Next";
+         N : Natural;
+      begin
+         N := Set.Next (5);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+         Report.Info ("Return value:" & Integer'Image (N));
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      declare
+         Name : constant String := "Invalid input Index for Previous";
+         N : Natural;
+      begin
+         N := Set.Previous (5);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception has been raised.");
+         Report.Info ("Return value:" & Integer'Image (N));
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Wrong exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised.");
+      end;
+
+      Report.End_Section;
+   end Test_Exceptions;
+
 
    procedure Test_Interval_Arithmetic (Report : in out NT.Reporter'Class) is
       Name : constant String := "Interval arithmetic";

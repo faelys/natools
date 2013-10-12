@@ -29,6 +29,7 @@ package Natools.String_Slice_Set_Tests is
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
    procedure Test_Conversions (Report : in out NT.Reporter'Class);
+   procedure Test_Exceptions (Report : in out NT.Reporter'Class);
    procedure Test_Interval_Arithmetic (Report : in out NT.Reporter'Class);
    procedure Test_Navigation (Report : in out NT.Reporter'Class);
    procedure Test_Tokenization (Report : in out NT.Reporter'Class);
