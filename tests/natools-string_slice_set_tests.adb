@@ -108,6 +108,7 @@ package body Natools.String_Slice_Set_Tests is
       Test_Exceptions (Report);
       Test_Interval_Arithmetic (Report);
       Test_Navigation (Report);
+      Test_Slices (Report);
       Test_Tokenization (Report);
    end All_Tests;
 
@@ -871,6 +872,39 @@ package body Natools.String_Slice_Set_Tests is
    exception
       when Error : others => Report.Report_Exception (Name, Error);
    end Test_Navigation;
+
+
+   procedure Test_Slices (Report : in out NT.Reporter'Class) is
+      Name : constant String := "Slice-based operations";
+      Parent : constant String_Slices.Slice
+        := String_Slices.To_Slice (Parent_String);
+      Unrelated : constant String_Slices.Slice
+        := String_Slices.To_Slice (Name);
+      Set_1, Set_2, Set_3 : Slice_Sets.Slice_Set;
+
+      use type Slice_Sets.Slice_Set;
+   begin
+      Set_1.Include_Slice (Unrelated.Subslice (10, 9));
+      Set_1.Add_Slice (Parent);
+      Set_2.Add_Slice (Parent.Subslice (20, 29));
+      Set_2.Add_Slice (Unrelated.Subslice (25, 24));
+      Set_2.Include_Slice (Parent);
+      Set_3.Include_Slice (Parent.Subslice (20, 29));
+      Set_3.Add_Slice (Parent.Subslice (35, 39));
+      Set_3.Include_Slice (Parent);
+
+      if Set_1 = Set_2 and Set_1 = Set_3 then
+         Report.Item (Name, NT.Success);
+      else
+         Report.Item (Name, NT.Fail);
+         Report.Info ("Add_Slice and Include_Slice not equivalent");
+         Dump (Report, Set_1);
+         Dump (Report, Set_2);
+         Dump (Report, Set_3);
+      end if;
+   exception
+      when Error : others => Report.Report_Exception (Name, Error);
+   end Test_Slices;
 
 
    procedure Test_Tokenization (Report : in out NT.Reporter'Class) is

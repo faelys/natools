@@ -32,6 +32,7 @@ package Natools.String_Slice_Set_Tests is
    procedure Test_Exceptions (Report : in out NT.Reporter'Class);
    procedure Test_Interval_Arithmetic (Report : in out NT.Reporter'Class);
    procedure Test_Navigation (Report : in out NT.Reporter'Class);
+   procedure Test_Slices (Report : in out NT.Reporter'Class);
    procedure Test_Tokenization (Report : in out NT.Reporter'Class);
 
 end Natools.String_Slice_Set_Tests;
