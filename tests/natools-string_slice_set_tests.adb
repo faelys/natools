@@ -108,6 +108,7 @@ package body Natools.String_Slice_Set_Tests is
       Test_Exceptions (Report);
       Test_Interval_Arithmetic (Report);
       Test_Navigation (Report);
+      Test_Reductions (Report);
       Test_Slices (Report);
       Test_Tokenization (Report);
    end All_Tests;
@@ -780,6 +781,72 @@ package body Natools.String_Slice_Set_Tests is
    exception
       when Error : others => Report.Report_Exception (Name, Error);
    end Test_Interval_Arithmetic;
+
+
+   procedure Test_Reductions (Report : in out NT.Reporter'Class) is
+      Name : constant String := "Slice set reductions";
+      Reported : Boolean := False;
+   begin
+      declare
+         use type Slice_Sets.Slice_Set;
+
+         Set : Slice_Sets.Slice_Set := Slice_Sets.To_Slice_Set (Parent_String);
+         Subset : Slice_Sets.Slice_Set;
+         First : constant Positive := 21;
+         Last : constant Positive := 50;
+         Middle_First : constant Positive := 30;
+         Middle_Last : constant Positive := 39;
+         Expected_String : constant String
+           := Parent_String (First .. Middle_First - 1)
+            & Parent_String (Middle_Last + 1 .. Last);
+      begin
+         Set.Exclude_Slice (Middle_First, Middle_Last);
+         Set.Restrict (First, Last);
+
+         if Set.To_String /= Expected_String then
+            Info_Fail (Report, Name, Reported,
+              "Expected """ & Expected_String & '"');
+            Dump (Report, Set);
+         end if;
+
+         Set.Restrict (First, First - 1);
+         if Set.Is_Null or not Set.Is_Empty then
+            Info_Fail (Report, Name, Reported, "Expected empty set");
+            Dump (Report, Set);
+         end if;
+
+         Subset := Set.Subset (Parent_String'First, Parent_String'Last);
+         if Subset.Is_Null or not Set.Is_Empty then
+            Info_Fail (Report, Name, Reported, "Expected empty subset");
+            Dump (Report, Subset);
+         end if;
+
+         Set.Add_Slice (First, Last);
+         Set.Exclude_Slice (Middle_First, Middle_Last);
+
+         Subset := Set.Subset (Parent_String'First, Last);
+         if Subset /= Set then
+            Info_Fail (Report, Name, Reported, "Expected equal subset");
+            Dump (Report, Set);
+            Dump (Report, Subset);
+         end if;
+
+         Subset := Set.Subset (First + 1, Middle_First - 2);
+         if Subset.To_String
+           /= Parent_String (First + 1 .. Middle_First - 2)
+         then
+            Info_Fail (Report, Name, Reported, "Expected """
+              & Parent_String (First + 1 .. Middle_First - 2) & '"');
+            Dump (Report, Subset);
+         end if;
+      end;
+
+      if not Reported then
+         Report.Item (Name, NT.Success);
+      end if;
+   exception
+      when Error : others => Report.Report_Exception (Name, Error);
+   end Test_Reductions;
 
 
    procedure Test_Navigation (Report : in out NT.Reporter'Class) is
