@@ -872,11 +872,29 @@ package body Natools.String_Slice_Set_Tests is
             return;
          end if;
 
+         if Set.Previous (Index) /= 0 then
+            Report.Item (Name, NT.Fail);
+            Report.Info
+              ("Unexpected predecessor of First: "
+               & Integer'Image (Set.Previous (Index)));
+            Dump (Report, Set);
+            return;
+         end if;
+
          if Set_Last /= Parent_String'Last then
             Report.Item (Name, NT.Fail);
             Report.Info
               ("Last index is" & Integer'Image (Set_Last)
                & ", expected" & Integer'Image (Parent_String'Last));
+            Dump (Report, Set);
+            return;
+         end if;
+
+         if Set.Next (Set_Last) /= 0 then
+            Report.Item (Name, NT.Fail);
+            Report.Info
+              ("Unexpected successor of Last: "
+               & Integer'Image (Set.Next (Set_Last)));
             Dump (Report, Set);
             return;
          end if;
