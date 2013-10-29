@@ -998,6 +998,7 @@ package body Natools.String_Slice_Set_Tests is
         := Ada.Strings.Maps.To_Set (" ");
 
       function Has_Spaces (S : String) return Boolean;
+      function Is_Fox (S : String) return Boolean;
       function Trim_Spaces (S : String) return String_Slices.String_Range;
 
 
@@ -1005,6 +1006,11 @@ package body Natools.String_Slice_Set_Tests is
       begin
          return Ada.Strings.Fixed.Index (S, Space) > 0;
       end Has_Spaces;
+
+      function Is_Fox (S : String) return Boolean is
+      begin
+         return S = "fox";
+      end Is_Fox;
 
       function Trim_Spaces (S : String) return String_Slices.String_Range is
          Result : String_Slices.String_Range;
@@ -1022,6 +1028,8 @@ package body Natools.String_Slice_Set_Tests is
 
          return Result;
       end Trim_Spaces;
+
+      use type String_Slices.String_Range;
    begin
       declare
          Set : Slice_Sets.Slice_Set := Slice_Sets.To_Slice_Set (Parent_String);
@@ -1045,9 +1053,23 @@ package body Natools.String_Slice_Set_Tests is
          end if;
 
          R := Set.Find_Slice (Has_Spaces'Access);
-         if R.First /= 1 or R.Length /= 0 then
+         if R /= (First => 1, Length => 0) then
             Report.Item (Name, NT.Fail);
-            Report.Info ("Unxpected slice found at "
+            Report.Info ("Unexpected slice found at "
+              & String_Slices.Image (R));
+            Dump (Report, Set);
+            return;
+         end if;
+
+         R := Set.Find_Slice (Is_Fox'Access, Ada.Strings.Backward);
+         if R = (First => 1, Length => 0) then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unable to find ""fox"" slice");
+            Dump (Report, Set);
+            return;
+         elsif R /= (First => 27, Length => 3) then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected ""fox"" slice found at "
               & String_Slices.Image (R));
             Dump (Report, Set);
             return;
