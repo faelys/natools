@@ -1074,6 +1074,72 @@ package body Natools.String_Slice_Set_Tests is
             Dump (Report, Set);
             return;
          end if;
+
+         declare
+            procedure Count_Word_Length (S : in String_Slices.Slice);
+
+            Word_Length : array (1 .. 5) of Natural := (others => 0);
+
+            procedure Count_Word_Length (S : in String_Slices.Slice) is
+            begin
+               Word_Length (S.Length) := Word_Length (S.Length) + 1;
+            end Count_Word_Length;
+         begin
+            Set.Query_Slices (Count_Word_Length'Access);
+
+            if Word_Length /= (0, 0, 3, 3, 3) then
+               Report.Item (Name, NT.Fail);
+               Report.Info ("Unexpected word lengths:"
+                 & Integer'Image (Word_Length (1))
+                 & Integer'Image (Word_Length (2))
+                 & Integer'Image (Word_Length (3))
+                 & Integer'Image (Word_Length (4))
+                 & Integer'Image (Word_Length (5)));
+               Dump (Report, Set);
+               return;
+            end if;
+         end;
+
+         declare
+            function Kill_Three_Letters (S : String)
+              return String_Slices.String_Range;
+
+            function Kill_Three_Letters (S : String)
+              return String_Slices.String_Range is
+            begin
+               if S'Length = 3 then
+                  return (S'First, 0);
+               else
+                  return (S'First, S'Length);
+               end if;
+            end Kill_Three_Letters;
+         begin
+            Set.Trim_Slices (Kill_Three_Letters'Access);
+
+            if Set.To_String /= "quickbrownjumpsoverlazydog." then
+               Report.Item (Name, NT.Fail);
+               Report.Info ("Expected ""quickbrownjumpsoverlazydog.""");
+               Dump (Report, Set);
+               return;
+            end if;
+         end;
+
+         declare
+            use type Slice_Sets.Slice_Set;
+
+            Derived : Slice_Sets.Slice_Set := Set;
+         begin
+            Derived.Cut_Before (21);
+            Derived.Cut_Before (31);
+
+            if Derived /= Set then
+               Report.Item (Name, NT.Fail);
+               Report.Info ("Unexpected side effect of Cut_Before");
+               Dump (Report, Set);
+               Dump (Report, Derived);
+               return;
+            end if;
+         end;
       end;
 
       Report.Item (Name, NT.Success);
