@@ -831,6 +831,13 @@ package body Natools.String_Slice_Set_Tests is
             Dump (Report, Subset);
          end if;
 
+         Subset.Add_Slice (First, First - 1);
+         if Subset /= Set then
+            Info_Fail (Report, Name, Reported, "Expected no-op Add_Slice");
+            Dump (Report, Set);
+            Dump (Report, Subset);
+         end if;
+
          Subset := Set.Subset (First + 1, Middle_First - 2);
          if Subset.To_String
            /= Parent_String (First + 1 .. Middle_First - 2)
