@@ -846,6 +846,20 @@ package body Natools.String_Slice_Set_Tests is
               & Parent_String (First + 1 .. Middle_First - 2) & '"');
             Dump (Report, Subset);
          end if;
+
+         Set.Clear;
+         Set.Include_Slice (20, 23);
+         Set.Include_Slice (25, 30);
+         Set.Include_Slice (32, 38);
+         Subset := Set.Subset (24, 38);
+         if Subset.To_String
+           /= Parent_String (25 .. 30) & Parent_String (32 .. 38)
+         then
+            Info_Fail (Report, Name, Reported, "Expected """
+              & Parent_String (25 .. 30) & Parent_String (32 .. 38) & '"');
+            Dump (Report, Set);
+            Dump (Report, Subset);
+         end if;
       end;
 
       if not Reported then
