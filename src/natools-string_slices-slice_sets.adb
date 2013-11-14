@@ -735,12 +735,14 @@ package body Natools.String_Slices.Slice_Sets is
       Cursor := Set.Bounds.Floor (Bounds);
       if Range_Sets.Has_Element (Cursor) then
          R := Range_Sets.Element (Cursor);
-         if R.First < Bounds.First and then Is_In (Bounds.First, R) then
-            Set_First (R, Bounds.First);
-            if Is_In (Last (Bounds), R) then
-               Set_Last (R, Last (Bounds));
+         if R.First < Bounds.First then
+            if Is_In (Bounds.First, R) then
+               Set_First (R, Bounds.First);
+               if Is_In (Last (Bounds), R) then
+                  Set_Last (R, Last (Bounds));
+               end if;
+               Result.Bounds.Insert (R);
             end if;
-            Result.Bounds.Insert (R);
             Range_Sets.Next (Cursor);
          end if;
       else
