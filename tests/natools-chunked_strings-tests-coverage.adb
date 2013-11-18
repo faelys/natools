@@ -530,5 +530,26 @@ begin
       when Error : others => NT.Report_Exception (Report, Name, Error);
    end;
 
+   declare
+      Name : constant String := "Multi-chunk Trim prefix";
+      Str : constant String
+        := Ada.Strings.Fixed."*" (Default_Chunk_Size * 2, ' ') & "   word";
+      CS : Chunked_String := To_Chunked_String (Str);
+      Space_Set : constant Ada.Strings.Maps.Character_Set
+        := Ada.Strings.Maps.To_Set (" ");
+   begin
+      CS.Trim (Space_Set, Space_Set);
+
+      if CS.To_String = "word" then
+         NT.Item (Report, Name, NT.Success);
+      else
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report, "Found """ & CS.To_String & '"');
+         NT.Info (Report, "Expected ""word""");
+      end if;
+   exception
+      when Error : others => NT.Report_Exception (Report, Name, Error);
+   end;
+
    Natools.Tests.End_Section (Report);
 end Natools.Chunked_Strings.Tests.Coverage;
