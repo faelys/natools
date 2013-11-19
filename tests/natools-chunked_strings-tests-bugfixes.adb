@@ -21,7 +21,7 @@ procedure Natools.Chunked_Strings.Tests.Bugfixes
 is
    package NT renames Natools.Tests;
 begin
-   Report.Section ("Extra tests for complete coverage");
+   Report.Section ("Tests for known bugs");
 
    declare
       Name : constant String := "Overreach of Index";
