@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2014, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -14,16 +14,16 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
+with Ada.Exceptions;
+
 with Natools.S_Expressions.Test_Tools;
 
 package body Natools.S_Expressions.Encodings.Tests is
 
    procedure All_Tests (Report : in out NT.Reporter'Class) is
    begin
-      Report.Section ("Encodings in S-expressions");
       Hexadecimal_Test (Report);
       Base64_Test (Report);
-      Report.End_Section;
    end All_Tests;
 
 
@@ -66,6 +66,51 @@ package body Natools.S_Expressions.Encodings.Tests is
             Decode_Hex (All_Octets));
       exception
          when Error : others => Report.Report_Exception (Name, Error);
+      end;
+
+      declare
+         Name : constant String := "Decoding an odd number of nibbles";
+      begin
+         Test_Tools.Test_Atom
+           (Report, Name,
+            (16#45#, 16#56#, 16#70#),
+            Decode_Hex (To_Atom ("45 56 7")));
+      exception
+         when Error : others => Report.Report_Exception (Name, Error);
+      end;
+
+      declare
+         Name : constant String := "Decode_Hex with non-hex-digit";
+         Result : Octet;
+      begin
+         Result := Decode_Hex (180);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception raised. Result: " & Octet'Image (Result));
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised");
+      end;
+
+      declare
+         Name : constant String := "Overflow in Encode_Hex";
+         Result : Octet;
+      begin
+         Result := Encode_Hex (16, Lower);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception raised. Result: " & Octet'Image (Result));
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised");
       end;
    end Hexadecimal_Test;
 
@@ -172,6 +217,40 @@ package body Natools.S_Expressions.Encodings.Tests is
          end if;
       exception
          when Error : others => Report.Report_Exception (Name, Error);
+      end;
+
+      declare
+         Name : constant String := "Decode_Base64 with non-base64-digit";
+         Result : Octet;
+      begin
+         Result := Decode_Base64 (127);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception raised. Result: " & Octet'Image (Result));
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised");
+      end;
+
+      declare
+         Name : constant String := "Overflow in Encode_Base64";
+         Result : Octet;
+      begin
+         Result := Encode_Base64 (64);
+         Report.Item (Name, NT.Fail);
+         Report.Info ("No exception raised. Result: " & Octet'Image (Result));
+      exception
+         when Constraint_Error =>
+            Report.Item (Name, NT.Success);
+         when Error : others =>
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected exception "
+              & Ada.Exceptions.Exception_Name (Error)
+              & " has been raised");
       end;
    end Base64_Test;
 
