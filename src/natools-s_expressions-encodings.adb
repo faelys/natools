@@ -79,7 +79,7 @@ package body Natools.S_Expressions.Encodings is
                end if;
             end loop;
             if Has_High then
-               Result (O) := Decode_Hex (High, 0);
+               Result (O) := Decode_Hex (High, Digit_0);
                O := O + 1;
             end if;
             pragma Assert (O - 1 = Result'Last);
