@@ -17,9 +17,17 @@
 ------------------------------------------------------------------------------
 -- Natools.S_Expressions.Test_Tools provides tools used in S-expression     --
 -- test suites.                                                             --
+-- Memory_Stream is a stream implementation around a memory buffer where    --
+-- written data can be subsequently read. A secondary buffer of expected    --
+-- data can be optionally used, and the mismatch marker is set when written --
+-- data does not match expected data.                                       --
 ------------------------------------------------------------------------------
 
+with Ada.Streams;
+
 with Natools.Tests;
+
+with Natools.S_Expressions.Atom_Buffers;
 
 package Natools.S_Expressions.Test_Tools is
    pragma Preelaborate (Test_Tools);
@@ -39,5 +47,57 @@ package Natools.S_Expressions.Test_Tools is
       Found : in Atom);
       --  Report success when Found is equal to Expected, and failure
       --  with diagnostics otherwise.
+
+
+   type Memory_Stream is new Ada.Streams.Root_Stream_Type with private;
+
+   overriding procedure Read
+     (Stream : in out Memory_Stream;
+      Item : out Ada.Streams.Stream_Element_Array;
+      Last : out Ada.Streams.Stream_Element_Offset);
+      --  Consume data from the beginning of internal buffer
+
+   overriding procedure Write
+     (Stream : in out Memory_Stream;
+      Item : in Ada.Streams.Stream_Element_Array);
+      --  Append data at the end of internal buffer
+
+   function Get_Data (Stream : Memory_Stream) return Atom;
+      --  Return internal buffer
+
+   function Unread_Data (Stream : Memory_Stream) return Atom;
+      --  Return part of internal buffer that has not yet been read
+
+   procedure Set_Data
+     (Stream : in out Memory_Stream;
+      Data : in Atom);
+      --  Replace whole internal buffer with Data
+
+   function Unread_Expected (Stream : Memory_Stream) return Atom;
+      --  Return part of expected buffer that has not been matched yet
+
+   procedure Set_Expected
+     (Stream : in out Memory_Stream;
+      Data : in Atom;
+      Reset_Mismatch : in Boolean := True);
+      --  Replace buffer of expected data
+
+   function Has_Mismatch (Stream : Memory_Stream) return Boolean;
+   procedure Reset_Mismatch (Stream : in out Memory_Stream);
+      --  Accessor and mutator of the mismatch flag
+
+   function Mismatch_Index (Stream : Memory_Stream) return Count;
+      --  Return the position of the first mismatching octet,
+      --  or 0 when there has been no mismatch.
+
+private
+
+   type Memory_Stream is new Ada.Streams.Root_Stream_Type with record
+      Internal : Atom_Buffers.Atom_Buffer;
+      Expected : Atom_Buffers.Atom_Buffer;
+      Read_Pointer : Count := 0;
+      Expect_Pointer : Count := 0;
+      Mismatch : Boolean := False;
+   end record;
 
 end Natools.S_Expressions.Test_Tools;

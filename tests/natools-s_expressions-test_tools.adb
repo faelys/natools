@@ -159,4 +159,126 @@ package body Natools.S_Expressions.Test_Tools is
       end if;
    end Test_Atom;
 
+
+
+   -------------------
+   -- Memory Stream --
+   -------------------
+
+   overriding procedure Read
+     (Stream : in out Memory_Stream;
+      Item : out Ada.Streams.Stream_Element_Array;
+      Last : out Ada.Streams.Stream_Element_Offset) is
+   begin
+      Last := Item'First - 1;
+
+      while Last + 1 in Item'Range
+        and then Stream.Read_Pointer < Stream.Internal.Length
+      loop
+         Stream.Read_Pointer := Stream.Read_Pointer + 1;
+         Last := Last + 1;
+         Item (Last) := Stream.Internal.Element (Stream.Read_Pointer);
+      end loop;
+   end Read;
+
+
+   overriding procedure Write
+     (Stream : in out Memory_Stream;
+      Item : in Ada.Streams.Stream_Element_Array) is
+   begin
+      if Stream.Read_Pointer >= Stream.Internal.Length then
+         Stream.Internal.Soft_Reset;
+         Stream.Read_Pointer := 0;
+      end if;
+
+      Stream.Internal.Append (Item);
+
+      if not Stream.Mismatch then
+         for I in Item'Range loop
+            if Stream.Expect_Pointer + 1 > Stream.Expected.Length
+              or else Stream.Expected.Element (Stream.Expect_Pointer + 1)
+                /= Item (I)
+            then
+               Stream.Mismatch := True;
+               exit;
+            end if;
+
+            Stream.Expect_Pointer := Stream.Expect_Pointer + 1;
+         end loop;
+      end if;
+   end Write;
+
+
+   function Get_Data (Stream : Memory_Stream) return Atom is
+   begin
+      return Stream.Internal.Query;
+   end Get_Data;
+
+
+   function Unread_Data (Stream : Memory_Stream) return Atom is
+   begin
+      if Stream.Read_Pointer < Stream.Internal.Length then
+         return Stream.Internal.Query.Data.all
+           (Stream.Read_Pointer + 1 .. Stream.Internal.Length);
+      else
+         return Null_Atom;
+      end if;
+   end Unread_Data;
+
+
+   procedure Set_Data
+     (Stream : in out Memory_Stream;
+      Data : in Atom) is
+   begin
+      Stream.Internal.Soft_Reset;
+      Stream.Internal.Append (Data);
+   end Set_Data;
+
+
+   function Unread_Expected (Stream : Memory_Stream) return Atom is
+   begin
+      if Stream.Expect_Pointer < Stream.Expected.Length then
+         return Stream.Expected.Query.Data.all
+           (Stream.Expect_Pointer + 1 .. Stream.Expected.Length);
+      else
+         return Null_Atom;
+      end if;
+   end Unread_Expected;
+
+
+   procedure Set_Expected
+     (Stream : in out Memory_Stream;
+      Data : in Atom;
+      Reset_Mismatch : in Boolean := True) is
+   begin
+      Stream.Expected.Soft_Reset;
+      Stream.Expected.Append (Data);
+      Stream.Expect_Pointer := 0;
+      if Reset_Mismatch then
+         Stream.Mismatch := False;
+      end if;
+   end Set_Expected;
+
+
+   function Has_Mismatch (Stream : Memory_Stream) return Boolean is
+   begin
+      return Stream.Mismatch;
+   end Has_Mismatch;
+
+
+   procedure Reset_Mismatch (Stream : in out Memory_Stream) is
+   begin
+      Stream.Mismatch := False;
+   end Reset_Mismatch;
+
+
+   function Mismatch_Index (Stream : Memory_Stream) return Count is
+   begin
+      if Stream.Mismatch then
+         return Stream.Expect_Pointer + 1;
+      else
+         return 0;
+      end if;
+   end Mismatch_Index;
+
 end Natools.S_Expressions.Test_Tools;
