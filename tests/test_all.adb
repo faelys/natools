@@ -25,6 +25,7 @@ with Natools.Getopt_Long_Tests;
 with Natools.Reference_Tests;
 with Natools.S_Expressions.Atom_Buffers.Tests;
 with Natools.S_Expressions.Encodings.Tests;
+with Natools.S_Expressions.Printers.Tests;
 with Natools.String_Slice_Set_Tests;
 with Natools.String_Slice_Tests;
 with Natools.Tests.Text_IO;
@@ -76,6 +77,10 @@ begin
 
    Report.Section ("S_Expressions.Encodings");
    Natools.S_Expressions.Encodings.Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("S_Expressions.Printers");
+   Natools.S_Expressions.Printers.Tests.All_Tests (Report);
    Report.End_Section;
 
    Report.Section ("String_Slices");
