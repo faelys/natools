@@ -43,4 +43,34 @@ package body Natools.S_Expressions.Printers is
       Output.Stream.Write ((0 => Encodings.List_End));
    end Close_List;
 
+
+   procedure Transfer
+     (Source : in out Descriptor'Class;
+      Target : in out Printer'Class)
+   is
+      procedure Print_Atom (Data : in Atom);
+
+      procedure Print_Atom (Data : in Atom) is
+      begin
+         Target.Append_Atom (Data);
+      end Print_Atom;
+
+      Event : Events.Event := Source.Current_Event;
+   begin
+      loop
+         case Event is
+            when Events.Error | Events.End_Of_Input =>
+               exit;
+            when Events.Open_List =>
+               Target.Open_List;
+            when Events.Close_List =>
+               Target.Close_List;
+            when Events.Add_Atom =>
+               Source.Query_Atom (Print_Atom'Access);
+         end case;
+
+         Source.Next (Event);
+      end loop;
+   end Transfer;
+
 end Natools.S_Expressions.Printers;

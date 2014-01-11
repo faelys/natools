@@ -39,6 +39,10 @@ package Natools.S_Expressions.Printers is
    procedure Append_Atom (Output : in out Printer; Data : in Atom) is abstract;
    procedure Close_List (Output : in out Printer) is abstract;
 
+   procedure Transfer
+     (Source : in out Descriptor'Class;
+      Target : in out Printer'Class);
+
    type Canonical (Stream : access Ada.Streams.Root_Stream_Type'Class) is
      new Printer with null record;
 
