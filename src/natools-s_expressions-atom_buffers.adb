@@ -81,7 +81,7 @@ package body Natools.S_Expressions.Atom_Buffers is
    end Length;
 
 
-   function Query (Buffer : Atom_Buffer) return Atom is
+   function Data (Buffer : Atom_Buffer) return Atom is
    begin
       if Buffer.Ref.Is_Empty then
          pragma Assert (Buffer.Available = 0 and Buffer.Used = 0);
@@ -89,10 +89,10 @@ package body Natools.S_Expressions.Atom_Buffers is
       else
          return Buffer.Ref.Query.Data.all;
       end if;
-   end Query;
+   end Data;
 
 
-   function Query (Buffer : Atom_Buffer) return Atom_Refs.Accessor is
+   function Raw_Query (Buffer : Atom_Buffer) return Atom_Refs.Accessor is
       function Create return Atom;
 
       function Create return Atom is
@@ -105,7 +105,7 @@ package body Natools.S_Expressions.Atom_Buffers is
       else
          return Buffer.Ref.Query;
       end if;
-   end Query;
+   end Raw_Query;
 
 
    procedure Query
@@ -120,7 +120,7 @@ package body Natools.S_Expressions.Atom_Buffers is
    end Query;
 
 
-   procedure Query
+   procedure Read
      (Buffer : in Atom_Buffer;
       Data : out Atom;
       Length : out Count)
@@ -136,7 +136,7 @@ package body Natools.S_Expressions.Atom_Buffers is
          Data (Data'First .. Data'First + Transmit - 1)
            := Buffer.Ref.Query.Data.all (1 .. Transmit);
       end if;
-   end Query;
+   end Read;
 
 
    function Element (Buffer : Atom_Buffer; Position : Count) return Octet is

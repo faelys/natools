@@ -44,17 +44,19 @@ package Natools.S_Expressions.Atom_Buffers is
       --  Append Data after the end of Buffer
 
    function Length (Buffer : Atom_Buffer) return Count;
-   function Query (Buffer : Atom_Buffer) return Atom;
-   function Query (Buffer : Atom_Buffer) return Atom_Refs.Accessor;
+   function Data (Buffer : Atom_Buffer) return Atom;
    procedure Query
      (Buffer : in Atom_Buffer;
       Process : not null access procedure (Data : in Atom));
-   procedure Query
+   procedure Read
      (Buffer : in Atom_Buffer;
       Data : out Atom;
       Length : out Count);
    function Element (Buffer : Atom_Buffer; Position : Count) return Octet;
       --  Accessors to the whole buffer as an Atom
+
+   function Raw_Query (Buffer : Atom_Buffer) return Atom_Refs.Accessor;
+      --  Accessor to the whole allocated memory
 
    procedure Hard_Reset (Buffer : in out Atom_Buffer);
       --  Clear buffer and release internal memory

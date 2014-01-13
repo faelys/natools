@@ -34,7 +34,7 @@ package body Natools.S_Expressions.Parsers is
          raise Program_Error;
       end if;
 
-      return P.Buffer.Query;
+      return P.Buffer.Data;
    end Current_Atom;
 
 
@@ -65,7 +65,7 @@ package body Natools.S_Expressions.Parsers is
          raise Program_Error;
       end if;
 
-      P.Buffer.Query (Data, Length);
+      P.Buffer.Read (Data, Length);
    end Read_Atom;
 
 
@@ -173,7 +173,7 @@ package body Natools.S_Expressions.Parsers is
                   if P.Internal.State = Base64_Atom then
                      P.Latest := Events.Add_Atom;
                   else
-                     P.Override.Append (P.Buffer.Query);
+                     P.Override.Append (P.Buffer.Data);
                      P.Buffer.Soft_Reset;
                   end if;
                   P.Internal := (State => Waiting);

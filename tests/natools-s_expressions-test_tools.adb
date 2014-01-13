@@ -211,14 +211,14 @@ package body Natools.S_Expressions.Test_Tools is
 
    function Get_Data (Stream : Memory_Stream) return Atom is
    begin
-      return Stream.Internal.Query;
+      return Stream.Internal.Data;
    end Get_Data;
 
 
    function Unread_Data (Stream : Memory_Stream) return Atom is
    begin
       if Stream.Read_Pointer < Stream.Internal.Length then
-         return Stream.Internal.Query.Data.all
+         return Stream.Internal.Raw_Query.Data.all
            (Stream.Read_Pointer + 1 .. Stream.Internal.Length);
       else
          return Null_Atom;
@@ -238,7 +238,7 @@ package body Natools.S_Expressions.Test_Tools is
    function Unread_Expected (Stream : Memory_Stream) return Atom is
    begin
       if Stream.Expect_Pointer < Stream.Expected.Length then
-         return Stream.Expected.Query.Data.all
+         return Stream.Expected.Raw_Query.Data.all
            (Stream.Expect_Pointer + 1 .. Stream.Expected.Length);
       else
          return Null_Atom;

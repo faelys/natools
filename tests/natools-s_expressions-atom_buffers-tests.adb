@@ -55,7 +55,7 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
          Buffer.Append (Data (102 .. 101));
          Buffer.Append (Data (102 .. 255));
 
-         Test_Tools.Test_Atom (Report, Name, Data, Buffer.Query.Data.all);
+         Test_Tools.Test_Atom (Report, Name, Data, Buffer.Data);
       end;
    exception
       when Error : others => Report.Report_Exception (Name, Error);
@@ -77,7 +77,7 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
             Buffer.Append (O);
          end loop;
 
-         Test_Tools.Test_Atom (Report, Name, Data, Buffer.Query.Data.all);
+         Test_Tools.Test_Atom (Report, Name, Data, Buffer.Data);
       end;
    exception
       when Error : others => Report.Report_Exception (Name, Error);
@@ -93,14 +93,14 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
          Buffer.Preallocate (256);
 
          declare
-            Old_Accessor : Atom_Refs.Accessor := Buffer.Query;
+            Old_Accessor : Atom_Refs.Accessor := Buffer.Raw_Query;
          begin
             for O in Octet loop
                Buffer.Append (O);
             end loop;
 
             Report.Item (Name,
-              NT.To_Result (Old_Accessor.Data = Buffer.Query.Data));
+              NT.To_Result (Old_Accessor.Data = Buffer.Raw_Query.Data));
          end;
       end;
    exception
@@ -109,7 +109,7 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
 
 
    procedure Test_Query (Report : in out NT.Reporter'Class) is
-      Name : constant String := "Query in all its variants";
+      Name : constant String := "Accessors";
       Data : Atom (0 .. 255);
    begin
       for O in Octet loop
@@ -128,25 +128,25 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
             return;
          end if;
 
-         if Buffer.Query /= Data then
+         if Buffer.Data /= Data then
             Report.Item (Name, NT.Fail);
-            Report.Info ("Query returning an Atom");
-            Test_Tools.Dump_Atom (Report, Buffer.Query, "Found");
+            Report.Info ("Data, returning an Atom");
+            Test_Tools.Dump_Atom (Report, Buffer.Data, "Found");
             Test_Tools.Dump_Atom (Report, Data, "Expected");
             return;
          end if;
 
-         if Buffer.Query.Data.all /= Data then
+         if Buffer.Raw_Query.Data.all /= Data then
             Report.Item (Name, NT.Fail);
-            Report.Info ("Query returning an accessor");
-            Test_Tools.Dump_Atom (Report, Buffer.Query.Data.all, "Found");
+            Report.Info ("Raw_Query, returning an accessor");
+            Test_Tools.Dump_Atom (Report, Buffer.Raw_Query.Data.all, "Found");
             Test_Tools.Dump_Atom (Report, Data, "Expected");
             return;
          end if;
 
          if Buffer.Element (25) /= Data (24) then
             Report.Item (Name, NT.Fail);
-            Report.Info ("Query returning an octet");
+            Report.Info ("Element, returning an octet");
             return;
          end if;
 
@@ -154,12 +154,12 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
             Retrieved : Atom (10 .. 310);
             Length : Count;
          begin
-            Buffer.Query (Retrieved, Length);
+            Buffer.Read (Retrieved, Length);
             if Length /= Data'Length
               or else Retrieved (10 .. Length + 9) /= Data
             then
                Report.Item (Name, NT.Fail);
-               Report.Info ("Query into an existing buffer");
+               Report.Info ("Read into an existing buffer");
                Report.Info ("Length returned" & Count'Image (Length)
                  & ", expected" & Count'Image (Data'Length));
                Test_Tools.Dump_Atom
@@ -173,10 +173,10 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
             Retrieved : Atom (20 .. 50);
             Length : Count;
          begin
-            Buffer.Query (Retrieved, Length);
+            Buffer.Read (Retrieved, Length);
             if Length /= Data'Length or else Retrieved /= Data (0 .. 30) then
                Report.Item (Name, NT.Fail);
-               Report.Info ("Query into a buffer too small");
+               Report.Info ("Read into a buffer too small");
                Report.Info ("Length returned" & Count'Image (Length)
                  & ", expected" & Count'Image (Data'Length));
                Test_Tools.Dump_Atom (Report, Retrieved, "Found");
@@ -211,22 +211,22 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
 
 
    procedure Test_Query_Null (Report : in out NT.Reporter'Class) is
-      Name : constant String := "Query variants against a null buffer";
+      Name : constant String := "Accessor variants against a null buffer";
    begin
       declare
          Buffer : Atom_Buffer;
       begin
-         if Buffer.Query /= Null_Atom then
+         if Buffer.Data /= Null_Atom then
             Report.Item (Name, NT.Fail);
-            Report.Info ("Query returning an Atom");
-            Test_Tools.Dump_Atom (Report, Buffer.Query, "Found");
+            Report.Info ("Data, returning an Atom");
+            Test_Tools.Dump_Atom (Report, Buffer.Data, "Found");
             return;
          end if;
 
-         if Buffer.Query.Data.all /= Null_Atom then
+         if Buffer.Raw_Query.Data.all /= Null_Atom then
             Report.Item (Name, NT.Fail);
-            Report.Info ("Query returning an accessor");
-            Test_Tools.Dump_Atom (Report, Buffer.Query.Data.all, "Found");
+            Report.Info ("Raw_Query, returning an accessor");
+            Test_Tools.Dump_Atom (Report, Buffer.Raw_Query.Data.all, "Found");
             return;
          end if;
 
@@ -234,10 +234,10 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
             Retrieved : Atom (1 .. 10);
             Length : Count;
          begin
-            Buffer.Query (Retrieved, Length);
+            Buffer.Read (Retrieved, Length);
             if Length /= 0 then
                Report.Item (Name, NT.Fail);
-               Report.Info ("Query into an existing buffer");
+               Report.Info ("Read into an existing buffer");
                Report.Info ("Length returned" & Count'Image (Length)
                  & ", expected 0");
                return;
@@ -280,7 +280,7 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
          end loop;
 
          declare
-            Accessor : Atom_Refs.Accessor := Buffer.Query;
+            Accessor : Atom_Refs.Accessor := Buffer.Raw_Query;
          begin
             Buffer.Soft_Reset;
 
@@ -291,17 +291,17 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
                return;
             end if;
 
-            if Buffer.Query.Data /= Accessor.Data then
+            if Buffer.Raw_Query.Data /= Accessor.Data then
                Report.Item (Name, NT.Fail);
                Report.Info ("Soft reset changed storage area");
                return;
             end if;
 
-            if Buffer.Query.Data.all'Length /= Buffer.Available then
+            if Buffer.Raw_Query.Data.all'Length /= Buffer.Available then
                Report.Item (Name, NT.Fail);
                Report.Info ("Available length inconsistency, recorded"
                  & Count'Image (Buffer.Available) & ", actual"
-                 & Count'Image (Buffer.Query.Data.all'Length));
+                 & Count'Image (Buffer.Raw_Query.Data.all'Length));
                return;
             end if;
          end;
