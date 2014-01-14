@@ -304,6 +304,14 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
                  & Count'Image (Buffer.Raw_Query.Data.all'Length));
                return;
             end if;
+
+            if Buffer.Data'Length /= Buffer.Used then
+               Report.Item (Name, NT.Fail);
+               Report.Info ("Used length inconsistency, recorded"
+                 & Count'Image (Buffer.Used) & ", actual"
+                 & Count'Image (Buffer.Data'Length));
+               return;
+            end if;
          end;
 
          for O in Octet'(10) .. Octet'(50) loop
