@@ -87,7 +87,7 @@ package body Natools.S_Expressions.Atom_Buffers is
          pragma Assert (Buffer.Available = 0 and Buffer.Used = 0);
          return Null_Atom;
       else
-         return Buffer.Ref.Query.Data.all;
+         return Buffer.Ref.Query.Data.all (1 .. Buffer.Used);
       end if;
    end Data;
 
@@ -115,7 +115,7 @@ package body Natools.S_Expressions.Atom_Buffers is
       if Buffer.Ref.Is_Empty then
          Process.all (Null_Atom);
       else
-         Buffer.Ref.Query (Process);
+         Process.all (Buffer.Ref.Query.Data.all (1 .. Buffer.Used));
       end if;
    end Query;
 
