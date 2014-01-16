@@ -59,6 +59,14 @@ package body Natools.S_Expressions.Parsers.Tests is
          if Output.Has_Mismatch then
             Report.Info ("Mismatch at position"
               & Count'Image (Output.Mismatch_Index));
+            declare
+               Output_Data : Atom renames Output.Get_Data;
+            begin
+               Report.Info ("Mismatching data: """
+                 & To_String
+                    (Output_Data (Output.Mismatch_Index .. Output_Data'Last))
+                 & '"');
+            end;
          end if;
 
          if Output.Unread_Expected /= Null_Atom then
@@ -83,10 +91,12 @@ package body Natools.S_Expressions.Parsers.Tests is
          Printer : Printers.Canonical (Output'Access);
          Parser : aliased Parsers.Parser;
          Sub : Subparser (Parser'Access, Input'Access);
+         Event : Events.Event;  --  !
       begin
          Output.Set_Expected (Expected);
          Input.Set_Data (Source);
-         Parser.Next_Event (Input'Access);
+--       Parser.Next_Event (Input'Access);
+         Sub.Next (Event);  --  !
 
          Printers.Transfer (Sub, Printer);
 
@@ -106,6 +116,9 @@ package body Natools.S_Expressions.Parsers.Tests is
    begin
       Canonical_Encoding (Report);
       Atom_Encodings (Report);
+      Base64_Subexpression (Report);
+      Number_Prefixes (Report);
+      Quoted_Escapes (Report);
    end All_Tests;
 
 
@@ -143,5 +156,59 @@ package body Natools.S_Expressions.Parsers.Tests is
    begin
       Test (Report);
    end Canonical_Encoding;
+
+
+   procedure Base64_Subexpression (Report : in out NT.Reporter'Class) is
+      procedure Test is new Blackbox_Test
+        (Name => "Base-64 subexpression",
+         Source => To_Atom ("head({KDc6c3VibGlzdCk1OnRva2Vu})""tail"""),
+         Expected => To_Atom ("4:head((7:sublist)5:token)4:tail"));
+   begin
+      Test (Report);
+   end Base64_Subexpression;
+
+
+   procedure Number_Prefixes (Report : in out NT.Reporter'Class) is
+      procedure Test is new Blackbox_Test
+        (Name => "Number prefixes",
+         Source => To_Atom ("8:verbatim"
+           & "(valid 6""quoted"" 11#68657861646563696d616c#"
+           & " 7|YmFzZS02NA==| 9{NzpleHByLTY0})"
+           & "(undefined 42 10% 123() 10)"
+           & "(invalid 10""quoted"" 3#68657861646563696d616c#"
+           & " 75|YmFzZS02NA==| 1{NzpleHByLTY0})"),
+         Expected => To_Atom ("8:verbatim"
+           & "(5:valid6:quoted11:hexadecimal7:base-647:expr-64)"
+           & "(9:undefined2:423:10%3:123()2:10)"
+           & "(7:invalid6:quoted11:hexadecimal7:base-647:expr-64)"));
+   begin
+      Test (Report);
+   end Number_Prefixes;
+
+
+   procedure Quoted_Escapes (Report : in out NT.Reporter'Class) is
+      CR : constant Character := Character'Val (13);
+      LF : constant Character := Character'Val (10);
+
+      procedure Test is new Blackbox_Test
+        (Name => "Escapes in quoted encoding",
+         Source => To_Atom ("(single-letters ""\b\t\n\v\f\r\\\k"")"
+           & "(newlines ""head\" & CR & "tail"" ""head\" & LF & "tail"""
+           & " ""head\" & CR & LF & "tail"" ""head\" & LF & CR & "tail"")"
+           & "(octal ""head\040\04\xtail"")"
+           & "(hexadecimal ""head\x20\x2a\x2D\x2gtail"")"
+           & "(special ""\x""1:"")"),
+         Expected => To_Atom ("(14:single-letters9:"
+           & Character'Val (8) & Character'Val (9)
+           & Character'Val (10) & Character'Val (11)
+           & Character'Val (12) & Character'Val (13)
+           & "\\k)"
+           & "(8:newlines8:headtail8:headtail8:headtail8:headtail)"
+           & "(5:octal14:head \04\xtail)"
+           & "(11:hexadecimal15:head *-\x2gtail)"
+           & "(7:special2:\x1:"")"));
+   begin
+      Test (Report);
+   end Quoted_Escapes;
 
 end Natools.S_Expressions.Parsers.Tests;
