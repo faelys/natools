@@ -291,8 +291,8 @@ package body Natools.S_Expressions.Parsers is
                            P.Internal.Escape.Length := 2;
 
                         when others =>
-                           P.Buffer.Append
-                             ((1 => P.Internal.Escape.Data (0), 2 => O));
+                           P.Buffer.Append (P.Internal.Escape.Data (0));
+                           P.Override.Append (O);
                            P.Internal.Escape.Length := 0;
                      end case;
 
@@ -313,14 +313,14 @@ package body Natools.S_Expressions.Parsers is
                         if not ((O = Encodings.CR or O = Encodings.LF)
                                 and O /= P.Internal.Escape.Data (1))
                         then
-                           P.Buffer.Append (O);
+                           P.Override.Append (O);
                         end if;
 
                      else
                         P.Buffer.Append
                           ((P.Internal.Escape.Data (0),
-                            P.Internal.Escape.Data (1),
-                            O));
+                            P.Internal.Escape.Data (1)));
+                        P.Override.Append (O);
                         P.Internal.Escape.Length := 0;
                      end if;
 
@@ -334,8 +334,8 @@ package body Natools.S_Expressions.Parsers is
                            P.Buffer.Append
                              ((P.Internal.Escape.Data (0),
                                P.Internal.Escape.Data (1),
-                               P.Internal.Escape.Data (2),
-                               O));
+                               P.Internal.Escape.Data (2)));
+                           P.Override.Append (O);
                         end if;
                      else
                         pragma Assert (P.Internal.Escape.Data (1)
@@ -352,8 +352,8 @@ package body Natools.S_Expressions.Parsers is
                            P.Buffer.Append
                              ((P.Internal.Escape.Data (0),
                                P.Internal.Escape.Data (1),
-                               P.Internal.Escape.Data (2),
-                               O));
+                               P.Internal.Escape.Data (2)));
+                           P.Override.Append (O);
                         end if;
                      end if;
                      P.Internal.Escape.Length := 0;
