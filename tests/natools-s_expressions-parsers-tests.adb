@@ -117,6 +117,8 @@ package body Natools.S_Expressions.Parsers.Tests is
       Canonical_Encoding (Report);
       Atom_Encodings (Report);
       Base64_Subexpression (Report);
+      Special_Subexpression (Report);
+      Nested_Subpexression (Report);
       Number_Prefixes (Report);
       Quoted_Escapes (Report);
    end All_Tests;
@@ -168,6 +170,20 @@ package body Natools.S_Expressions.Parsers.Tests is
    end Base64_Subexpression;
 
 
+   procedure Nested_Subpexression (Report : in out NT.Reporter'Class) is
+      procedure Test is new Blackbox_Test
+        (Name => "Nested base-64 subepxressions",
+         Source => To_Atom ("(5:begin"
+           & "{KG5lc3RlZCB7S0dSbFpYQWdjR0Y1Ykc5aFpDaz19KQ==}"
+           & "end)"),
+         Expected => To_Atom ("(5:begin"
+           & "(6:nested(4:deep7:payload))"
+           & "3:end)"));
+   begin
+      Test (Report);
+   end Nested_Subpexression;
+
+
    procedure Number_Prefixes (Report : in out NT.Reporter'Class) is
       procedure Test is new Blackbox_Test
         (Name => "Number prefixes",
@@ -210,5 +226,21 @@ package body Natools.S_Expressions.Parsers.Tests is
    begin
       Test (Report);
    end Quoted_Escapes;
+
+
+   procedure Special_Subexpression (Report : in out NT.Reporter'Class) is
+      procedure Test is new Blackbox_Test
+        (Name => "Special base-64 subexpression",
+         Source => To_Atom ("(begin "
+           & "{aGlkZGVuLWVuZCkoaGlkZGVuLWJlZ2lu}"
+           & " end)"
+           & "({MTY6b3ZlcmZsb3dpbmc=} atom)"),
+         Expected => To_Atom ("(5:begin"
+           & "10:hidden-end)(12:hidden-begin"
+           & "3:end)"
+           & "(16:overflowing atom)"));
+   begin
+      Test (Report);
+   end Special_Subexpression;
 
 end Natools.S_Expressions.Parsers.Tests;
