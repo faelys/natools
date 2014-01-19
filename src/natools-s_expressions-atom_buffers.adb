@@ -75,6 +75,22 @@ package body Natools.S_Expressions.Atom_Buffers is
    end Append;
 
 
+   procedure Append_Reverse (Buffer : in out Atom_Buffer; Data : in Atom) is
+      procedure Process (Target : in out Atom);
+
+      procedure Process (Target : in out Atom) is
+      begin
+         for I in reverse Data'Range loop
+            Buffer.Used := Buffer.Used + 1;
+            Target (Buffer.Used) := Data (I);
+         end loop;
+      end Process;
+   begin
+      Preallocate (Buffer, Data'Length);
+      Buffer.Ref.Update (Process'Access);
+   end Append_Reverse;
+
+
    function Length (Buffer : Atom_Buffer) return Count is
    begin
       return Buffer.Used;
@@ -143,6 +159,13 @@ package body Natools.S_Expressions.Atom_Buffers is
    begin
       return Buffer.Ref.Query.Data.all (Position);
    end Element;
+
+
+   procedure Pop (Buffer : in out Atom_Buffer; Data : out Octet) is
+   begin
+      Data := Buffer.Ref.Query.Data.all (Buffer.Used);
+      Buffer.Used := Buffer.Used - 1;
+   end Pop;
 
 
    procedure Hard_Reset (Buffer : in out Atom_Buffer) is

@@ -43,6 +43,9 @@ package Natools.S_Expressions.Atom_Buffers is
    procedure Append (Buffer : in out Atom_Buffer; Data : in Octet);
       --  Append Data after the end of Buffer
 
+   procedure Append_Reverse (Buffer : in out Atom_Buffer; Data : in Atom);
+      --  Append bytes from Atom from last to first
+
    function Length (Buffer : Atom_Buffer) return Count;
    function Data (Buffer : Atom_Buffer) return Atom;
    procedure Query
@@ -54,6 +57,9 @@ package Natools.S_Expressions.Atom_Buffers is
       Length : out Count);
    function Element (Buffer : Atom_Buffer; Position : Count) return Octet;
       --  Accessors to the whole buffer as an Atom
+
+   procedure Pop (Buffer : in out Atom_Buffer; Data : out Octet);
+      --  Remove last octet from Buffer and store it in Data
 
    function Raw_Query (Buffer : Atom_Buffer) return Atom_Refs.Accessor;
       --  Accessor to the whole allocated memory
