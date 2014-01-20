@@ -34,5 +34,6 @@ package Natools.S_Expressions.Atom_Buffers.Tests is
    procedure Test_Query (Report : in out NT.Reporter'Class);
    procedure Test_Query_Null (Report : in out NT.Reporter'Class);
    procedure Test_Reset (Report : in out NT.Reporter'Class);
+   procedure Test_Reverse_Append (Report : in out NT.Reporter'Class);
 
 end Natools.S_Expressions.Atom_Buffers.Tests;

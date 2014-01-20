@@ -30,6 +30,7 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
       Test_Query (Report);
       Test_Query_Null (Report);
       Test_Reset (Report);
+      Test_Reverse_Append (Report);
    end All_Tests;
 
 
@@ -149,6 +150,35 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
             Report.Info ("Element, returning an octet");
             return;
          end if;
+
+         declare
+            O, P : Octet;
+         begin
+            Buffer.Pop (O);
+            Buffer.Pop (P);
+
+            if O /= Data (Data'Last)
+              or P /= Data (Data'Last - 1)
+              or Buffer.Data /= Data (Data'First .. Data'Last - 2)
+            then
+               Report.Item (Name, NT.Fail);
+               Report.Info ("Pop of an octet: "
+                 & Octet'Image (P) & " " & Octet'Image (O));
+               Test_Tools.Dump_Atom (Report, Buffer.Data, "Remaining");
+               Test_Tools.Dump_Atom (Report, Data, "Expected");
+               return;
+            end if;
+
+            Buffer.Append ((P, O));
+
+            if Buffer.Data /= Data then
+               Report.Item (Name, NT.Fail);
+               Report.Info ("Append back after Pop");
+               Test_Tools.Dump_Atom (Report, Buffer.Data, "Found");
+               Test_Tools.Dump_Atom (Report, Data, "Expected");
+               return;
+            end if;
+         end;
 
          declare
             Retrieved : Atom (10 .. 310);
@@ -334,5 +364,54 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
       when Error : others => Report.Report_Exception (Name, Error);
    end Test_Reset;
 
-end Natools.S_Expressions.Atom_Buffers.Tests;
 
+   procedure Test_Reverse_Append (Report : in out NT.Reporter'Class) is
+      Name : constant String := "procedure Append_Reverse";
+      Source_1 : Atom (1 .. 10);
+      Source_2 : Atom (1 .. 1);
+      Source_3 : Atom (51 .. 65);
+      Source_4 : Atom (1 .. 0);
+      Source_5 : Atom (101 .. 114);
+      Expected : Atom (1 .. 40);
+   begin
+      for I in Source_1'Range loop
+         Source_1 (I) := 10 + Octet (I);
+         Expected (Expected'First + Source_1'Last - I) := Source_1 (I);
+      end loop;
+
+      for I in Source_2'Range loop
+         Source_2 (I) := 42;
+         Expected (Expected'First + Source_1'Length + Source_2'Last - I)
+           := Source_2 (I);
+      end loop;
+
+      for I in Source_3'Range loop
+         Source_3 (I) := Octet (I);
+         Expected (Expected'First + Source_1'Length + Source_2'Length
+                     + I - Source_3'First)
+           := Source_3 (I);
+      end loop;
+
+      for I in Source_5'Range loop
+         Source_5 (I) := Octet (I);
+         Expected (Expected'First + Source_1'Length + Source_2'Length
+                     + Source_3'Length + Source_5'Last - I)
+           := Source_5 (I);
+      end loop;
+
+      declare
+         Buffer : Atom_Buffer;
+      begin
+         Buffer.Append_Reverse (Source_1);
+         Buffer.Append_Reverse (Source_2);
+         Buffer.Append (Source_3);
+         Buffer.Append_Reverse (Source_4);
+         Buffer.Append_Reverse (Source_5);
+
+         Test_Tools.Test_Atom (Report, Name, Expected, Buffer.Data);
+      end;
+   exception
+      when Error : others => Report.Report_Exception (Name, Error);
+   end Test_Reverse_Append;
+
+end Natools.S_Expressions.Atom_Buffers.Tests;
