@@ -98,14 +98,8 @@ package body Natools.S_Expressions.Parsers is
 
          --  Read a single octet from source
 
-         if P.Override_Pos < P.Override.Length then
-            P.Override_Pos := P.Override_Pos + 1;
-            O := P.Override.Element (P.Override_Pos);
-
-            if P.Override_Pos >= P.Override.Length then
-               P.Override.Hard_Reset;
-               P.Override_Pos := 0;
-            end if;
+         if P.Override.Length > 0 then
+            P.Override.Pop (O);
          else
             Input.Read (Item, Last);
             if Last not in Item'Range then
@@ -173,7 +167,7 @@ package body Natools.S_Expressions.Parsers is
                   if P.Internal.State = Base64_Atom then
                      P.Latest := Events.Add_Atom;
                   else
-                     P.Override.Append (P.Buffer.Data);
+                     P.Override.Append_Reverse (P.Buffer.Data);
                      P.Buffer.Soft_Reset;
                   end if;
                   P.Internal := (State => Waiting);

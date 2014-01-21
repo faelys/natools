@@ -112,7 +112,6 @@ private
       Internal     : State_Data;
       Pending      : Events.Event := Events.End_Of_Input;
       Override     : Atom_Buffers.Atom_Buffer;
-      Override_Pos : Count := 0;
       Latest       : Events.Event := Events.Error;
       Buffer       : Atom_Buffers.Atom_Buffer;
       Level        : Natural := 0;
