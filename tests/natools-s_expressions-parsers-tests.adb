@@ -121,6 +121,7 @@ package body Natools.S_Expressions.Parsers.Tests is
       Nested_Subpexression (Report);
       Number_Prefixes (Report);
       Quoted_Escapes (Report);
+      Parser_Interface (Report);
    end All_Tests;
 
 
@@ -200,6 +201,173 @@ package body Natools.S_Expressions.Parsers.Tests is
    begin
       Test (Report);
    end Number_Prefixes;
+
+
+   procedure Parser_Interface (Report : in out NT.Reporter'Class) is
+      Name : constant String := "Parser interface";
+      Source : constant Atom
+        := To_Atom ("(5:first6:second)");
+   begin
+      declare
+         Input : aliased Test_Tools.Memory_Stream;
+         Parser : Parsers.Parser;
+      begin
+         Input.Set_Data (Source);
+
+         Parser.Next_Event (Input'Access);
+
+         if Parser.Current_Event /= Events.Open_List then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected current event "
+              & Events.Event'Image (Parser.Current_Event));
+            return;
+         end if;
+
+         if Parser.Current_Level /= 1 then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected current level"
+              & Integer'Image (Parser.Current_Level));
+            return;
+         end if;
+
+         Parser.Next_Event (Input'Access);
+
+         if Parser.Current_Event /= Events.Add_Atom then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected current event "
+              & Events.Event'Image (Parser.Current_Event));
+            return;
+         end if;
+
+         if Parser.Current_Atom /= To_Atom ("first") then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected current atom"
+              & Integer'Image (Parser.Current_Atom'Length)
+              & ":"
+              & To_String (Parser.Current_Atom));
+            return;
+         end if;
+
+         Parser.Next_Event (Input'Access);
+
+         if Parser.Current_Event /= Events.Add_Atom then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected current event "
+              & Events.Event'Image (Parser.Current_Event));
+            return;
+         end if;
+
+         declare
+            Buffer : Atom (50 .. 69);
+            Length : Count;
+         begin
+            Parser.Read_Atom (Buffer, Length);
+            if Length /= 6
+              or else Buffer (Buffer'First .. Buffer'First + Length - 1)
+                        /= To_Atom ("second")
+            then
+               Report.Item (Name, NT.Fail);
+               Report.Info ("Unexpected read atom"
+                 & Count'Image (Length)
+                 & ":"
+                 & To_String (Buffer
+                     (Buffer'First .. Buffer'First + Length - 1)));
+               return;
+            end if;
+         end;
+
+         declare
+            Buffer : Atom (11 .. 13);
+            Length : Count;
+         begin
+            Parser.Read_Atom (Buffer, Length);
+            if Length /= 6
+              or else Buffer /= To_Atom ("sec")
+            then
+               Report.Item (Name, NT.Fail);
+               Report.Info ("Unexpected read atom"
+                 & Count'Image (Length)
+                 & ":"
+                 & To_String (Buffer));
+               return;
+            end if;
+         end;
+
+         Parser.Next_Event (Input'Access);
+
+         if Parser.Current_Event /= Events.Close_List then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected current event "
+              & Events.Event'Image (Parser.Current_Event));
+            return;
+         end if;
+
+         begin
+            declare
+               Result : constant Atom := Parser.Current_Atom;
+            begin
+               Report.Item (Name, NT.Fail);
+               Report.Info
+                 ("Current_Atom raised no exception and returned"
+                  & Integer'Image (Result'Length)
+                  & ':'
+                  & To_String (Result));
+            end;
+         exception
+            when Program_Error => null;
+            when Error : others =>
+               Report.Report_Exception (Name & " (in Current_Event)", Error);
+         end;
+
+         declare
+            Buffer : Atom (1 .. 10);
+            Length : Count;
+         begin
+            Parser.Read_Atom (Buffer, Length);
+            Report.Item (Name, NT.Fail);
+            Report.Info
+              ("Read_Atom raised no exception and returned"
+               & Count'Image (Length)
+               & ':'
+               & To_String (Buffer));
+         exception
+            when Program_Error => null;
+            when Error : others =>
+               Report.Report_Exception (Name & " (in Read_Atom)", Error);
+         end;
+
+         declare
+            Called : Boolean := False;
+            Output : Test_Tools.Memory_Stream;
+
+            procedure Process (Data : in Atom);
+
+            procedure Process (Data : in Atom) is
+            begin
+               Called := True;
+               Output.Set_Data (Data);
+            end Process;
+         begin
+            Parser.Query_Atom (Process'Access);
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Query_Atom raised no exception");
+            if Called then
+               Report.Info ("   Process was called with atom """
+                 & To_String (Output.Get_Data) & '"');
+            end if;
+         exception
+            when Program_Error => null;
+            when Error : others =>
+               Report.Report_Exception (Name & " (in Query_Event)", Error);
+               if Called then
+                  Report.Info ("   Process was called with atom """
+                    & To_String (Output.Get_Data) & '"');
+               end if;
+         end;
+      end;
+   exception
+      when Error : others => Report.Report_Exception (Name, Error);
+   end Parser_Interface;
 
 
    procedure Quoted_Escapes (Report : in out NT.Reporter'Class) is
