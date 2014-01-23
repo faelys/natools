@@ -122,6 +122,7 @@ package body Natools.S_Expressions.Parsers.Tests is
       Number_Prefixes (Report);
       Quoted_Escapes (Report);
       Parser_Interface (Report);
+      Subparser_Interface (Report);
    end All_Tests;
 
 
@@ -365,6 +366,8 @@ package body Natools.S_Expressions.Parsers.Tests is
                end if;
          end;
       end;
+
+      Report.Item (Name, NT.Success);
    exception
       when Error : others => Report.Report_Exception (Name, Error);
    end Parser_Interface;
@@ -410,5 +413,246 @@ package body Natools.S_Expressions.Parsers.Tests is
    begin
       Test (Report);
    end Special_Subexpression;
+
+
+   procedure Subparser_Interface (Report : in out NT.Reporter'Class) is
+      Name : constant String := "Subparser interface";
+      Source : constant Atom
+        := To_Atom ("(begin(command arg1 (subarg1 subarg2) arg3)end)");
+   begin
+      declare
+         Input : aliased Test_Tools.Memory_Stream;
+         Parser : aliased Parsers.Parser;
+         Sub : Subparser (Parser'Access, Input'Access);
+         Event : Events.Event;
+      begin
+         Input.Set_Data (Source);
+
+         --  Read header
+
+         Parser.Next_Event (Input'Access);
+         pragma Assert (Parser.Current_Event = Events.Open_List);
+         Parser.Next_Event (Input'Access);
+         pragma Assert (Parser.Current_Event = Events.Add_Atom
+           and then Parser.Current_Atom = To_Atom ("begin"));
+         Parser.Next_Event (Input'Access);
+         pragma Assert (Parser.Current_Event = Events.Open_List);
+         Parser.Next_Event (Input'Access);
+         pragma Assert (Parser.Current_Event = Events.Add_Atom
+           and then Parser.Current_Atom = To_Atom ("command"));
+
+         --  Use subparser as command arguments
+
+         Sub.Next (Event);
+
+         if Event /= Events.Add_Atom then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected subparser current event: "
+              & Events.Event'Image (Event));
+            return;
+         end if;
+
+         if Sub.Current_Atom /= To_Atom ("arg1") then
+            Report.Item (Name, NT.Fail);
+            Test_Tools.Dump_Atom (Report, Sub.Current_Atom,
+              "Unexpected first subparser atom");
+            return;
+         end if;
+
+         Sub.Next (Event);
+
+         if Event /= Events.Open_List then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected subparser second event: "
+              & Events.Event'Image (Event));
+            return;
+         end if;
+
+         if Sub.Current_Level /= 3 then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected nesting level"
+              & Natural'Image (Sub.Current_Level));
+         end if;
+
+         Sub.Next (Event);
+
+         if Event /= Events.Add_Atom then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected subparser third event: "
+              & Events.Event'Image (Event));
+            return;
+         end if;
+
+         declare
+            Data : Atom (21 .. 40);
+            Length : Count;
+         begin
+            Sub.Read_Atom (Data, Length);
+            if Data (Data'First .. Data'First + Length - 1)
+              /= To_Atom ("subarg1")
+            then
+               Report.Item (Name, NT.Fail);
+               Test_Tools.Dump_Atom (Report,
+                 Data (Data'First .. Data'First + Length - 1),
+                 "Unexpected first sub-argument atom:");
+               return;
+            end if;
+         end;
+
+         Sub.Next (Event);
+
+         if Event /= Events.Add_Atom then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected subparser third event: "
+              & Events.Event'Image (Event));
+            return;
+         end if;
+
+         Sub.Finish;
+
+         --  Check final state of parser
+
+         if Parser.Current_Event /= Events.Close_List then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected parser final state: "
+              & Events.Event'Image (Parser.Current_Event));
+            return;
+         end if;
+
+         if Parser.Current_Level /= 1 then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected parser final level:"
+              & Natural'Image (Parser.Current_Level));
+            return;
+         end if;
+
+         Parser.Next_Event (Input'Access);
+
+         if Parser.Current_Event /= Events.Add_Atom then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected parser penultimate state: "
+              & Events.Event'Image (Parser.Current_Event));
+            return;
+         end if;
+
+         if Parser.Current_Atom /= To_Atom ("end") then
+            Report.Item (Name, NT.Fail);
+            Test_Tools.Dump_Atom (Report, Parser.Current_Atom,
+              "Parser last atom");
+         end if;
+
+         --  Check subparser error states
+
+         if Sub.Current_Event /= Events.End_Of_Input then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected subparser final state: "
+              & Events.Event'Image (Parser.Current_Event));
+            return;
+         end if;
+
+         if Sub.Current_Level /= 2 then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Unexpected subparser final level:"
+              & Natural'Image (Parser.Current_Level));
+            return;
+         end if;
+
+         begin
+            declare
+               Buffer : constant Atom := Sub.Current_Atom;
+            begin
+               Report.Item (Name, NT.Fail);
+               Report.Info
+                 ("No exception raised in Current_Atom on finished subparser");
+               Test_Tools.Dump_Atom (Report, Buffer);
+            end;
+            return;
+         exception
+            when Constraint_Error => null;
+            when Error : others =>
+               Report.Report_Exception (Name & " (in Current_Atom)", Error);
+               return;
+         end;
+
+         declare
+            Buffer : Atom (1 .. 100);
+            Length : Count := 0;
+         begin
+            Sub.Read_Atom (Buffer, Length);
+            Report.Item (Name, NT.Fail);
+            Report.Info
+              ("No exception raised in Read_Atom on finished subparser");
+            Test_Tools.Dump_Atom (Report, Buffer (1 .. Length));
+            return;
+         exception
+            when Constraint_Error => null;
+            when Error : others =>
+               Report.Report_Exception (Name & " (in Read_Atom)", Error);
+               Test_Tools.Dump_Atom (Report, Buffer (1 .. Length), "Buffer");
+               return;
+         end;
+
+         declare
+            Called : Boolean := False;
+            Output : Test_Tools.Memory_Stream;
+
+            procedure Process (Data : in Atom);
+
+            procedure Process (Data : in Atom) is
+            begin
+               Called := True;
+               Output.Set_Data (Data);
+            end Process;
+         begin
+            Sub.Query_Atom (Process'Access);
+            Report.Item (Name, NT.Fail);
+            Report.Info
+              ("No exception raised in Query_Atom on finished subparser");
+            if Called then
+               Test_Tools.Dump_Atom (Report, Output.Get_Data,
+                 "Process called with");
+            end if;
+            return;
+         exception
+            when Constraint_Error => null;
+            when Error : others =>
+               Report.Report_Exception (Name & " (in Query_Event)", Error);
+               if Called then
+                  Test_Tools.Dump_Atom (Report, Output.Get_Data,
+                    "Process called with");
+               end if;
+               return;
+         end;
+
+         begin
+            Sub.Next (Event);
+            Report.Item (Name, NT.Fail);
+            Report.Info ("No exception raised in Next on finished subparser");
+            Report.Info ("   returned event: " & Events.Event'Image (Event));
+            return;
+         exception
+            when Constraint_Error => null;
+            when Error : others =>
+               Report.Report_Exception (Name & " (in Next)", Error);
+               return;
+         end;
+
+         --  Check that above subparser calls have not tampered with Parser
+
+         if Parser.Current_Event /= Events.Add_Atom
+           or else Parser.Current_Level /= 1
+           or else Parser.Current_Atom /= To_Atom ("end")
+         then
+            Report.Item (Name, NT.Fail);
+            Report.Info ("Parser state changed after calling methods on "
+              & "finished subparser");
+            return;
+         end if;
+      end;
+
+      Report.Item (Name, NT.Success);
+   exception
+      when Error : others => Report.Report_Exception (Name, Error);
+   end Subparser_Interface;
 
 end Natools.S_Expressions.Parsers.Tests;
