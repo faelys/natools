@@ -32,6 +32,10 @@
 
 with Ada.Exceptions;
 
+private with Ada.Finalization;
+private with Ada.Strings.Unbounded;
+private with Ada.Containers.Indefinite_Doubly_Linked_Lists;
+
 package Natools.Tests is
    pragma Preelaborate (Tests);
 
@@ -81,5 +85,54 @@ package Natools.Tests is
       Code      : Result := Error);
       --  Append to Report a new Item, whose result is Code, along with
       --    a description of the exception Ex as Info entries.
+
+
+   -----------------
+   -- Test Object --
+   -----------------
+
+   type Test (<>) is tagged limited private;
+      --  An object of type Test hold information about a single test.
+      --  It contains a reference to a Reporter object, which is filled with
+      --  held info when the Test object is finalized.
+
+   function Item
+     (Report : access Reporter'Class;
+      Name : String;
+      Default_Outcome : Result := Success)
+     return Test;
+      --  Create a new Test object with the given Name
+
+   procedure Set_Result (Object : in out Test; Outcome : in Result);
+      --  Set the test result
+
+   procedure Info (Object : in out Test; Text : in String);
+      --  Append the given text as extra information related to the test
+
+   procedure Report_Exception
+     (Object : in out Test;
+      Ex     : in Ada.Exceptions.Exception_Occurrence;
+      Code   : in Result := Error);
+      --  Append information about Ex to the test and set its result state
+
+   procedure Fail (Object : in out Test; Text : in String := "");
+   procedure Error (Object : in out Test; Text : in String := "");
+   procedure Skip (Object : in out Test; Text : in String := "");
+      --  Set the result state and append Text info in a single call
+
+private
+
+   package Info_Lists is new Ada.Containers.Indefinite_Doubly_Linked_Lists
+     (String);
+
+   type Test (Report : access Reporter'Class) is
+     new Ada.Finalization.Limited_Controlled with record
+      Name : Ada.Strings.Unbounded.Unbounded_String;
+      Info : Info_Lists.List;
+      Outcome : Result;
+      Finalized : Boolean := False;
+   end record;
+
+   overriding procedure Finalize (Object : in out Test);
 
 end Natools.Tests;
