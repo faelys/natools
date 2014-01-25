@@ -130,12 +130,42 @@ package body Natools.S_Expressions.Test_Tools is
       else
          if Label'Length > 0 then
             Report.Info
-              (Label & ": " & Natural'Image (Data'Length) & " octets");
+              (Label & ":" & Natural'Image (Data'Length) & " octets");
          end if;
 
          while I < Data'Length loop
             Length := Offset'Min (16, Data'Length - I);
             Report.Info (Hex_Slice
+              (I, 8,
+               Data (Data'First + I .. Data'First + I + Length - 1), 16));
+            I := I + 16;
+         end loop;
+      end if;
+   end Dump_Atom;
+
+
+   procedure Dump_Atom  --  Cut and pasted code because generics crash gnat
+     (Test : in out NT.Test;
+      Data : in Atom;
+      Label : in String := "")
+   is
+      I, Length : Offset := 0;
+   begin
+      if Is_Printable (Data) then
+         if Label'Length > 0 then
+            Test.Info (Label & ": """ & To_String (Data) & '"');
+         else
+            Test.Info ('"' & To_String (Data) & '"');
+         end if;
+      else
+         if Label'Length > 0 then
+            Test.Info
+              (Label & ":" & Natural'Image (Data'Length) & " octets");
+         end if;
+
+         while I < Data'Length loop
+            Length := Offset'Min (16, Data'Length - I);
+            Test.Info (Hex_Slice
               (I, 8,
                Data (Data'First + I .. Data'First + I + Length - 1), 16));
             I := I + 16;
@@ -156,6 +186,19 @@ package body Natools.S_Expressions.Test_Tools is
          Report.Item (Test_Name, NT.Fail);
          Dump_Atom (Report, Found, "Found");
          Dump_Atom (Report, Expected, "Expected");
+      end if;
+   end Test_Atom;
+
+
+   procedure Test_Atom
+     (Test : in out NT.Test;
+      Expected : in Atom;
+      Found : in Atom) is
+   begin
+      if Found /= Expected then
+         Test.Fail;
+         Dump_Atom (Test, Found, "Found");
+         Dump_Atom (Test, Expected, "Expected");
       end if;
    end Test_Atom;
 

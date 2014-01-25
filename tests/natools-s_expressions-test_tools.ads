@@ -38,11 +38,19 @@ package Natools.S_Expressions.Test_Tools is
      (Report : in out NT.Reporter'Class;
       Data : in Atom;
       Label : in String := "");
+   procedure Dump_Atom
+     (Test : in out NT.Test;
+      Data : in Atom;
+      Label : in String := "");
       --  Dump contents on Data as info in Report
 
    procedure Test_Atom
      (Report : in out NT.Reporter'Class;
       Test_Name : in String;
+      Expected : in Atom;
+      Found : in Atom);
+   procedure Test_Atom
+     (Test : in out NT.Test;
       Expected : in Atom;
       Found : in Atom);
       --  Report success when Found is equal to Expected, and failure
