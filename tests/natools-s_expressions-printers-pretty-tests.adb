@@ -111,6 +111,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
       Basic_Printing (Report);
       Atom_Encodings (Report);
       Separators (Report);
+      Atom_Width (Report);
    end All_Tests;
 
 
@@ -153,6 +154,65 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Atom_Encodings;
+
+
+   procedure Atom_Width (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Atom width");
+      Param : Parameters
+        := (Width => 10,
+            Newline_At => (others => (others => False)),
+            Space_At => (others => (others => False)),
+            Tab_Stop => 8,
+            Indentation => 3,
+            Indent => Spaces,
+            Quoted => No_Quoted,
+            Token => No_Token,
+            Hex_Casing => Encodings.Upper,
+            Quoted_Escape => Hex_Escape,
+            Char_Encoding => ASCII,
+            Fallback => Hexadecimal,
+            Newline => LF);
+   begin
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Output.Set_Expected (To_Atom ("(" & Latin_1.LF
+            & "   #303132" & Latin_1.LF
+            & "    333435" & Latin_1.LF
+            & "    3637#)"));
+         Pr.Set_Parameters (Param);
+
+         Pr.Open_List;
+         Pr.Append_Atom (To_Atom ("01234567"));
+         Pr.Close_List;
+
+         Check_Stream (Test, Output);
+      end;
+
+      Param.Fallback := Base64;
+
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Output.Set_Expected (To_Atom ("(" & Latin_1.LF
+            & "   |  YWJj" & Latin_1.LF
+            & "      REVG" & Latin_1.LF
+            & "      Z2hp" & Latin_1.LF
+            & "      SktM" & Latin_1.LF
+            & "   |)"));
+         Pr.Set_Parameters (Param);
+
+         Pr.Open_List;
+         Pr.Append_Atom (To_Atom ("abcDEFghiJKL"));
+         Pr.Close_List;
+
+         Check_Stream (Test, Output);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Atom_Width;
 
 
    procedure Basic_Printing (Report : in out NT.Reporter'Class) is

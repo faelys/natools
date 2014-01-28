@@ -29,6 +29,7 @@ package Natools.S_Expressions.Printers.Pretty.Tests is
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
    procedure Atom_Encodings (Report : in out NT.Reporter'Class);
+   procedure Atom_Width (Report : in out NT.Reporter'Class);
    procedure Basic_Printing (Report : in out NT.Reporter'Class);
    procedure Separators (Report : in out NT.Reporter'Class);
 
