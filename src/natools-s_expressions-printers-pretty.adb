@@ -470,15 +470,16 @@ package body Natools.S_Expressions.Printers.Pretty is
          Output.Cursor := Output.Cursor + 1;
 
          loop
-            Available := Output.Param.Width - Output.Cursor;
-            Chunk_Size := Count (Available) / 4 * 3;
+            Available := Output.Param.Width + 1 - Output.Cursor;
+            Chunk_Size := Count'Max (1, Count (Available) / 4) * 3;
 
-            if Available mod 4 /= 0 then
-               Output.Stream.Write ((0 => Encodings.Space));
-               Output.Cursor := Output.Cursor + 1;
+            if Available mod 4 /= 0 and then I in Data'Range then
+               Output.Stream.Write
+                 ((1 .. Count (Available mod 4) => Encodings.Space));
+               Output.Cursor := Output.Cursor + (Available mod 4);
             end if;
 
-            if I + Chunk_Size in Data'Range then
+            if I + Chunk_Size - 1 in Data'Range then
                Output.Stream.Write (Encodings.Encode_Base64
                                       (Data (I .. I + Chunk_Size - 1)));
                Newline (Output);
@@ -511,15 +512,15 @@ package body Natools.S_Expressions.Printers.Pretty is
          Output.Cursor := Output.Cursor + 1;
 
          loop
-            Available := Output.Param.Width - Output.Cursor;
-            Chunk_Size := Count (Available) / 2;
+            Available := Output.Param.Width + 1 - Output.Cursor;
+            Chunk_Size := Count'Max (1, Count (Available) / 2);
 
-            if Available mod 2 = 1 then
+            if Available mod 2 = 1 and then I in Data'Range then
                Output.Stream.Write ((0 => Encodings.Space));
                Output.Cursor := Output.Cursor + 1;
             end if;
 
-            if I + Chunk_Size in Data'Range then
+            if I + Chunk_Size - 1 in Data'Range then
                Output.Stream.Write (Encodings.Encode_Hex
                                       (Data (I .. I + Chunk_Size - 1),
                                        Output.Param.Hex_Casing));
