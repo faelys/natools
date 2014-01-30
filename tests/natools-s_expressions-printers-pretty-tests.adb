@@ -112,6 +112,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
       Atom_Encodings (Report);
       Separators (Report);
       Atom_Width (Report);
+      Quoted_String_Escapes (Report);
    end All_Tests;
 
 
@@ -239,6 +240,164 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Basic_Printing;
+
+
+   procedure Quoted_String_Escapes (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Escapes in quoted string atoms");
+      Source : constant Atom (0 .. 123) := To_Atom
+        ("Special: "  --  indices 0 .. 17
+         & Latin_1.BS & Latin_1.HT & Latin_1.LF
+         & Latin_1.VT & Latin_1.FF & Latin_1.CR
+         & '\' & '"' & Latin_1.NUL
+         & "UTF-8 sequences: "  --  indices 18 .. 62
+         & "é, −, 🁡, "  --  U+00E9, U+2212, U+1F061
+         & Character'Val (16#F9#) & Character'Val (16#88#)
+         & Character'Val (16#B4#) & Character'Val (16#95#)
+         & Character'Val (16#A7#)   --  U+1234567
+         & ", "
+         & Character'Val (16#FD#) & Character'Val (16#B6#)
+         & Character'Val (16#95#) & Character'Val (16#83#)
+         & Character'Val (16#88#) & Character'Val (16#90#)  --  U+76543210
+         & "Invalid UTF-8 sequences: "  --  indices 63 .. 117
+         & Character'Val (16#AA#) & ", "
+         & Character'Val (16#C3#) & ", "
+         & Character'Val (16#E2#) & Character'Val (16#88#) & ", "
+         & Character'Val (16#F0#) & Character'Val (16#9F#)
+         & Character'Val (16#81#) & ", "
+         & Character'Val (16#F9#) & Character'Val (16#88#)
+         & Character'Val (16#B4#) & Character'Val (16#95#) & ", "
+         & Character'Val (16#FD#) & Character'Val (16#B6#)
+         & Character'Val (16#95#) & Character'Val (16#83#)
+         & Character'Val (16#88#) & ", "
+         & Character'Val (16#FE#) & "."
+         & Latin_1.CR & Latin_1.LF  --  indices 118 .. 119
+         & "<>"  --  indices 120 .. 121
+         & Latin_1.CR & Latin_1.LF);
+      Param : Parameters
+        := (Width => 0,
+            Newline_At => (others => (others => False)),
+            Space_At => (others => (others => False)),
+            Tab_Stop => 8,
+            Indentation => 3,
+            Indent => Spaces,
+            Quoted => When_Shorter,
+            Token => No_Token,
+            Hex_Casing => Encodings.Upper,
+            Quoted_Escape => Hex_Escape,
+            Char_Encoding => ASCII,
+            Fallback => Hexadecimal,
+            Newline => CR_LF);
+   begin
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         --  Check that the first quoted string encoding is exactly as long as
+         --  fallback (hexadecimal) encoding, by trying with one less char.
+         Output.Set_Expected
+           (Encodings.Hex_Atom_Begin
+            & Encodings.Encode_Hex
+               (Source (Source'First + 1 .. Source'Last), Param.Hex_Casing)
+            & Encodings.Hex_Atom_End);
+         Pr.Set_Parameters (Param);
+         Pr.Append_Atom (Source (Source'First + 1 .. Source'Last));
+         Check_Stream (Test, Output);
+      end;
+
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Output.Set_Expected (To_Atom
+           ("""Special: \b\t\n\v\f\r\\\""\x00"
+            & "UTF-8 sequences: \xC3\xA9, \xE2\x88\x92, \xF0\x9F\x81\xA1, "
+            & "\xF9\x88\xB4\x95\xA7, \xFD\xB6\x95\x83\x88\x90"
+            & "Invalid UTF-8 sequences: "
+            & "\xAA, \xC3, \xE2\x88, \xF0\x9F\x81, \xF9\x88\xB4\x95, "
+            & "\xFD\xB6\x95\x83\x88, \xFE." & Latin_1.CR & Latin_1.LF
+            & "<>\r\n"""));
+         Pr.Set_Parameters (Param);
+         Pr.Append_Atom (Source);
+         Check_Stream (Test, Output);
+      end;
+
+      Param.Char_Encoding := Latin;
+      Param.Hex_Casing := Encodings.Lower;
+
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Output.Set_Expected (To_Atom
+           ("""Special: \b\t\n\v\f\r\\\""\x00"
+            & "UTF-8 sequences: "
+            & Character'Val (16#C3#) & Character'Val (16#A9#)
+            & ", " & Character'Val (16#E2#) & "\x88\x92, "
+            & Character'Val (16#F0#) & "\x9f\x81"
+            & Character'Val (16#A1#) & ", "
+            & Character'Val (16#F9#) & "\x88"
+            & Character'Val (16#B4#) & "\x95"
+            & Character'Val (16#A7#) & ", "
+            & Character'Val (16#FD#) & Character'Val (16#B6#)
+            & "\x95\x83\x88\x90"
+            & "Invalid UTF-8 sequences: "
+            & Character'Val (16#AA#) & ", "
+            & Character'Val (16#C3#) & ", "
+            & Character'Val (16#E2#) & "\x88, "
+            & Character'Val (16#F0#) & "\x9f\x81, "
+            & Character'Val (16#F9#) & "\x88"
+            & Character'Val (16#B4#) & "\x95, "
+            & Character'Val (16#FD#) & Character'Val (16#B6#)
+            & "\x95\x83\x88, " & Character'Val (16#FE#) & '.'
+            & Latin_1.CR & Latin_1.LF
+            & "<>\r\n"""));
+         Pr.Set_Parameters (Param);
+         Pr.Append_Atom (Source);
+         Check_Stream (Test, Output);
+      end;
+
+      Param.Char_Encoding := UTF_8;
+      Param.Quoted_Escape := Octal_Escape;
+
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Output.Set_Expected (To_Atom ("""Special: \b\t\n\v\f\r\\\""\000")
+            & Source (18 .. 62)
+            & To_Atom ("Invalid UTF-8 sequences: "
+               & "\252, \303, \342\210, \360\237\201, "
+               & "\371\210\264\225, \375\266\225\203\210, \376."
+               & Latin_1.CR & Latin_1.LF
+               & "<>\r\n"""));
+         Pr.Set_Parameters (Param);
+         Pr.Append_Atom (Source);
+         Check_Stream (Test, Output);
+      end;
+
+      Param.Width := 31;
+
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Output.Set_Expected (To_Atom ("""Special: \b\t\n\v\f\r\\\""\000"
+                                 & '\' & Latin_1.CR & Latin_1.LF)
+            & Source (18 .. 62)
+            & To_Atom ('\' & Latin_1.CR & Latin_1.LF
+               & "Invalid UTF-8 sequences: \252,\" & Latin_1.CR & Latin_1.LF
+               & " \303, \342\210, \360\237\201,\" & Latin_1.CR & Latin_1.LF
+               & " \371\210\264\225, \375\266\" & Latin_1.CR & Latin_1.LF
+               & "\225\203\210, \376."
+               & Latin_1.CR & Latin_1.LF
+               & "<>\r\n"""));
+         Pr.Set_Parameters (Param);
+         Pr.Append_Atom (Source);
+         Check_Stream (Test, Output);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Quoted_String_Escapes;
 
 
    procedure Separators (Report : in out NT.Reporter'Class) is
