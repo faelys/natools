@@ -349,7 +349,13 @@ package body Natools.S_Expressions.Printers.Pretty is
                   Size := Size + 2;
                   Cursor := Cursor + 2;
                else
-                  Size := Size + 1;
+                  case Newline is
+                     when LF | CR =>
+                        Size := Size + 1;
+                     when CR_LF | LF_CR =>
+                        Size := Size + 2;
+                        I := I + 1;
+                  end case;
                   Cursor := 1;
                end if;
             when 0 .. 7 | 14 .. 31 =>
@@ -630,6 +636,13 @@ package body Natools.S_Expressions.Printers.Pretty is
                      Result (O) := Data (I);
                      O := O + 1;
                      Output.Cursor := 1;
+                     if Output.Param.Newline = CR_LF
+                       or Output.Param.Newline = LF_CR
+                     then
+                        I := I + 1;
+                        Result (O) := Data (I);
+                        O := O + 1;
+                     end if;
                   end if;
                when 11 =>
                   Result (O) := Encodings.Escape;
@@ -654,6 +667,13 @@ package body Natools.S_Expressions.Printers.Pretty is
                      Result (O) := Data (I);
                      O := O + 1;
                      Output.Cursor := 1;
+                     if Output.Param.Newline = CR_LF
+                       or Output.Param.Newline = LF_CR
+                     then
+                        I := I + 1;
+                        Result (O) := Data (I);
+                        O := O + 1;
+                     end if;
                   end if;
                when Encodings.Quoted_Atom_End | Encodings.Escape =>
                   Result (O) := Encodings.Escape;
