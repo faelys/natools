@@ -325,6 +325,10 @@ package body Natools.S_Expressions.Printers.Pretty is
       C : Count;
       I : Offset := Data'First;
       Last_Non_NL : Offset := Data'Last;
+      Input_Delta : Count;
+      Output_Delta : Count;
+      Width_Adjust : Offset;
+      New_Cursor : Screen_Column;
    begin
       while Last_Non_NL in Data'Range
         and then (Data (Last_Non_NL) = Encodings.CR
@@ -336,63 +340,64 @@ package body Natools.S_Expressions.Printers.Pretty is
       Size := 2;
       Cursor := Cursor + 1;
       while I in Data'Range loop
+         Input_Delta := 1;
+         Width_Adjust := 0;
          case Data (I) is
             when 8 | 9 | 11 | 12
               | Encodings.Quoted_Atom_End | Encodings.Escape =>
-               Size := Size + 2;
-               Cursor := Cursor + 2;
+               Output_Delta := 2;
             when 10 | 13 =>
                if Single_Line
                  or else I > Last_Non_NL
                  or else not Is_Newline (Data, I, Newline)
                then
-                  Size := Size + 2;
-                  Cursor := Cursor + 2;
+                  Output_Delta := 2;
                else
+                  Width_Adjust := -Offset (Cursor);
                   case Newline is
                      when LF | CR =>
-                        Size := Size + 1;
+                        Output_Delta := 1;
                      when CR_LF | LF_CR =>
-                        Size := Size + 2;
-                        I := I + 1;
+                        Output_Delta := 2;
+                        Input_Delta := 2;
                   end case;
-                  Cursor := 1;
                end if;
             when 0 .. 7 | 14 .. 31 =>
-               Size := Size + 4;
-               Cursor := Cursor + 4;
+               Output_Delta := 4;
             when 16#80# .. 16#FF# =>
                case Encoding is
                   when ASCII =>
-                     Size := Size + 4;
-                     Cursor := Cursor + 4;
+                     Output_Delta := 4;
                   when Latin =>
                      if Data (I) in 16#80# .. 16#9F# then
-                        Size := Size + 4;
-                        Cursor := Cursor + 4;
+                        Output_Delta := 4;
                      else
-                        Size := Size + 1;
-                        Cursor := Cursor + 1;
+                        Output_Delta := 1;
                      end if;
                   when UTF_8 =>
                      C := UTF_Character_Size (Data, I);
                      if C = 0 then
-                        Size := Size + 4;
-                        Cursor := Cursor + 4;
+                        Output_Delta := 4;
                      else
-                        Size := Size + C;
-                        Cursor := Cursor + 1;
-                        I := I + C - 1;
+                        Output_Delta := C;
+                        Input_Delta := C;
+                        Width_Adjust := 1 - C;
                      end if;
                end case;
             when others =>
-               Size := Size + 1;
-               Cursor := Cursor + 1;
+               Output_Delta := 1;
          end case;
+
+         New_Cursor := Screen_Column
+           (Offset (Cursor) + Output_Delta + Width_Adjust);
 
          if not Single_Line
            and then Width > 0
-           and then Cursor >= Width
+           and then Cursor > 1
+           and then (New_Cursor > Width + 1
+             or else (New_Cursor = Width + 1
+               and then I + 1 in Data'Range
+               and then not Is_Newline (Data, I, Newline)))
          then
             case Newline is
                when CR | LF =>
@@ -401,9 +406,11 @@ package body Natools.S_Expressions.Printers.Pretty is
                   Size := Size + 3;
             end case;
             Cursor := 1;
+         else
+            I := I + Input_Delta;
+            Size := Size + Output_Delta;
+            Cursor := New_Cursor;
          end if;
-
-         I := I + 1;
       end loop;
 
       Cursor := Cursor + 1;
@@ -553,16 +560,16 @@ package body Natools.S_Expressions.Printers.Pretty is
    is
       procedure Escape
         (Value : in Octet;
-         Result : out Atom;
-         Pos : in out Offset);
+         Result : in out Atom;
+         Pos : in Offset);
 
       Size : Count;
       Last_Non_NL : Offset := Data'Last;
 
       procedure Escape
         (Value : in Octet;
-         Result : out Atom;
-         Pos : in out Offset) is
+         Result : in out Atom;
+         Pos : in Offset) is
       begin
          Result (Pos) := Encodings.Escape;
 
@@ -579,7 +586,6 @@ package body Natools.S_Expressions.Printers.Pretty is
                   Result (Pos + 2),
                   Result (Pos + 3));
          end case;
-         Pos := Pos + 4;
       end Escape;
    begin
       declare
@@ -607,22 +613,28 @@ package body Natools.S_Expressions.Printers.Pretty is
          I : Offset := Data'First;
          O : Offset := Result'First + 1;
          C : Count;
+         Input_Delta : Count;
+         Output_Delta : Count;
+         Width_Adjust : Offset;
+         New_Cursor : Screen_Column;
       begin
          Result (0) := Encodings.Quoted_Atom_Begin;
          Output.Cursor := Output.Cursor + 1;
 
          while I in Data'Range loop
+            Output_Delta := 1;
+            Width_Adjust := 0;
+            Input_Delta := 1;
+
             case Data (I) is
                when 8 =>
                   Result (O) := Encodings.Escape;
                   Result (O + 1) := Character'Pos ('b');
-                  O := O + 2;
-                  Output.Cursor := Output.Cursor + 2;
+                  Output_Delta := 2;
                when 9 =>
                   Result (O) := Encodings.Escape;
                   Result (O + 1) := Character'Pos ('t');
-                  O := O + 2;
-                  Output.Cursor := Output.Cursor + 2;
+                  Output_Delta := 2;
                when 10 =>
                   if Single_Line
                     or else I > Last_Non_NL
@@ -630,30 +642,26 @@ package body Natools.S_Expressions.Printers.Pretty is
                   then
                      Result (O) := Encodings.Escape;
                      Result (O + 1) := Character'Pos ('n');
-                     O := O + 2;
-                     Output.Cursor := Output.Cursor + 2;
+                     Output_Delta := 2;
                   else
                      Result (O) := Data (I);
-                     O := O + 1;
-                     Output.Cursor := 1;
+                     Width_Adjust := -Offset (Output.Cursor);
                      if Output.Param.Newline = CR_LF
                        or Output.Param.Newline = LF_CR
                      then
-                        I := I + 1;
-                        Result (O) := Data (I);
-                        O := O + 1;
+                        Input_Delta := 2;
+                        Result (O + 1) := Data (I + 1);
+                        Output_Delta := 2;
                      end if;
                   end if;
                when 11 =>
                   Result (O) := Encodings.Escape;
                   Result (O + 1) := Character'Pos ('v');
-                  O := O + 2;
-                  Output.Cursor := Output.Cursor + 2;
+                  Output_Delta := 2;
                when 12 =>
                   Result (O) := Encodings.Escape;
                   Result (O + 1) := Character'Pos ('f');
-                  O := O + 2;
-                  Output.Cursor := Output.Cursor + 2;
+                  Output_Delta := 2;
                when 13 =>
                   if Single_Line
                     or else I > Last_Non_NL
@@ -661,63 +669,63 @@ package body Natools.S_Expressions.Printers.Pretty is
                   then
                      Result (O) := Encodings.Escape;
                      Result (O + 1) := Character'Pos ('r');
-                     O := O + 2;
-                     Output.Cursor := Output.Cursor + 2;
+                     Output_Delta := 2;
                   else
                      Result (O) := Data (I);
-                     O := O + 1;
-                     Output.Cursor := 1;
+                     Width_Adjust := -Offset (Output.Cursor);
                      if Output.Param.Newline = CR_LF
                        or Output.Param.Newline = LF_CR
                      then
-                        I := I + 1;
-                        Result (O) := Data (I);
-                        O := O + 1;
+                        Input_Delta := 2;
+                        Result (O + 1) := Data (I + 1);
+                        Output_Delta := 2;
                      end if;
                   end if;
                when Encodings.Quoted_Atom_End | Encodings.Escape =>
                   Result (O) := Encodings.Escape;
                   Result (O + 1) := Data (I);
-                  O := O + 2;
-                  Output.Cursor := Output.Cursor + 2;
+                  Output_Delta := 2;
                when 0 .. 7 | 14 .. 31 =>
                   Escape (Data (I), Result, O);
-                  Output.Cursor := Output.Cursor + 4;
+                  Output_Delta := 4;
                when 16#80# .. 16#FF# =>
                   case Output.Param.Char_Encoding is
                      when ASCII =>
                         Escape (Data (I), Result, O);
-                        Output.Cursor := Output.Cursor + 4;
+                        Output_Delta := 4;
                      when Latin =>
                         if Data (I) in 16#80# .. 16#9F# then
                            Escape (Data (I), Result, O);
-                           Output.Cursor := Output.Cursor + 4;
+                           Output_Delta := 4;
                         else
                            Result (O) := Data (I);
-                           O := O + 1;
-                           Output.Cursor := Output.Cursor + 1;
                         end if;
                      when UTF_8 =>
                         C := UTF_Character_Size (Data, I);
                         if C = 0 then
                            Escape (Data (I), Result, O);
-                           Output.Cursor := Output.Cursor + 4;
+                           Output_Delta := 4;
                         else
                            Result (O .. O + C - 1) := Data (I .. I + C - 1);
-                           O := O + C;
-                           I := I + C - 1;
-                           Output.Cursor := Output.Cursor + 1;
+                           Input_Delta := C;
+                           Output_Delta := C;
+                           Width_Adjust := 1 - C;
                         end if;
                   end case;
                when others =>
                   Result (O) := Data (I);
-                  O := O + 1;
-                  Output.Cursor := Output.Cursor + 1;
             end case;
+
+            New_Cursor := Screen_Column
+              (Offset (Output.Cursor) + Output_Delta + Width_Adjust);
 
             if not Single_Line
               and then Output.Param.Width > 0
-              and then Output.Cursor >= Output.Param.Width
+              and then Output.Cursor > 1
+              and then (New_Cursor > Output.Param.Width + 1
+                or else (New_Cursor = Output.Param.Width + 1
+                  and then I + 1 in Data'Range
+                  and then not Is_Newline (Data, I + 1, Output.Param.Newline)))
             then
                Result (O) := Encodings.Escape;
                case Output.Param.Newline is
@@ -737,9 +745,11 @@ package body Natools.S_Expressions.Printers.Pretty is
                      O := O + 3;
                end case;
                Output.Cursor := 1;
+            else
+               I := I + Input_Delta;
+               O := O + Output_Delta;
+               Output.Cursor := New_Cursor;
             end if;
-
-            I := I + 1;
          end loop;
 
          pragma Assert (O = Result'Last);
