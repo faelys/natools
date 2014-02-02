@@ -113,6 +113,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
       Separators (Report);
       Atom_Width (Report);
       Quoted_String_Escapes (Report);
+      Indentation (Report);
    end All_Tests;
 
 
@@ -240,6 +241,59 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Basic_Printing;
+
+
+   procedure Indentation (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Indentation");
+      Param : Parameters
+        := (Width => 16,
+            Newline_At => (others => (others => False)),
+            Space_At => (others => (others => False)),
+            Tab_Stop => 8,
+            Indentation => 3,
+            Indent => Tabs_And_Spaces,
+            Quoted => Single_Line,
+            Token => Standard_Token,
+            Hex_Casing => Encodings.Upper,
+            Quoted_Escape => Hex_Escape,
+            Char_Encoding => ASCII,
+            Fallback => Verbatim,
+            Newline => LF);
+   begin
+      Parse_Print_Test (Test, Param, To_Atom
+        ("(first-level(" & Latin_1.LF
+         & "      second-level" & Latin_1.LF
+         & "      (third" & Latin_1.LF
+         & Latin_1.HT & " level" & Latin_1.LF
+         & Latin_1.HT & " ""Q#""))" & Latin_1.LF
+         & "   end)"));
+
+      Param.Indent := Spaces;
+      Param.Token := Extended_Token;
+
+      Parse_Print_Test (Test, Param, To_Atom
+        ("(first-level(" & Latin_1.LF
+         & "      second-level" & Latin_1.LF
+         & "      (third" & Latin_1.LF
+         & "         level" & Latin_1.LF
+         & "         ""Q)""))" & Latin_1.LF
+         & "   end)"));
+
+      Param.Indent := Tabs;
+      Param.Indentation := 1;
+      Param.Tab_Stop := 5;
+
+      Parse_Print_Test (Test, Param, To_Atom
+        ("(first-level(" & Latin_1.LF
+         & Latin_1.HT & Latin_1.HT & "second-level" & Latin_1.LF
+         & Latin_1.HT & Latin_1.HT & "(third" & Latin_1.LF
+         & Latin_1.HT & Latin_1.HT & Latin_1.HT & "level" & Latin_1.LF
+         & Latin_1.HT & Latin_1.HT & Latin_1.HT & "2:Q(" & Latin_1.LF
+         & Latin_1.HT & Latin_1.HT & "))end)"));
+
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Indentation;
 
 
    procedure Quoted_String_Escapes (Report : in out NT.Reporter'Class) is
