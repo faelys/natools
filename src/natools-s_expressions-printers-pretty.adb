@@ -784,6 +784,14 @@ package body Natools.S_Expressions.Printers.Pretty is
 
    overriding procedure Open_List (Output : in out Printer) is
    begin
+      if Output.Param.Width > 0
+        and then Output.Cursor > Output.Param.Width
+        and then Output.Cursor > Indent_Width (Output) + 1
+      then
+         Newline (Output);
+         Output.First := True;  --  inhibit extra space or newline
+      end if;
+
       if not Output.First then
          if Output.Param.Newline_At (Output.Previous, Opening) then
             Newline (Output);
@@ -950,6 +958,14 @@ package body Natools.S_Expressions.Printers.Pretty is
    overriding procedure Close_List (Output : in out Printer) is
    begin
       Output.Indent_Level := Output.Indent_Level - 1;
+
+      if Output.Param.Width > 0
+        and then Output.Cursor > Output.Param.Width
+        and then Output.Cursor > Indent_Width (Output) + 1
+      then
+         Newline (Output);
+         Output.First := True;  --  inhibit extra space or newline
+      end if;
 
       if not Output.First then
          if Output.Param.Newline_At (Output.Previous, Closing) then
