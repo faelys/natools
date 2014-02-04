@@ -875,9 +875,9 @@ package body Natools.S_Expressions.Printers.Pretty is
             if Fit_In_Line (Output, Blank_Width + Width) then
                if Output.Need_Blank then
                   Output.Stream.Write ((0 => Encodings.Space));
+                  Output.Cursor := Output.Cursor + 1;
                end if;
                Write_Quoted (Output, Data, True);
-               Output.Cursor := Output.Cursor + Blank_Width + Width;
                Output.Need_Blank := False;
                return;
             end if;
@@ -885,7 +885,6 @@ package body Natools.S_Expressions.Printers.Pretty is
             if Indent_Width (Output) + Width <= Output.Param.Width then
                Newline (Output);
                Write_Quoted (Output, Data, True);
-               Output.Cursor := Output.Cursor + Width;
                Output.Need_Blank := False;
                return;
             end if;
