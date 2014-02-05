@@ -114,6 +114,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
       Atom_Width (Report);
       Quoted_String_Escapes (Report);
       Indentation (Report);
+      Newline_Formats (Report);
    end All_Tests;
 
 
@@ -294,6 +295,104 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Indentation;
+
+
+   procedure Newline_Formats (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Newline formats");
+
+      procedure Print (Pr : in out Printer);
+
+      procedure Print (Pr : in out Printer) is
+      begin
+         Pr.Open_List;
+         Pr.Append_Atom (To_Atom ("begin"));
+         Pr.Append_Atom (To_Atom
+           ("quoted" & Latin_1.CR & Latin_1.LF & Latin_1.CR & "str"));
+         Pr.Close_List;
+      end Print;
+
+      Param : Parameters
+        := (Width => 7,
+            Newline_At => (others => (others => False)),
+            Space_At => (others => (others => False)),
+            Tab_Stop => 8,  --  unused
+            Indentation => 1,
+            Indent => Spaces,
+            Quoted => When_Shorter,
+            Token => Standard_Token,
+            Hex_Casing => Encodings.Upper,
+            Quoted_Escape => Hex_Escape,
+            Char_Encoding => ASCII,
+            Fallback => Hexadecimal,
+            Newline => CR);
+   begin
+      Param.Newline_At (Atom_Data, Atom_Data) := True;
+
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Pr.Set_Parameters (Param);
+         Output.Set_Expected (To_Atom
+           ("(begin" & Latin_1.CR
+            & " ""quot\" & Latin_1.CR
+            & "ed" & Latin_1.CR
+            & "\n" & Latin_1.CR
+            & "str"")"));
+         Print (Pr);
+         Check_Stream (Test, Output);
+      end;
+
+      Param.Newline := LF;
+
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Pr.Set_Parameters (Param);
+         Output.Set_Expected (To_Atom
+           ("(begin" & Latin_1.LF
+            & " ""quot\" & Latin_1.LF
+            & "ed\r" & Latin_1.LF
+            & "\rstr"")"));
+         Print (Pr);
+         Check_Stream (Test, Output);
+      end;
+
+      Param.Newline := CR_LF;
+
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Pr.Set_Parameters (Param);
+         Output.Set_Expected (To_Atom
+           ("(begin" & Latin_1.CR & Latin_1.LF
+            & " ""quot\" & Latin_1.CR & Latin_1.LF
+            & "ed" & Latin_1.CR & Latin_1.LF
+            & "\rstr"")"));
+         Print (Pr);
+         Check_Stream (Test, Output);
+      end;
+
+      Param.Newline := LF_CR;
+
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Pr.Set_Parameters (Param);
+         Output.Set_Expected (To_Atom
+           ("(begin" & Latin_1.LF & Latin_1.CR
+            & " ""quot\" & Latin_1.LF & Latin_1.CR
+            & "ed\r" & Latin_1.LF & Latin_1.CR
+            & "str"")"));
+         Print (Pr);
+         Check_Stream (Test, Output);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Newline_Formats;
 
 
    procedure Quoted_String_Escapes (Report : in out NT.Reporter'Class) is
