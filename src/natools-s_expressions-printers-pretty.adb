@@ -397,7 +397,7 @@ package body Natools.S_Expressions.Printers.Pretty is
            and then (New_Cursor > Width + 1
              or else (New_Cursor = Width + 1
                and then I + 1 in Data'Range
-               and then not Is_Newline (Data, I, Newline)))
+               and then not Is_Newline (Data, I + 1, Newline)))
          then
             case Newline is
                when CR | LF =>
