@@ -115,6 +115,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
       Quoted_String_Escapes (Report);
       Indentation (Report);
       Newline_Formats (Report);
+      Token_Separation (Report);
    end All_Tests;
 
 
@@ -620,5 +621,55 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Separators;
+
+
+   procedure Token_Separation (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Token separation");
+      Token : constant Atom := To_Atom ("token");
+   begin
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Output.Set_Expected (To_Atom
+           ("(begin(token ""quoted\n""token token #4865780A#token "
+            & "|QmFzZS02NAo=|token)end)"));
+         Pr.Set_Parameters
+          ((Width => 0,
+            Newline_At => (others => (others => False)),
+            Space_At => (others => (others => False)),
+            Tab_Stop => 8,
+            Indentation => 0,
+            Indent => Spaces,
+            Quoted => When_Shorter,
+            Token => Standard_Token,
+            Hex_Casing => Encodings.Upper,
+            Quoted_Escape => Hex_Escape,
+            Char_Encoding => ASCII,
+            Fallback => Hexadecimal,
+            Newline => LF));
+
+         Pr.Open_List;
+         Pr.Append_Atom (To_Atom ("begin"));
+         Pr.Open_List;
+         Pr.Append_Atom (Token);
+         Pr.Append_Atom (To_Atom ("quoted" & Latin_1.LF));
+         Pr.Append_Atom (Token);
+         Pr.Append_Atom (Token);
+         Pr.Set_Quoted (No_Quoted);
+         Pr.Append_Atom (To_Atom ("Hex" & Latin_1.LF));
+         Pr.Append_Atom (Token);
+         Pr.Set_Fallback (Base64);
+         Pr.Append_Atom (To_Atom ("Base-64" & Latin_1.LF));
+         Pr.Append_Atom (Token);
+         Pr.Close_List;
+         Pr.Append_Atom (To_Atom ("end"));
+         Pr.Close_List;
+
+         Check_Stream (Test, Output);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Token_Separation;
 
 end Natools.S_Expressions.Printers.Pretty.Tests;

@@ -35,5 +35,6 @@ package Natools.S_Expressions.Printers.Pretty.Tests is
    procedure Newline_Formats (Report : in out NT.Reporter'Class);
    procedure Quoted_String_Escapes (Report : in out NT.Reporter'Class);
    procedure Separators (Report : in out NT.Reporter'Class);
+   procedure Token_Separation (Report : in out NT.Reporter'Class);
 
 end Natools.S_Expressions.Printers.Pretty.Tests;
