@@ -116,6 +116,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
       Indentation (Report);
       Newline_Formats (Report);
       Token_Separation (Report);
+      Parameter_Mutators (Report);
    end All_Tests;
 
 
@@ -394,6 +395,66 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Newline_Formats;
+
+
+   procedure Parameter_Mutators (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Parameter mutators");
+      Initial : constant Parameters
+        := (Width => 0,
+            Newline_At => (others => (others => False)),
+            Space_At => (others => (others => False)),
+            Tab_Stop => 8,
+            Indentation => 0,
+            Indent => Spaces,
+            Quoted => No_Quoted,
+            Token => No_Token,
+            Hex_Casing => Encodings.Upper,
+            Quoted_Escape => Octal_Escape,
+            Char_Encoding => ASCII,
+            Fallback => Verbatim,
+            Newline => LF);
+      Final : constant Parameters
+        := (Width => 79,
+            Newline_At => (others => (others => True)),
+            Space_At => (others => (others => True)),
+            Tab_Stop => 4,
+            Indentation => 1,
+            Indent => Tabs,
+            Quoted => When_Shorter,
+            Token => Standard_Token,
+            Hex_Casing => Encodings.Lower,
+            Quoted_Escape => Hex_Escape,
+            Char_Encoding => UTF_8,
+            Fallback => Hexadecimal,
+            Newline => CR_LF);
+   begin
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         Pr : Printer (Output'Access);
+      begin
+         Pr.Set_Parameters (Initial);
+
+         Pr.Set_Width (Final.Width);
+         Pr.Set_Newline_At (Final.Newline_At);
+         Pr.Set_Space_At (Final.Space_At);
+         Pr.Set_Tab_Stop (Final.Tab_Stop);
+         Pr.Set_Indentation (Final.Indentation);
+         Pr.Set_Indent (Final.Indent);
+         Pr.Set_Quoted (Final.Quoted);
+         Pr.Set_Token (Final.Token);
+         Pr.Set_Hex_Casing (Final.Hex_Casing);
+         Pr.Set_Quoted_Escape (Final.Quoted_Escape);
+         Pr.Set_Char_Encoding (Final.Char_Encoding);
+         Pr.Set_Fallback (Final.Fallback);
+         Pr.Set_Newline (Final.Newline);
+
+         if Pr.Get_Parameters /= Final then
+            Test.Fail;
+         end if;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Parameter_Mutators;
 
 
    procedure Quoted_String_Escapes (Report : in out NT.Reporter'Class) is
