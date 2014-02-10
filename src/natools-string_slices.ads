@@ -20,6 +20,7 @@
 ------------------------------------------------------------------------------
 
 private with Natools.References;
+private with Natools.Storage_Pools;
 
 package Natools.String_Slices is
    pragma Preelaborate (String_Slices);
@@ -177,13 +178,10 @@ package Natools.String_Slices is
 
 private
 
-   type Access_In_Default_Pool is access Boolean;
-      --  Access type only used to infer default storage pool
-
    package String_Refs is new References
      (String,
-      Access_In_Default_Pool'Storage_Pool,
-      Access_In_Default_Pool'Storage_Pool);
+      Storage_Pools.Access_In_Default_Pool'Storage_Pool,
+      Storage_Pools.Access_In_Default_Pool'Storage_Pool);
 
    type Slice is tagged record
       Bounds : String_Range := (1, 0);
