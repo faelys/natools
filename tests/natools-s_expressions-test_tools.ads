@@ -98,6 +98,11 @@ package Natools.S_Expressions.Test_Tools is
       --  Return the position of the first mismatching octet,
       --  or 0 when there has been no mismatch.
 
+   procedure Check_Stream
+     (Stream : in Test_Tools.Memory_Stream;
+      Test : in out NT.Test);
+      --  On error in Stream, report error and dump relevant information.
+
 private
 
    type Memory_Stream is new Ada.Streams.Root_Stream_Type with record

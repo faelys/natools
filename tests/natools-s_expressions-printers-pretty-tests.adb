@@ -24,11 +24,6 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
    package Latin_1 renames Ada.Characters.Latin_1;
 
-   procedure Check_Stream
-     (Test : in out NT.Test;
-      Stream : in Test_Tools.Memory_Stream);
-      --  On error in Stream, report error and dump relevant information.
-
    procedure Parse_Print_Test
      (Test : in out NT.Test;
       Param : in Parameters;
@@ -41,40 +36,6 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    ------------------------------
    -- Local Helper Subprograms --
    ------------------------------
-
-   procedure Check_Stream
-     (Test : in out NT.Test;
-      Stream : in Test_Tools.Memory_Stream) is
-   begin
-      if Stream.Has_Mismatch or else Stream.Unread_Expected /= Null_Atom then
-         if Stream.Has_Mismatch then
-            Test.Fail ("Mismatch at position"
-              & Count'Image (Stream.Mismatch_Index));
-
-            declare
-               Stream_Data : Atom renames Stream.Get_Data;
-            begin
-               Test_Tools.Dump_Atom
-                 (Test,
-                  Stream_Data (Stream_Data'First .. Stream.Mismatch_Index - 1),
-                  "Matching data");
-               Test_Tools.Dump_Atom
-                 (Test,
-                  Stream_Data (Stream.Mismatch_Index .. Stream_Data'Last),
-                  "Mismatching data");
-            end;
-         end if;
-
-         if Stream.Unread_Expected /= Null_Atom then
-            Test.Fail;
-            Test_Tools.Dump_Atom
-              (Test,
-               Stream.Unread_Expected,
-               "Left to expect");
-         end if;
-      end if;
-   end Check_Stream;
-
 
    procedure Parse_Print_Test
      (Test : in out NT.Test;
@@ -93,7 +54,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
          Pretty_Printer.Set_Parameters (Param);
          Subparser.Next (Event);
          Transfer (Subparser, Pretty_Printer);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
    exception
       when Error : others =>
@@ -192,7 +153,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
          Pr.Append_Atom (To_Atom ("01234567"));
          Pr.Close_List;
 
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
 
       Param.Fallback := Base64;
@@ -213,7 +174,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
          Pr.Append_Atom (To_Atom ("abcDEFghiJKL"));
          Pr.Close_List;
 
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
    exception
       when Error : others => Test.Report_Exception (Error);
@@ -239,7 +200,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
          P.Close_List;
          P.Append_Atom (To_Atom ("end"));
 
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
    exception
       when Error : others => Test.Report_Exception (Error);
@@ -342,7 +303,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
             & "\n" & Latin_1.CR
             & "str"")"));
          Print (Pr);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
 
       Param.Newline := LF;
@@ -358,7 +319,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
             & "ed\r" & Latin_1.LF
             & "\rstr"")"));
          Print (Pr);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
 
       Param.Newline := CR_LF;
@@ -374,7 +335,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
             & "ed" & Latin_1.CR & Latin_1.LF
             & "\rstr"")"));
          Print (Pr);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
 
       Param.Newline := LF_CR;
@@ -390,7 +351,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
             & "ed\r" & Latin_1.LF & Latin_1.CR
             & "str"")"));
          Print (Pr);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
    exception
       when Error : others => Test.Report_Exception (Error);
@@ -516,7 +477,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
             & Encodings.Hex_Atom_End);
          Pr.Set_Parameters (Param);
          Pr.Append_Atom (Source (Source'First + 1 .. Source'Last));
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
 
       declare
@@ -533,7 +494,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
             & "<>\r\n"""));
          Pr.Set_Parameters (Param);
          Pr.Append_Atom (Source);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
 
       Param.Char_Encoding := Latin;
@@ -568,7 +529,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
             & "<>\r\n"""));
          Pr.Set_Parameters (Param);
          Pr.Append_Atom (Source);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
 
       Param.Char_Encoding := UTF_8;
@@ -587,7 +548,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
                & "<>\r\n"""));
          Pr.Set_Parameters (Param);
          Pr.Append_Atom (Source);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
 
       Param.Width := 31;
@@ -608,7 +569,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
                & "<>\r\n"""));
          Pr.Set_Parameters (Param);
          Pr.Append_Atom (Source);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
    exception
       when Error : others => Test.Report_Exception (Error);
@@ -642,7 +603,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
          Output.Set_Expected (To_Atom ("5:begin(()(4:head4:tail))3:end"));
          Pr.Set_Parameters (Param);
          Test_Exp (Pr);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
 
       Param.Space_At := (others => (others => True));
@@ -655,7 +616,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
            (To_Atom ("5:begin ( ( ) ( 4:head 4:tail ) ) 3:end"));
          Pr.Set_Parameters (Param);
          Test_Exp (Pr);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
 
       Param.Newline_At := (others => (others => True));
@@ -677,7 +638,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
            & "3:end"));
          Pr.Set_Parameters (Param);
          Test_Exp (Pr);
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
    exception
       when Error : others => Test.Report_Exception (Error);
@@ -727,7 +688,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
          Pr.Append_Atom (To_Atom ("end"));
          Pr.Close_List;
 
-         Check_Stream (Test, Output);
+         Output.Check_Stream (Test);
       end;
    exception
       when Error : others => Test.Report_Exception (Error);

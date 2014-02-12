@@ -324,4 +324,38 @@ package body Natools.S_Expressions.Test_Tools is
       end if;
    end Mismatch_Index;
 
+
+   procedure Check_Stream
+     (Stream : in Test_Tools.Memory_Stream;
+      Test : in out NT.Test) is
+   begin
+      if Stream.Has_Mismatch or else Stream.Unread_Expected /= Null_Atom then
+         if Stream.Has_Mismatch then
+            Test.Fail ("Mismatch at position"
+              & Count'Image (Stream.Mismatch_Index));
+
+            declare
+               Stream_Data : Atom renames Stream.Get_Data;
+            begin
+               Test_Tools.Dump_Atom
+                 (Test,
+                  Stream_Data (Stream_Data'First .. Stream.Mismatch_Index - 1),
+                  "Matching data");
+               Test_Tools.Dump_Atom
+                 (Test,
+                  Stream_Data (Stream.Mismatch_Index .. Stream_Data'Last),
+                  "Mismatching data");
+            end;
+         end if;
+
+         if Stream.Unread_Expected /= Null_Atom then
+            Test.Fail;
+            Test_Tools.Dump_Atom
+              (Test,
+               Stream.Unread_Expected,
+               "Left to expect");
+         end if;
+      end if;
+   end Check_Stream;
+
 end Natools.S_Expressions.Test_Tools;
