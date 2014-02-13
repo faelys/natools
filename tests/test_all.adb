@@ -24,6 +24,7 @@ with Natools.Chunked_Strings.Tests;
 with Natools.Getopt_Long_Tests;
 with Natools.Reference_Tests;
 with Natools.S_Expressions.Atom_Buffers.Tests;
+with Natools.S_Expressions.Cache_Tests;
 with Natools.S_Expressions.Encodings.Tests;
 with Natools.S_Expressions.Parsers.Tests;
 with Natools.S_Expressions.Printers.Tests;
@@ -75,6 +76,10 @@ begin
 
    Report.Section ("S_Expressions.Atom_Buffers");
    Natools.S_Expressions.Atom_Buffers.Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("S_Expressions.Caches");
+   Natools.S_Expressions.Cache_Tests.All_Tests (Report);
    Report.End_Section;
 
    Report.Section ("S_Expressions.Encodings");
