@@ -117,7 +117,7 @@ package body Natools.S_Expressions.Cache_Tests is
       end Info_Pool;
    begin
       declare
-         Cache : Debug_Caches.Reference;
+         Cache, Deep, Shallow : Debug_Caches.Reference;
       begin
          Inject_Test (Cache);
 
@@ -131,6 +131,20 @@ package body Natools.S_Expressions.Cache_Tests is
             Output.Check_Stream (Test);
          end;
 
+         Deep := Cache.Duplicate;
+         Shallow := Deep;
+         Deep.Append_Atom (To_Atom ("more"));
+
+         declare
+            Other : Debug_Caches.Cursor := Deep.First;
+            Output : aliased Test_Tools.Memory_Stream;
+            Pr : Printers.Canonical (Output'Access);
+         begin
+            Output.Set_Expected (Canonical_Test & To_Atom ("4:more"));
+            Printers.Transfer (Other, Pr);
+            Output.Check_Stream (Test);
+         end;
+
          declare
             Second : Debug_Caches.Cursor := Cache.First;
             Output : aliased Test_Tools.Memory_Stream;
@@ -138,6 +152,16 @@ package body Natools.S_Expressions.Cache_Tests is
          begin
             Output.Set_Expected (Canonical_Test);
             Printers.Transfer (Second, Pr);
+            Output.Check_Stream (Test);
+         end;
+
+         declare
+            Second_Other : Debug_Caches.Cursor := Shallow.First;
+            Output : aliased Test_Tools.Memory_Stream;
+            Pr : Printers.Canonical (Output'Access);
+         begin
+            Output.Set_Expected (Canonical_Test & To_Atom ("4:more"));
+            Printers.Transfer (Second_Other, Pr);
             Output.Check_Stream (Test);
          end;
       end;
@@ -152,7 +176,7 @@ package body Natools.S_Expressions.Cache_Tests is
       Test : NT.Test := Report.Item ("Default instantiation");
    begin
       declare
-         Cache : Caches.Reference;
+         Cache, Deep, Shallow : Caches.Reference;
       begin
          Inject_Test (Cache);
 
@@ -166,6 +190,20 @@ package body Natools.S_Expressions.Cache_Tests is
             Output.Check_Stream (Test);
          end;
 
+         Deep := Cache.Duplicate;
+         Shallow := Deep;
+         Deep.Append_Atom (To_Atom ("more"));
+
+         declare
+            Other : Caches.Cursor := Deep.First;
+            Output : aliased Test_Tools.Memory_Stream;
+            Pr : Printers.Canonical (Output'Access);
+         begin
+            Output.Set_Expected (Canonical_Test & To_Atom ("4:more"));
+            Printers.Transfer (Other, Pr);
+            Output.Check_Stream (Test);
+         end;
+
          declare
             Second : Caches.Cursor := Cache.First;
             Output : aliased Test_Tools.Memory_Stream;
@@ -173,6 +211,16 @@ package body Natools.S_Expressions.Cache_Tests is
          begin
             Output.Set_Expected (Canonical_Test);
             Printers.Transfer (Second, Pr);
+            Output.Check_Stream (Test);
+         end;
+
+         declare
+            Second_Other : Caches.Cursor := Shallow.First;
+            Output : aliased Test_Tools.Memory_Stream;
+            Pr : Printers.Canonical (Output'Access);
+         begin
+            Output.Set_Expected (Canonical_Test & To_Atom ("4:more"));
+            Printers.Transfer (Second_Other, Pr);
             Output.Check_Stream (Test);
          end;
       end;
