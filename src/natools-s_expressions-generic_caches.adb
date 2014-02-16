@@ -116,7 +116,8 @@ package body Natools.S_Expressions.Generic_Caches is
                Result := new Node'(Kind => List_Node,
                  Parent => Parent,
                  Next => null,
-                 Child => Dup_List (N.Child, N));
+                 Child => null);
+               Result.Child := Dup_List (N.Child, Result);
          end case;
 
          if N = Source.Last then
