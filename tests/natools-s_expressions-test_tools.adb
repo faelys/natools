@@ -203,6 +203,113 @@ package body Natools.S_Expressions.Test_Tools is
    end Test_Atom;
 
 
+   procedure Test_Atom_Accessors
+     (Test : in out NT.Test;
+      Tested : in Descriptor'Class;
+      Expected : in Atom;
+      Expected_Level : in Integer := -1)
+   is
+      Print_Expected : Boolean := False;
+   begin
+      if Tested.Current_Event /= Events.Add_Atom then
+         Test.Error ("Test_Atom_Accessors called with current event "
+           & Events.Event'Image (Tested.Current_Event));
+         return;
+      end if;
+
+      if Expected_Level >= 0 then
+         Current_Level_Test :
+         declare
+            Level : constant Natural := Tested.Current_Level;
+         begin
+            if Level /= Expected_Level then
+               Test.Fail ("Current_Level is"
+                 & Integer'Image (Level)
+                 & ", expected"
+                 & Integer'Image (Expected_Level));
+            end if;
+         end Current_Level_Test;
+      end if;
+
+      Current_Atom_Test :
+      declare
+         Current_Atom : constant Atom := Tested.Current_Atom;
+      begin
+         if Current_Atom /= Expected then
+            Print_Expected := True;
+            Test.Fail;
+            Dump_Atom (Test, Current_Atom, "Current_Atom");
+         end if;
+      end Current_Atom_Test;
+
+      Query_Atom_Test :
+      declare
+         procedure Process (Data : in Atom);
+
+         Calls : Natural := 0;
+         Buffer : Atom_Buffers.Atom_Buffer;
+
+         procedure Process (Data : in Atom) is
+         begin
+            Calls := Calls + 1;
+            Buffer.Append (Data);
+         end Process;
+      begin
+         Tested.Query_Atom (Process'Access);
+
+         if Calls = 0 then
+            Test.Fail ("Query_Atom did not call Process");
+         elsif Calls > 1 then
+            Test.Fail ("Query_Atom called Process" & Integer'Image (Calls)
+              & " times");
+            Print_Expected := True;
+            Dump_Atom (Test, Buffer.Data, "Buffer");
+         elsif Buffer.Data /= Expected then
+            Print_Expected := True;
+            Test.Fail;
+            Dump_Atom (Test, Buffer.Data, "Query_Atom");
+         end if;
+      end Query_Atom_Test;
+
+      Long_Read_Atom_Test :
+      declare
+         Buffer : Atom (21 .. Expected'Length + 30);
+         Length : Count;
+      begin
+         Tested.Read_Atom (Buffer, Length);
+
+         if Buffer (Buffer'First .. Buffer'First + Length - 1) /= Expected then
+            Print_Expected := True;
+            Test.Fail;
+            Dump_Atom
+              (Test,
+               Buffer (Buffer'First .. Buffer'First + Length - 1),
+               "Read_Atom");
+         end if;
+      end Long_Read_Atom_Test;
+
+      Short_Read_Atom_Test :
+      declare
+         Buffer : Atom (11 .. Expected'Length / 2 + 10);
+         Length : Count;
+      begin
+         Tested.Read_Atom (Buffer, Length);
+
+         if Expected (Expected'First .. Expected'First + Buffer'Length - 1)
+           /= Buffer
+         then
+            Print_Expected := True;
+            Test.Fail;
+            Dump_Atom (Test, Buffer, "Short Read_Atom");
+         end if;
+      end Short_Read_Atom_Test;
+
+      if Print_Expected then
+         Dump_Atom (Test, Expected, "Expected");
+      end if;
+   end Test_Atom_Accessors;
+
+
 
    -------------------
    -- Memory Stream --

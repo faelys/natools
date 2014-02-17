@@ -56,6 +56,13 @@ package Natools.S_Expressions.Test_Tools is
       --  Report success when Found is equal to Expected, and failure
       --  with diagnostics otherwise.
 
+   procedure Test_Atom_Accessors
+     (Test : in out NT.Test;
+      Tested : in Descriptor'Class;
+      Expected : in Atom;
+      Expected_Level : in Integer := -1);
+      --  Test all the ways of accessing atom in Tested
+
 
    type Memory_Stream is new Ada.Streams.Root_Stream_Type with private;
 
