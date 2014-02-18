@@ -63,6 +63,11 @@ package Natools.S_Expressions.Test_Tools is
       Expected_Level : in Integer := -1);
       --  Test all the ways of accessing atom in Tested
 
+   procedure Test_Atom_Accessor_Exceptions
+     (Test : in out NT.Test;
+      Tested : in Descriptor'Class);
+      --  Check that all atom accessors raise Program_Error
+
 
    type Memory_Stream is new Ada.Streams.Root_Stream_Type with private;
 

@@ -310,6 +310,74 @@ package body Natools.S_Expressions.Test_Tools is
    end Test_Atom_Accessors;
 
 
+   procedure Test_Atom_Accessor_Exceptions
+     (Test : in out NT.Test;
+      Tested : in Descriptor'Class) is
+   begin
+      if Tested.Current_Event = Events.Add_Atom then
+         Test.Error ("Test_Atom_Accessor_Exceptions during Events.Add_Atom");
+         return;
+      end if;
+
+      Current_Atom_Test :
+      begin
+         declare
+            Data : constant Atom := Tested.Current_Atom;
+         begin
+            Test.Fail ("No exception raised in Current_Atom");
+            Dump_Atom (Test, Data, "Returned value");
+         end;
+      exception
+         when Program_Error => null;
+         when Error : others =>
+            Test.Fail ("Wrong exception raised in Current_Atom");
+            Test.Report_Exception (Error, NT.Fail);
+      end Current_Atom_Test;
+
+      Query_Atom_Test :
+      declare
+         procedure Process (Data : in Atom);
+
+         Calls : Natural := 0;
+         Buffer : Atom_Buffers.Atom_Buffer;
+
+         procedure Process (Data : in Atom) is
+         begin
+            Calls := Calls + 1;
+            Buffer.Append (Data);
+         end Process;
+      begin
+         Tested.Query_Atom (Process'Access);
+
+         Test.Fail ("No exception raised in Query_Atom");
+         Dump_Atom (Test, Buffer.Data,
+           "Buffer from" & Natural'Image (Calls) & " calls");
+      exception
+         when Program_Error => null;
+         when Error : others =>
+            Test.Fail ("Wrong exception raised in Query_Atom");
+            Test.Report_Exception (Error, NT.Fail);
+      end Query_Atom_Test;
+
+      Read_Atom_Test :
+      declare
+         Buffer : Atom (0 .. 31) := (others => 46);
+         Length : Count;
+      begin
+         Tested.Read_Atom (Buffer, Length);
+
+         Test.Fail ("No exception raised in Read_Atom");
+         Test.Info ("Returned Length:" & Count'Image (Length));
+         Dump_Atom (Test, Buffer, "Output Buffer");
+      exception
+         when Program_Error => null;
+         when Error : others =>
+            Test.Fail ("Wrong exception raised in Read_Atom");
+            Test.Report_Exception (Error, NT.Fail);
+      end Read_Atom_Test;
+   end Test_Atom_Accessor_Exceptions;
+
+
 
    -------------------
    -- Memory Stream --
