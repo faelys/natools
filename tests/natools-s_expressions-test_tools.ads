@@ -68,6 +68,21 @@ package Natools.S_Expressions.Test_Tools is
       Tested : in Descriptor'Class);
       --  Check that all atom accessors raise Program_Error
 
+   procedure Next_And_Check
+     (Test : in out NT.Test;
+      Tested : in out Descriptor'Class;
+      Expected : in Events.Event;
+      Level : in Natural);
+      --  Call Tested.Next and check the current event and level
+
+   procedure Next_And_Check
+     (Test : in out NT.Test;
+      Tested : in out Descriptor'Class;
+      Expected : in Atom;
+      Level : in Natural);
+      --  Call Tested.Next and check current event is Add_Atom with Expected,
+      --  using Test_Atom_Accessors.
+
 
    type Memory_Stream is new Ada.Streams.Root_Stream_Type with private;
 

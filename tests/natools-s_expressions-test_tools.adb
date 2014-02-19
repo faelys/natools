@@ -378,6 +378,50 @@ package body Natools.S_Expressions.Test_Tools is
    end Test_Atom_Accessor_Exceptions;
 
 
+   procedure Next_And_Check
+     (Test : in out NT.Test;
+      Tested : in out Descriptor'Class;
+      Expected : in Events.Event;
+      Level : in Natural)
+   is
+      Event : Events.Event;
+   begin
+      Tested.Next (Event);
+      if Event /= Expected then
+         Test.Fail ("Found event "
+           & Events.Event'Image (Event)
+           & ", expected "
+           & Events.Event'Image (Expected));
+      elsif Tested.Current_Level /= Level then
+         Test.Fail ("Found event "
+           & Events.Event'Image (Event)
+           & " at level"
+           & Integer'Image (Tested.Current_Level)
+           & ", expected"
+           & Integer'Image (Level));
+      end if;
+   end Next_And_Check;
+
+
+   procedure Next_And_Check
+     (Test : in out NT.Test;
+      Tested : in out Descriptor'Class;
+      Expected : in Atom;
+      Level : in Natural)
+   is
+      Event : Events.Event;
+   begin
+      Tested.Next (Event);
+      if Event /= Events.Add_Atom then
+         Test.Fail ("Found event "
+           & Events.Event'Image (Event)
+           & ", expected Add_Atom");
+      else
+         Test_Tools.Test_Atom_Accessors (Test, Tested, Expected, Level);
+      end if;
+   end Next_And_Check;
+
+
 
    -------------------
    -- Memory Stream --
