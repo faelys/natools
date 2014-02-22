@@ -269,6 +269,13 @@ package body Natools.S_Expressions.Generic_Caches is
       Result : Natural := 0;
       N : Node_Access := Object.Position;
    begin
+      if Object.Position /= null
+        and then Object.Position.Kind = List_Node
+        and then Object.Opening
+      then
+         Result := Result + 1;
+      end if;
+
       while N /= null loop
          Result := Result + 1;
          N := N.Parent;
