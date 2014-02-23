@@ -77,7 +77,8 @@ package body Natools.S_Expressions.Generic_Caches is
 
    function Duplicate (Source : Tree) return Tree is
       function Dup_List (First, Parent : Node_Access) return Node_Access;
-      function Dup_Node (N, Parent : Node_Access) return Node_Access;
+      function Dup_Node (N : not null Node_Access; Parent : Node_Access)
+        return Node_Access;
 
       New_Last : Node_Access := null;
 
@@ -99,13 +100,11 @@ package body Natools.S_Expressions.Generic_Caches is
          return Result;
       end Dup_List;
 
-      function Dup_Node (N, Parent : Node_Access) return Node_Access is
+      function Dup_Node (N : not null Node_Access; Parent : Node_Access)
+        return Node_Access
+      is
          Result : Node_Access;
       begin
-         if N = null then
-            return null;
-         end if;
-
          case N.Kind is
             when Atom_Node =>
                Result := new Node'(Kind => Atom_Node,
