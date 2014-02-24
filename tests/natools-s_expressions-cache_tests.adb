@@ -120,6 +120,21 @@ package body Natools.S_Expressions.Cache_Tests is
       declare
          Cache, Deep, Shallow : Debug_Caches.Reference;
       begin
+         declare
+            Empty_Cursor : Debug_Caches.Cursor := Deep.First;
+            Event : Events.Event;
+         begin
+            Event := Empty_Cursor.Current_Event;
+            if Event /= Events.End_Of_Input then
+               Test.Fail ("Unexpected Empty_Cursor.Current_Event "
+                 & Events.Event'Image (Event)
+                 & " (expected End_Of_Input)");
+            end if;
+
+            Test_Tools.Next_And_Check
+              (Test, Empty_Cursor, Events.End_Of_Input, 0);
+         end;
+
          Inject_Test (Cache);
 
          declare
@@ -179,6 +194,20 @@ package body Natools.S_Expressions.Cache_Tests is
       declare
          Cache, Deep, Shallow : Caches.Reference;
       begin
+         declare
+            Empty_Cursor : Caches.Cursor := Deep.First;
+            Event : Events.Event;
+         begin
+            Event := Empty_Cursor.Current_Event;
+            if Event /= Events.End_Of_Input then
+               Test.Fail ("Unexpected Empty_Cursor.Current_Event "
+                 & Events.Event'Image (Event)
+                 & " (expected End_Of_Input)");
+            end if;
+
+            Test_Tools.Next_And_Check
+              (Test, Empty_Cursor, Events.End_Of_Input, 0);
+         end;
          Inject_Test (Cache);
 
          declare
