@@ -132,7 +132,7 @@ private
 
 
    type Cursor is new Descriptor with record
-      Exp : Trees.Reference := Trees.Create (Create_Tree'Access);
+      Exp : Trees.Reference := Trees.Null_Reference;
       Position : Node_Access := null;
       Opening : Boolean := False;
    end record;
