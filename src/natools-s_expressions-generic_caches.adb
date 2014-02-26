@@ -320,7 +320,7 @@ package body Natools.S_Expressions.Generic_Caches is
       Event : out Events.Event) is
    begin
       if Object.Position = null then
-         Event := Events.Error;
+         Event := Events.End_Of_Input;
          return;
       end if;
 
