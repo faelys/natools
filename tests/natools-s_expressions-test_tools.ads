@@ -60,26 +60,30 @@ package Natools.S_Expressions.Test_Tools is
      (Test : in out NT.Test;
       Tested : in Descriptor'Class;
       Expected : in Atom;
-      Expected_Level : in Integer := -1);
+      Expected_Level : in Integer := -1;
+      Context : in String := "");
       --  Test all the ways of accessing atom in Tested
 
    procedure Test_Atom_Accessor_Exceptions
      (Test : in out NT.Test;
-      Tested : in Descriptor'Class);
+      Tested : in Descriptor'Class;
+      Context : in String := "");
       --  Check that all atom accessors raise Program_Error
 
    procedure Next_And_Check
      (Test : in out NT.Test;
       Tested : in out Descriptor'Class;
       Expected : in Events.Event;
-      Level : in Natural);
+      Level : in Natural;
+      Context : in String := "");
       --  Call Tested.Next and check the current event and level
 
    procedure Next_And_Check
      (Test : in out NT.Test;
       Tested : in out Descriptor'Class;
       Expected : in Atom;
-      Level : in Natural);
+      Level : in Natural;
+      Context : in String := "");
       --  Call Tested.Next and check current event is Add_Atom with Expected,
       --  using Test_Atom_Accessors.
 

@@ -207,11 +207,30 @@ package body Natools.S_Expressions.Test_Tools is
      (Test : in out NT.Test;
       Tested : in Descriptor'Class;
       Expected : in Atom;
-      Expected_Level : in Integer := -1)
+      Expected_Level : in Integer := -1;
+      Context : in String := "")
    is
+      Context_Given : Boolean := Context = "";
+
+      procedure Fail_With_Context;
+
+      procedure Fail_With_Context is
+      begin
+         if not Context_Given then
+            Test.Fail (Context);
+            Context_Given := True;
+         else
+            Test.Fail;
+         end if;
+      end Fail_With_Context;
+
       Print_Expected : Boolean := False;
    begin
       if Tested.Current_Event /= Events.Add_Atom then
+         if Context /= "" then
+            Test.Error (Context);
+         end if;
+
          Test.Error ("Test_Atom_Accessors called with current event "
            & Events.Event'Image (Tested.Current_Event));
          return;
@@ -223,7 +242,8 @@ package body Natools.S_Expressions.Test_Tools is
             Level : constant Natural := Tested.Current_Level;
          begin
             if Level /= Expected_Level then
-               Test.Fail ("Current_Level is"
+               Fail_With_Context;
+               Test.Info ("Current_Level is"
                  & Integer'Image (Level)
                  & ", expected"
                  & Integer'Image (Expected_Level));
@@ -237,7 +257,7 @@ package body Natools.S_Expressions.Test_Tools is
       begin
          if Current_Atom /= Expected then
             Print_Expected := True;
-            Test.Fail;
+            Fail_With_Context;
             Dump_Atom (Test, Current_Atom, "Current_Atom");
          end if;
       end Current_Atom_Test;
@@ -258,15 +278,17 @@ package body Natools.S_Expressions.Test_Tools is
          Tested.Query_Atom (Process'Access);
 
          if Calls = 0 then
-            Test.Fail ("Query_Atom did not call Process");
+            Fail_With_Context;
+            Test.Info ("Query_Atom did not call Process");
          elsif Calls > 1 then
-            Test.Fail ("Query_Atom called Process" & Integer'Image (Calls)
+            Fail_With_Context;
+            Test.Info ("Query_Atom called Process" & Integer'Image (Calls)
               & " times");
             Print_Expected := True;
             Dump_Atom (Test, Buffer.Data, "Buffer");
          elsif Buffer.Data /= Expected then
             Print_Expected := True;
-            Test.Fail;
+            Fail_With_Context;
             Dump_Atom (Test, Buffer.Data, "Query_Atom");
          end if;
       end Query_Atom_Test;
@@ -280,7 +302,7 @@ package body Natools.S_Expressions.Test_Tools is
 
          if Buffer (Buffer'First .. Buffer'First + Length - 1) /= Expected then
             Print_Expected := True;
-            Test.Fail;
+            Fail_With_Context;
             Dump_Atom
               (Test,
                Buffer (Buffer'First .. Buffer'First + Length - 1),
@@ -299,7 +321,7 @@ package body Natools.S_Expressions.Test_Tools is
            /= Buffer
          then
             Print_Expected := True;
-            Test.Fail;
+            Fail_With_Context;
             Dump_Atom (Test, Buffer, "Short Read_Atom");
          end if;
       end Short_Read_Atom_Test;
@@ -312,9 +334,28 @@ package body Natools.S_Expressions.Test_Tools is
 
    procedure Test_Atom_Accessor_Exceptions
      (Test : in out NT.Test;
-      Tested : in Descriptor'Class) is
+      Tested : in Descriptor'Class;
+      Context : in String := "")
+   is
+      Context_Given : Boolean := Context = "";
+
+      procedure Fail_With_Context;
+
+      procedure Fail_With_Context is
+      begin
+         if not Context_Given then
+            Test.Fail (Context);
+            Context_Given := True;
+         else
+            Test.Fail;
+         end if;
+      end Fail_With_Context;
    begin
       if Tested.Current_Event = Events.Add_Atom then
+         if Context /= "" then
+            Test.Error (Context);
+         end if;
+
          Test.Error ("Test_Atom_Accessor_Exceptions during Events.Add_Atom");
          return;
       end if;
@@ -324,13 +365,15 @@ package body Natools.S_Expressions.Test_Tools is
          declare
             Data : constant Atom := Tested.Current_Atom;
          begin
-            Test.Fail ("No exception raised in Current_Atom");
+            Fail_With_Context;
+            Test.Info ("No exception raised in Current_Atom");
             Dump_Atom (Test, Data, "Returned value");
          end;
       exception
          when Program_Error => null;
          when Error : others =>
-            Test.Fail ("Wrong exception raised in Current_Atom");
+            Fail_With_Context;
+            Test.Info ("Wrong exception raised in Current_Atom");
             Test.Report_Exception (Error, NT.Fail);
       end Current_Atom_Test;
 
@@ -349,13 +392,15 @@ package body Natools.S_Expressions.Test_Tools is
       begin
          Tested.Query_Atom (Process'Access);
 
-         Test.Fail ("No exception raised in Query_Atom");
+         Fail_With_Context;
+         Test.Info ("No exception raised in Query_Atom");
          Dump_Atom (Test, Buffer.Data,
            "Buffer from" & Natural'Image (Calls) & " calls");
       exception
          when Program_Error => null;
          when Error : others =>
-            Test.Fail ("Wrong exception raised in Query_Atom");
+            Fail_With_Context;
+            Test.Info ("Wrong exception raised in Query_Atom");
             Test.Report_Exception (Error, NT.Fail);
       end Query_Atom_Test;
 
@@ -366,13 +411,15 @@ package body Natools.S_Expressions.Test_Tools is
       begin
          Tested.Read_Atom (Buffer, Length);
 
-         Test.Fail ("No exception raised in Read_Atom");
+         Fail_With_Context;
+         Test.Info ("No exception raised in Read_Atom");
          Test.Info ("Returned Length:" & Count'Image (Length));
          Dump_Atom (Test, Buffer, "Output Buffer");
       exception
          when Program_Error => null;
          when Error : others =>
-            Test.Fail ("Wrong exception raised in Read_Atom");
+            Fail_With_Context;
+            Test.Info ("Wrong exception raised in Read_Atom");
             Test.Report_Exception (Error, NT.Fail);
       end Read_Atom_Test;
    end Test_Atom_Accessor_Exceptions;
@@ -382,17 +429,26 @@ package body Natools.S_Expressions.Test_Tools is
      (Test : in out NT.Test;
       Tested : in out Descriptor'Class;
       Expected : in Events.Event;
-      Level : in Natural)
+      Level : in Natural;
+      Context : in String := "")
    is
       Event : Events.Event;
    begin
       Tested.Next (Event);
       if Event /= Expected then
+         if Context /= "" then
+            Test.Fail (Context);
+         end if;
+
          Test.Fail ("Found event "
            & Events.Event'Image (Event)
            & ", expected "
            & Events.Event'Image (Expected));
       elsif Tested.Current_Level /= Level then
+         if Context /= "" then
+            Test.Fail (Context);
+         end if;
+
          Test.Fail ("Found event "
            & Events.Event'Image (Event)
            & " at level"
@@ -407,17 +463,23 @@ package body Natools.S_Expressions.Test_Tools is
      (Test : in out NT.Test;
       Tested : in out Descriptor'Class;
       Expected : in Atom;
-      Level : in Natural)
+      Level : in Natural;
+      Context : in String := "")
    is
       Event : Events.Event;
    begin
       Tested.Next (Event);
       if Event /= Events.Add_Atom then
+         if Context /= "" then
+            Test.Fail (Context);
+         end if;
+
          Test.Fail ("Found event "
            & Events.Event'Image (Event)
            & ", expected Add_Atom");
       else
-         Test_Tools.Test_Atom_Accessors (Test, Tested, Expected, Level);
+         Test_Tools.Test_Atom_Accessors
+           (Test, Tested, Expected, Level, Context);
       end if;
    end Next_And_Check;
 
