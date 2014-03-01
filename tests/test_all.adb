@@ -26,6 +26,7 @@ with Natools.Reference_Tests;
 with Natools.S_Expressions.Atom_Buffers.Tests;
 with Natools.S_Expressions.Cache_Tests;
 with Natools.S_Expressions.Encodings.Tests;
+with Natools.S_Expressions.Lockable.Tests;
 with Natools.S_Expressions.Parsers.Tests;
 with Natools.S_Expressions.Printers.Tests;
 with Natools.S_Expressions.Printers.Pretty.Tests;
@@ -84,6 +85,10 @@ begin
 
    Report.Section ("S_Expressions.Encodings");
    Natools.S_Expressions.Encodings.Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("S_Expressions.Lockable");
+   Natools.S_Expressions.Lockable.Tests.All_Tests (Report);
    Report.End_Section;
 
    Report.Section ("S_Expressions.Parsers");
