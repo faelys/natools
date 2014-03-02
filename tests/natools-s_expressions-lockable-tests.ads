@@ -27,8 +27,15 @@ package Natools.S_Expressions.Lockable.Tests is
 
    package NT renames Natools.Tests;
 
+   function Test_Expression return Atom;
+   procedure Test_Interface
+     (Test : in out NT.Test;
+      Object : in out Lockable.Descriptor'Class);
+
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
    procedure Test_Stack (Report : in out NT.Reporter'Class);
+   procedure Test_Wrapper_Extra (Report : in out NT.Reporter'Class);
+   procedure Test_Wrapper_Interface (Report : in out NT.Reporter'Class);
 
 end Natools.S_Expressions.Lockable.Tests;

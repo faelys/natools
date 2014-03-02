@@ -19,6 +19,105 @@ with Natools.S_Expressions.Parsers;
 
 package body Natools.S_Expressions.Lockable.Tests is
 
+   -------------------------------
+   -- Lockable.Descriptor Tests --
+   -------------------------------
+
+   function Test_Expression return Atom is
+   begin
+      return To_Atom ("(begin(command1 arg1.1 arg1.2)"
+        & "(command2 (subcmd2.1 arg2.1.1) (subcmd2.3) arg2.4)"
+        & "end)");
+   end Test_Expression;
+
+
+   procedure Test_Interface
+     (Test : in out NT.Test;
+      Object : in out Lockable.Descriptor'Class)
+   is
+      Level_1, Level_2 : Lock_State;
+      Base : Natural;
+   begin
+      Base := Object.Current_Level;
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("begin"), Base);
+
+      Test_Tools.Next_And_Check (Test, Object, Events.Open_List, Base + 1);
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("command1"), Base + 1,
+        "Before first lock:");
+      Object.Lock (Level_1);
+      Test_Tools.Test_Atom_Accessors (Test, Object, To_Atom ("command1"), 0,
+        "After first lock:");
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("arg1.1"), 0);
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("arg1.2"), 0);
+      Test_Tools.Next_And_Check (Test, Object, Events.End_Of_Input, 0,
+        "Before first unlock:");
+      Test_Tools.Test_Atom_Accessor_Exceptions (Test, Object);
+      Object.Unlock (Level_1);
+
+      declare
+         Event : constant Events.Event := Object.Current_Event;
+         Level : constant Natural := Object.Current_Level;
+      begin
+         if Event /= Events.Close_List then
+            Test.Fail ("Current event is " & Events.Event'Image (Event)
+              & ", expected Close_List");
+         end if;
+         if Level /= Base then
+            Test.Fail ("Current level is" & Natural'Image (Level)
+              & ", expected" & Natural'Image (Base));
+         end if;
+      end;
+
+      Test_Tools.Next_And_Check (Test, Object, Events.Open_List, Base + 1);
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("command2"), Base + 1,
+        "Before second lock:");
+      Object.Lock (Level_1);
+      Test_Tools.Test_Atom_Accessors (Test, Object, To_Atom ("command2"), 0,
+        "After second lock:");
+      Test_Tools.Next_And_Check (Test, Object, Events.Open_List, 1);
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("subcmd2.1"), 1,
+        "Before inner lock:");
+      Object.Lock (Level_2);
+      Test_Tools.Test_Atom_Accessors (Test, Object, To_Atom ("subcmd2.1"), 0,
+        "After inner lock:");
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("arg2.1.1"), 0,
+        "Before inner unlock:");
+      Object.Unlock (Level_2, False);
+      Test_Tools.Test_Atom_Accessors (Test, Object, To_Atom ("arg2.1.1"), 1,
+        "After inner unlock:");
+      Test_Tools.Next_And_Check (Test, Object, Events.Close_List, 0);
+      Test_Tools.Next_And_Check (Test, Object, Events.Open_List, 1);
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("subcmd2.3"), 1,
+        "Before inner lock:");
+      Object.Lock (Level_2);
+      Test_Tools.Test_Atom_Accessors (Test, Object, To_Atom ("subcmd2.3"), 0,
+        "After inner lock:");
+      Test_Tools.Next_And_Check (Test, Object, Events.End_Of_Input, 0,
+        "Before inner unlock:");
+      Object.Unlock (Level_2, False);
+
+      declare
+         Event : constant Events.Event := Object.Current_Event;
+         Level : constant Natural := Object.Current_Level;
+      begin
+         if Event /= Events.Close_List then
+            Test.Fail ("Current event is " & Events.Event'Image (Event)
+              & ", expected Close_List");
+         end if;
+         if Level /= 1 then
+            Test.Fail ("Current level is" & Natural'Image (Level)
+              & ", expected 1");
+         end if;
+      end;
+
+      Object.Unlock (Level_1);
+
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("end"), Base);
+      Test_Tools.Next_And_Check (Test, Object, Events.Close_List, Base - 1);
+   end Test_Interface;
+
+
+
    -------------------------
    -- Complete Test Suite --
    -------------------------
@@ -148,5 +247,59 @@ package body Natools.S_Expressions.Lockable.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Test_Stack;
+
+
+   procedure Test_Wrapper_Extra (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Extra tests of wrapper");
+   begin
+      declare
+         Input : aliased Test_Tools.Memory_Stream;
+         Parser : aliased Parsers.Parser;
+         Subparser : aliased Parsers.Subparser (Parser'Access, Input'Access);
+         Tested : Wrapper (Subparser'Access);
+         State : Lock_State;
+      begin
+         Input.Set_Data (To_Atom ("(cmd1 arg1)(cmd2 4:arg2"));
+
+         --  Check Events.Error is returned by Next when finished
+
+         Test_Tools.Next_And_Check (Test, Tested, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Tested, To_Atom ("cmd1"), 1);
+         Tested.Lock (State);
+         Test_Tools.Next_And_Check (Test, Tested, To_Atom ("arg1"), 0);
+         Test_Tools.Next_And_Check (Test, Tested, Events.End_Of_Input, 0);
+         Test_Tools.Next_And_Check (Test, Tested, Events.Error, 0);
+         Tested.Unlock (State);
+
+         --  Run Unlock with End_Of_Input in backend
+
+         Test_Tools.Next_And_Check (Test, Tested, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Tested, To_Atom ("cmd2"), 1);
+         Tested.Lock (State);
+         Test_Tools.Next_And_Check (Test, Tested, To_Atom ("arg2"), 0);
+         Tested.Unlock (State);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Test_Wrapper_Extra;
+
+
+   procedure Test_Wrapper_Interface (Report : in out NT.Reporter'Class) is
+      Test : NT.Test
+        := Report.Item ("Lockable.Descriptor interface of wrapper");
+   begin
+      declare
+         Input : aliased Test_Tools.Memory_Stream;
+         Parser : aliased Parsers.Parser;
+         Subparser : aliased Parsers.Subparser (Parser'Access, Input'Access);
+         Tested : Wrapper (Subparser'Access);
+      begin
+         Input.Set_Data (Test_Expression);
+         Test_Tools.Next_And_Check (Test, Subparser, Events.Open_List, 1);
+         Test_Interface (Test, Tested);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Test_Wrapper_Interface;
 
 end Natools.S_Expressions.Lockable.Tests;
