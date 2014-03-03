@@ -104,9 +104,9 @@ package body Natools.S_Expressions.Lockable.Tests is
             Test.Fail ("Current event is " & Events.Event'Image (Event)
               & ", expected Close_List");
          end if;
-         if Level /= 1 then
+         if Level /= 0 then
             Test.Fail ("Current level is" & Natural'Image (Level)
-              & ", expected 1");
+              & ", expected 0");
          end if;
       end;
 
