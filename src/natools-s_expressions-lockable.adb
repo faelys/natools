@@ -54,6 +54,12 @@ package body Natools.S_Expressions.Lockable is
    end Current_Level;
 
 
+   function Null_State return Lock_State is
+   begin
+      return (0, 0);
+   end Null_State;
+
+
 
    -------------------------------------
    -- Lockable Wrapper Implementation --

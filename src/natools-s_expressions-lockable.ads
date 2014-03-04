@@ -49,6 +49,9 @@ package Natools.S_Expressions.Lockable is
    function Current_Level (Stack : Lock_Stack) return Natural;
       --  Return the value on top of the stack
 
+   function Null_State return Lock_State;
+      --  Return an invalid Lock_State
+
 
    type Descriptor is limited interface and S_Expressions.Descriptor;
 
