@@ -26,6 +26,7 @@
 with Ada.Streams;
 
 with Natools.S_Expressions.Atom_Buffers;
+with Natools.S_Expressions.Lockable;
 
 package Natools.S_Expressions.Parsers is
    pragma Preelaborate (Natools.S_Expressions.Parsers);
@@ -53,7 +54,7 @@ package Natools.S_Expressions.Parsers is
    type Subparser
      (Backend : access Parser;
       Input   : access Ada.Streams.Root_Stream_Type'Class)
-   is new Descriptor with private;
+   is new Lockable.Descriptor with private;
 
    overriding function Current_Event (P : in Subparser) return Events.Event;
    overriding function Current_Atom (P : in Subparser) return Atom;
@@ -69,6 +70,16 @@ package Natools.S_Expressions.Parsers is
       Length : out Count);
 
    overriding procedure Next (P : in out Subparser; Event : out Events.Event);
+
+
+   overriding procedure Lock
+     (Object : in out Subparser;
+      State : out Lockable.Lock_State);
+
+   overriding procedure Unlock
+     (Object : in out Subparser;
+      State : in out Lockable.Lock_State;
+      Finish : in Boolean := True);
 
    procedure Finish (P : in out Subparser);
       --  Read enough data to exhaust intial nesting level
@@ -120,8 +131,8 @@ private
    type Subparser
      (Backend : access Parser;
       Input   : access Ada.Streams.Root_Stream_Type'Class)
-   is new Descriptor with record
-      Base_Level  : Natural := 0;
+   is new Lockable.Descriptor with record
+      Levels      : Lockable.Lock_Stack;
       Initialized : Boolean := False;
       Terminated  : Boolean := False;
    end record;

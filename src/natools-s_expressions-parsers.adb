@@ -407,7 +407,7 @@ package body Natools.S_Expressions.Parsers is
    function Current_Atom (P : in Subparser) return Atom is
    begin
       if P.Terminated then
-         raise Constraint_Error;
+         raise Program_Error;
       else
          return Current_Atom (P.Backend.all);
       end if;
@@ -417,9 +417,10 @@ package body Natools.S_Expressions.Parsers is
    function Current_Level (P : in Subparser) return Natural is
    begin
       if P.Terminated then
-         return P.Base_Level;
+         return 0;
       else
-         return Current_Level (P.Backend.all);
+         return Current_Level (P.Backend.all)
+           - Lockable.Current_Level (P.Levels);
       end if;
    end Current_Level;
 
@@ -429,7 +430,7 @@ package body Natools.S_Expressions.Parsers is
       Process : not null access procedure (Data : in Atom)) is
    begin
       if P.Terminated then
-         raise Constraint_Error;
+         raise Program_Error;
       else
          Query_Atom (P.Backend.all, Process);
       end if;
@@ -442,7 +443,7 @@ package body Natools.S_Expressions.Parsers is
       Length : out Count) is
    begin
       if P.Terminated then
-         raise Constraint_Error;
+         raise Program_Error;
       else
          Read_Atom (P.Backend.all, Data, Length);
       end if;
@@ -456,7 +457,12 @@ package body Natools.S_Expressions.Parsers is
       end if;
 
       if not P.Initialized then
-         P.Base_Level := Current_Level (P.Backend.all);
+         declare
+            Lost_State : Lockable.Lock_State;
+            pragma Unreferenced (Lost_State);
+         begin
+            Lock (P, Lost_State);
+         end;
          P.Initialized := True;
       end if;
 
@@ -465,12 +471,54 @@ package body Natools.S_Expressions.Parsers is
       Event := Current_Event (P.Backend.all);
 
       if Event = Events.Close_List
-        and then Current_Level (P.Backend.all) < P.Base_Level
+        and then Current_Level (P.Backend.all)
+                   < Lockable.Current_Level (P.Levels)
       then
          P.Terminated := True;
          Event := Events.End_Of_Input;
       end if;
    end Next;
+
+
+   overriding procedure Lock
+     (Object : in out Subparser;
+      State : out Lockable.Lock_State) is
+   begin
+      Lockable.Push_Level
+        (Object.Levels,
+         Current_Level (Object.Backend.all),
+         State);
+   end Lock;
+
+
+   overriding procedure Unlock
+     (Object : in out Subparser;
+      State : in out Lockable.Lock_State;
+      Finish : in Boolean := True)
+   is
+      Previous_Level : constant Natural
+        := Lockable.Current_Level (Object.Levels);
+   begin
+      Lockable.Pop_Level (Object.Levels, State);
+      State := Lockable.Null_State;
+
+      if Finish then
+         loop
+            case Object.Backend.Current_Event is
+               when Events.Open_List | Events.Add_Atom =>
+                  null;
+               when Events.Close_List =>
+                  exit when Object.Backend.Current_Level < Previous_Level;
+               when Events.Error | Events.End_Of_Input =>
+                  exit;
+            end case;
+            Next_Event (Object.Backend.all, Object.Input);
+         end loop;
+      end if;
+
+      Object.Terminated := Object.Backend.Current_Level
+        < Lockable.Current_Level (Object.Levels);
+   end Unlock;
 
 
    procedure Finish (P : in out Subparser) is
