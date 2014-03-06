@@ -14,6 +14,7 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
+with Natools.S_Expressions.Lockable.Tests;
 with Natools.S_Expressions.Printers;
 with Natools.S_Expressions.Test_Tools;
 
@@ -123,6 +124,7 @@ package body Natools.S_Expressions.Parsers.Tests is
       Quoted_Escapes (Report);
       Parser_Interface (Report);
       Subparser_Interface (Report);
+      Lockable_Interface (Report);
    end All_Tests;
 
 
@@ -170,6 +172,23 @@ package body Natools.S_Expressions.Parsers.Tests is
    begin
       Test (Report);
    end Base64_Subexpression;
+
+
+   procedure Lockable_Interface (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Lockable.Descriptor interface");
+   begin
+      declare
+         Input : aliased Test_Tools.Memory_Stream;
+         Parser : aliased Parsers.Parser;
+         Sub : Subparser (Parser'Access, Input'Access);
+      begin
+         Input.Set_Data (Lockable.Tests.Test_Expression);
+         Test_Tools.Next_And_Check (Test, Sub, Events.Open_List, 1);
+         Lockable.Tests.Test_Interface (Test, Sub);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Lockable_Interface;
 
 
    procedure Nested_Subpexression (Report : in out NT.Reporter'Class) is
@@ -443,10 +462,10 @@ package body Natools.S_Expressions.Parsers.Tests is
 
          --  Use subparser as command arguments
 
-         Test_Tools.Next_And_Check (Test, Sub, To_Atom ("arg1"), 2);
-         Test_Tools.Next_And_Check (Test, Sub, Events.Open_List, 3);
-         Test_Tools.Next_And_Check (Test, Sub, To_Atom ("subarg1"), 3);
-         Test_Tools.Next_And_Check (Test, Sub, To_Atom ("subarg2"), 3);
+         Test_Tools.Next_And_Check (Test, Sub, To_Atom ("arg1"), 0);
+         Test_Tools.Next_And_Check (Test, Sub, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Sub, To_Atom ("subarg1"), 1);
+         Test_Tools.Next_And_Check (Test, Sub, To_Atom ("subarg2"), 1);
 
          Sub.Finish;
 
@@ -479,12 +498,12 @@ package body Natools.S_Expressions.Parsers.Tests is
 
          if Sub.Current_Event /= Events.End_Of_Input then
             Test.Fail ("Unexpected subparser final state: "
-              & Events.Event'Image (Parser.Current_Event));
+              & Events.Event'Image (Sub.Current_Event));
          end if;
 
-         if Sub.Current_Level /= 2 then
+         if Sub.Current_Level /= 0 then
             Test.Fail ("Unexpected subparser final level:"
-              & Natural'Image (Parser.Current_Level));
+              & Natural'Image (Sub.Current_Level));
          end if;
 
          begin
@@ -497,7 +516,7 @@ package body Natools.S_Expressions.Parsers.Tests is
             end;
             return;
          exception
-            when Constraint_Error => null;
+            when Program_Error => null;
             when Error : others =>
                Test.Report_Exception (Error);
                Test.Info ("in Current_Atom");
@@ -513,7 +532,7 @@ package body Natools.S_Expressions.Parsers.Tests is
             Test_Tools.Dump_Atom (Test, Buffer (1 .. Length));
             return;
          exception
-            when Constraint_Error => null;
+            when Program_Error => null;
             when Error : others =>
                Test.Report_Exception (Error);
                Test.Info ("in Read_Atom");
@@ -541,7 +560,7 @@ package body Natools.S_Expressions.Parsers.Tests is
                  "Process called with");
             end if;
          exception
-            when Constraint_Error => null;
+            when Program_Error => null;
             when Error : others =>
                Test.Report_Exception (Error);
                Test.Info ("in Query_Event");
