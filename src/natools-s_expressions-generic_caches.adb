@@ -223,8 +223,11 @@ package body Natools.S_Expressions.Generic_Caches is
       else
          N := Cache.Exp.Query.Data.Root;
          pragma Assert (N /= null);
-         return Cursor'(Exp => Cache.Exp, Position => N,
-           Opening => N.Kind = List_Node);
+         return Cursor'(Exp => Cache.Exp,
+           Position => N,
+           Opening => N.Kind = List_Node,
+           Stack => <>,
+           Locked => False);
       end if;
    end First;
 
@@ -237,7 +240,7 @@ package body Natools.S_Expressions.Generic_Caches is
    overriding function Current_Event (Object : in Cursor)
      return Events.Event is
    begin
-      if Object.Position = null then
+      if Object.Position = null or Object.Locked then
          return Events.End_Of_Input;
       end if;
 
@@ -256,7 +259,9 @@ package body Natools.S_Expressions.Generic_Caches is
 
    overriding function Current_Atom (Object : in Cursor) return Atom is
    begin
-      if Object.Position = null or else Object.Position.Kind /= Atom_Node then
+      if Object.Position = null or else Object.Position.Kind /= Atom_Node
+        or else Object.Locked
+      then
          raise Program_Error;
       end if;
 
@@ -265,22 +270,13 @@ package body Natools.S_Expressions.Generic_Caches is
 
 
    overriding function Current_Level (Object : in Cursor) return Natural is
-      Result : Natural := 0;
-      N : Node_Access := Object.Position;
    begin
-      if Object.Position /= null
-        and then Object.Position.Kind = List_Node
-        and then Object.Opening
-      then
-         Result := Result + 1;
+      if Object.Locked then
+         return 0;
+      else
+         return Absolute_Level (Object)
+           - Lockable.Current_Level (Object.Stack);
       end if;
-
-      while N /= null loop
-         Result := Result + 1;
-         N := N.Parent;
-      end loop;
-
-      return Natural'Max (Result, 1) - 1;
    end Current_Level;
 
 
@@ -288,7 +284,9 @@ package body Natools.S_Expressions.Generic_Caches is
      (Object : in Cursor;
       Process : not null access procedure (Data : in Atom)) is
    begin
-      if Object.Position = null or else Object.Position.Kind /= Atom_Node then
+      if Object.Position = null or else Object.Position.Kind /= Atom_Node
+        or else Object.Locked
+      then
          raise Program_Error;
       end if;
 
@@ -303,7 +301,9 @@ package body Natools.S_Expressions.Generic_Caches is
    is
       Transferred : Count;
    begin
-      if Object.Position = null or else Object.Position.Kind /= Atom_Node then
+      if Object.Position = null or else Object.Position.Kind /= Atom_Node
+        or else Object.Locked
+      then
          raise Program_Error;
       end if;
 
@@ -319,7 +319,7 @@ package body Natools.S_Expressions.Generic_Caches is
      (Object : in out Cursor;
       Event : out Events.Event) is
    begin
-      if Object.Position = null then
+      if Object.Position = null or Object.Locked then
          Event := Events.End_Of_Input;
          return;
       end if;
@@ -346,7 +346,81 @@ package body Natools.S_Expressions.Generic_Caches is
       end if;
 
       Event := Object.Current_Event;
+
+      if Event = Events.Close_List
+        and then Object.Absolute_Level < Lockable.Current_Level (Object.Stack)
+      then
+         Event := Events.End_Of_Input;
+         Object.Locked := True;
+      end if;
    end Next;
 
-end Natools.S_Expressions.Generic_Caches;
 
+
+   -----------------------------------
+   -- Lockable.Descriptor Interface --
+   -----------------------------------
+
+   function Absolute_Level (Object : Cursor) return Natural is
+      Result : Natural := 0;
+      N : Node_Access := Object.Position;
+   begin
+      if Object.Position /= null
+        and then Object.Position.Kind = List_Node
+        and then Object.Opening
+      then
+         Result := Result + 1;
+      end if;
+
+      while N /= null loop
+         Result := Result + 1;
+         N := N.Parent;
+      end loop;
+
+      return Natural'Max (Result, 1) - 1;
+   end Absolute_Level;
+
+
+   overriding procedure Lock
+     (Object : in out Cursor;
+      State : out Lockable.Lock_State) is
+   begin
+      Lockable.Push_Level (Object.Stack, Object.Absolute_Level, State);
+   end Lock;
+
+
+   overriding procedure Unlock
+     (Object : in out Cursor;
+      State : in out Lockable.Lock_State;
+      Finish : in Boolean := True)
+   is
+      Previous_Level : constant Natural
+        := Lockable.Current_Level (Object.Stack);
+   begin
+      Lockable.Pop_Level (Object.Stack, State);
+      State := Lockable.Null_State;
+      Object.Locked := False;
+
+      if Finish then
+         declare
+            Event : Events.Event := Object.Current_Event;
+         begin
+            loop
+               case Event is
+                  when Events.Add_Atom | Events.Open_List =>
+                     null;
+                  when Events.Close_List =>
+                     exit when Object.Absolute_Level < Previous_Level;
+                  when Events.Error | Events.End_Of_Input =>
+                     exit;
+               end case;
+               Object.Next (Event);
+            end loop;
+         end;
+      end if;
+
+      Object.Locked
+        := Object.Absolute_Level < Lockable.Current_Level (Object.Stack);
+   end Unlock;
+
+end Natools.S_Expressions.Generic_Caches;

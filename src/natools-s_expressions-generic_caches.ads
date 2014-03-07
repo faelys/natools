@@ -28,6 +28,7 @@
 
 with System.Storage_Pools;
 
+with Natools.S_Expressions.Lockable;
 with Natools.S_Expressions.Printers;
 
 private with Ada.Finalization;
@@ -52,7 +53,7 @@ package Natools.S_Expressions.Generic_Caches is
       --  Create a new copy of the S-expression held in Cache and return it
 
 
-   type Cursor is new Descriptor with private;
+   type Cursor is new Lockable.Descriptor with private;
 
    overriding function Current_Event (Object : in Cursor) return Events.Event;
    overriding function Current_Atom (Object : in Cursor) return Atom;
@@ -67,6 +68,14 @@ package Natools.S_Expressions.Generic_Caches is
    overriding procedure Next
      (Object : in out Cursor;
       Event : out Events.Event);
+
+   overriding procedure Lock
+     (Object : in out Cursor;
+      State : out Lockable.Lock_State);
+   overriding procedure Unlock
+     (Object : in out Cursor;
+      State : in out Lockable.Lock_State;
+      Finish : in Boolean := True);
 
    function First (Cache : Reference'Class) return Cursor;
       --  Create a new Cursor pointing at the beginning of Cache
@@ -131,10 +140,14 @@ private
    end record;
 
 
-   type Cursor is new Descriptor with record
+   type Cursor is new Lockable.Descriptor with record
       Exp : Trees.Reference := Trees.Null_Reference;
       Position : Node_Access := null;
       Opening : Boolean := False;
+      Stack : Lockable.Lock_Stack;
+      Locked : Boolean := False;
    end record;
+
+   function Absolute_Level (Object : Cursor) return Natural;
 
 end Natools.S_Expressions.Generic_Caches;
