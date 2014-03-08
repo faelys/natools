@@ -21,6 +21,8 @@ with GNAT.Debug_Pools;
 with Natools.S_Expressions.Atom_Buffers;
 with Natools.S_Expressions.Caches;
 with Natools.S_Expressions.Generic_Caches;
+with Natools.S_Expressions.Lockable.Tests;
+with Natools.S_Expressions.Parsers;
 with Natools.S_Expressions.Printers;
 with Natools.S_Expressions.Test_Tools;
 
@@ -75,6 +77,7 @@ package body Natools.S_Expressions.Cache_Tests is
       Default_Instantiation (Report);
       Debug_Instantiation (Report);
       Descriptor_Interface (Report);
+      Lockable_Interface (Report);
    end All_Tests;
 
 
@@ -306,5 +309,32 @@ package body Natools.S_Expressions.Cache_Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Descriptor_Interface;
+
+
+   procedure Lockable_Interface (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Lockable.Descriptor insterface");
+   begin
+      declare
+         Cache : Caches.Reference;
+      begin
+         declare
+            Input : aliased Test_Tools.Memory_Stream;
+            Parser : aliased Parsers.Parser;
+            Subparser : Parsers.Subparser (Parser'Access, Input'Access);
+         begin
+            Input.Set_Data (Lockable.Tests.Test_Expression);
+            Test_Tools.Next_And_Check (Test, Subparser, Events.Open_List, 1);
+            Printers.Transfer (Subparser, Cache);
+         end;
+
+         declare
+            Cursor : Caches.Cursor := Cache.First;
+         begin
+            Lockable.Tests.Test_Interface (Test, Cursor);
+         end;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Lockable_Interface;
 
 end Natools.S_Expressions.Cache_Tests;
