@@ -189,6 +189,10 @@ package body Natools.S_Expressions.Generic_Caches is
 
    overriding procedure Open_List (Output : in out Reference) is
    begin
+      if Output.Exp.Is_Empty then
+         Output.Exp.Replace (Create_Tree'Access);
+      end if;
+
       Output.Exp.Update.Data.Append (List_Node);
    end Open_List;
 
@@ -206,7 +210,9 @@ package body Natools.S_Expressions.Generic_Caches is
 
    overriding procedure Close_List (Output : in out Reference) is
    begin
-      Output.Exp.Update.Data.Close_List;
+      if not Output.Exp.Is_Empty then
+         Output.Exp.Update.Data.Close_List;
+      end if;
    end Close_List;
 
 
