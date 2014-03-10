@@ -27,7 +27,7 @@ package body Natools.S_Expressions.Lockable.Tests is
    begin
       return To_Atom ("(begin(command1 arg1.1 arg1.2)"
         & "(command2 (subcmd2.1 arg2.1.1) (subcmd2.3) arg2.4)"
-        & "end)");
+        & "end)5:extra");
    end Test_Expression;
 
 
@@ -114,6 +114,20 @@ package body Natools.S_Expressions.Lockable.Tests is
 
       Test_Tools.Next_And_Check (Test, Object, To_Atom ("end"), Base);
       Test_Tools.Next_And_Check (Test, Object, Events.Close_List, Base - 1);
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("extra"), Base - 1);
+      Object.Lock (Level_1);
+      Test_Tools.Test_Atom_Accessors (Test, Object, To_Atom ("extra"), 0);
+      Object.Unlock (Level_1);
+
+      declare
+         Event : constant Events.Event := Object.Current_Event;
+      begin
+         if Event /= Events.End_Of_Input then
+            Test.Fail ("Last current event is "
+              & Events.Event'Image (Event)
+              & ", expected End_Of_Input");
+         end if;
+      end;
    end Test_Interface;
 
 
