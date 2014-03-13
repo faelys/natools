@@ -22,3 +22,4 @@ package Natools.S_Expressions.Caches is
   (Natools.Storage_Pools.Access_In_Default_Pool'Storage_Pool,
    Natools.Storage_Pools.Access_In_Default_Pool'Storage_Pool,
    Natools.Storage_Pools.Access_In_Default_Pool'Storage_Pool);
+pragma Preelaborate (Natools.S_Expressions.Caches);

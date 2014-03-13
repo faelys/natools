@@ -21,6 +21,7 @@
 
 generic
 package Natools.References.Tools is
+   pragma Preelaborate (Tools);
 
    function Is_Consistent (Left, Right : Reference) return Boolean;
       --  Check that counter and data equality are consistent

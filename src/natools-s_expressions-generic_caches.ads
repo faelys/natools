@@ -41,6 +41,7 @@ generic
    Structure_Pool : in out System.Storage_Pools.Root_Storage_Pool'Class;
 
 package Natools.S_Expressions.Generic_Caches is
+   pragma Preelaborate (Generic_Caches);
 
    type Reference is new Printers.Printer with private;
 
