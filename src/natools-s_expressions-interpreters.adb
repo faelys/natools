@@ -42,6 +42,18 @@ package body Natools.S_Expressions.Interpreters is
    end Add_Command;
 
 
+   function Has_Command (Self : Interpreter; Name : Atom) return Boolean is
+   begin
+      return Self.Commands.Contains (Name);
+   end Has_Command;
+
+
+   function Is_Empty (Self : Interpreter) return Boolean is
+   begin
+      return Self.Commands.Is_Empty;
+   end Is_Empty;
+
+
    procedure Set_Fallback
      (Self : in out Interpreter;
       Name : in Atom)
