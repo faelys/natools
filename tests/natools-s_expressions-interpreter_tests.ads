@@ -34,6 +34,7 @@ package Natools.S_Expressions.Interpreter_Tests is
 
    procedure Test_Basic_Usage (Report : in out NT.Reporter'Class);
    procedure Test_Exception_Fallback (Report : in out NT.Reporter'Class);
+   procedure Test_Inspection (Report : in out NT.Reporter'Class);
    procedure Test_Local_Fallback (Report : in out NT.Reporter'Class);
    procedure Test_Premanent_Fallback (Report : in out NT.Reporter'Class);
    procedure Test_Unknown_Commands (Report : in out NT.Reporter'Class);

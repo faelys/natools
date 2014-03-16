@@ -142,6 +142,7 @@ package body Natools.S_Expressions.Interpreter_Tests is
       Test_Premanent_Fallback (Report);
       Test_Local_Fallback (Report);
       Test_Exception_Fallback (Report);
+      Test_Inspection (Report);
    end All_Tests;
 
 
@@ -237,6 +238,40 @@ package body Natools.S_Expressions.Interpreter_Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Test_Exception_Fallback;
+
+
+   procedure Test_Inspection (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Inspection");
+   begin
+      declare
+         Inter : Test_Interpreters.Interpreter;
+      begin
+         if not Inter.Is_Empty then
+            Test.Fail ("Default interpreter is not empty");
+         end if;
+
+         if Inter.Has_Command (To_Atom ("cmd")) then
+            Test.Fail ("Default interpreter has command ""cmd""");
+         end if;
+
+         Inter := Test_Interpreter;
+
+         if Inter.Is_Empty then
+            Test.Fail ("Test interpreter is empty");
+         end if;
+
+         if not Inter.Has_Command (To_Atom ("cmd")) then
+            Test.Fail ("Test interpreter has not command ""cmd""");
+         end if;
+
+         if Inter.Has_Command (To_Atom ("not-a-cmd")) then
+            Test.Fail ("Test interpreter has command ""not-a-cmd""");
+         end if;
+
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Test_Inspection;
 
 
    procedure Test_Local_Fallback (Report : in out NT.Reporter'Class) is
