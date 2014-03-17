@@ -47,12 +47,11 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
          Parser : aliased Parsers.Parser;
          Subparser : Parsers.Subparser (Parser'Access, Input'Access);
          Pretty_Printer : Printer (Output'Access);
-         Event : Events.Event;
       begin
          Input.Set_Data (Expected);
          Output.Set_Expected (Expected);
          Pretty_Printer.Set_Parameters (Param);
-         Subparser.Next (Event);
+         Subparser.Next;
          Transfer (Subparser, Pretty_Printer);
          Output.Check_Stream (Test);
       end;

@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2014, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -34,5 +34,13 @@ package body Natools.S_Expressions is
          end loop;
       end return;
    end To_Atom;
+
+
+   procedure Next (Object : in out Descriptor'Class) is
+      Discarded : Events.Event;
+      pragma Unreferenced (Discarded);
+   begin
+      Next (Object, Discarded);
+   end Next;
 
 end Natools.S_Expressions;

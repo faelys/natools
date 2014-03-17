@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2014, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -106,6 +106,9 @@ package Natools.S_Expressions is
      (Object : in out Descriptor;
       Event : out Events.Event) is abstract;
       --  Update Object to reflect the next event in the S-expression
+
+   procedure Next (Object : in out Descriptor'Class);
+      --  Call Next discarding current event
 
 private
 

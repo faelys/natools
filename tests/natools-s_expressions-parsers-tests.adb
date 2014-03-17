@@ -92,12 +92,10 @@ package body Natools.S_Expressions.Parsers.Tests is
          Printer : Printers.Canonical (Output'Access);
          Parser : aliased Parsers.Parser;
          Sub : Subparser (Parser'Access, Input'Access);
-         Event : Events.Event;  --  !
       begin
          Output.Set_Expected (Expected);
          Input.Set_Data (Source);
---       Parser.Next_Event (Input'Access);
-         Sub.Next (Event);  --  !
+         Sub.Next;
 
          Printers.Transfer (Sub, Printer);
 
