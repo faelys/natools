@@ -26,6 +26,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
      (Casing : in out Encodings.Hex_Casing;
       Name : in Atom);
 
+   function To_Atom (Value : in Screen_Offset) return Atom;
    function To_Atom (Before, After : in Entity) return Atom;
 
    function To_String (Value : in Entity) return String;
@@ -71,6 +72,36 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
    end Read_Screen_Offset;
 
 
+   function To_Atom (Value : in Screen_Offset) return Atom is
+      Length : Count;
+   begin
+      Compute_Length : declare
+         Left : Screen_Offset := Value;
+      begin
+         Length := 1;
+         while Left >= 10 loop
+            Length := Length + 1;
+            Left := Left / 10;
+         end loop;
+      end Compute_Length;
+
+      return Result : Atom (0 .. Length - 1) do
+         declare
+            I : Offset := Result'Last;
+            Left : Screen_Offset := Value;
+         begin
+            loop
+               Result (I) := Encodings.Digit_0 + Octet (Left mod 10);
+               I := I - 1;
+               Left := Left / 10;
+               exit when Left = 0;
+            end loop;
+            pragma Assert (I + 1 = Result'First);
+         end;
+      end return;
+   end To_Atom;
+
+
    function To_Atom (Before, After : in Entity) return Atom is
    begin
       return To_Atom (To_String (Before) & "-" & To_String (After));
@@ -110,6 +141,158 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
    ---------------------------------
    -- Public High Level Interface --
    ---------------------------------
+
+   procedure Print
+     (Output : in out Printers.Printer'Class;
+      Param : in Parameters) is
+   begin
+      --  Newline_At and Newline
+
+      Output.Open_List;
+      Output.Append_Atom (To_Atom ("newline"));
+      case Param.Newline is
+         when CR =>    Output.Append_Atom (To_Atom ("cr"));
+         when LF =>    Output.Append_Atom (To_Atom ("lf"));
+         when CR_LF => Output.Append_Atom (To_Atom ("cr-lf"));
+         when LF_CR => Output.Append_Atom (To_Atom ("lf-cr"));
+      end case;
+
+      if Param.Newline_At = Entity_Separator'(others => (others => True)) then
+         Output.Append_Atom (To_Atom ("all"));
+      else
+         Output.Append_Atom (To_Atom ("none"));
+         for Before in Entity loop
+            for After in Entity loop
+               if Param.Newline_At (Before, After) then
+                  Output.Append_Atom (To_Atom (Before, After));
+               end if;
+            end loop;
+         end loop;
+      end if;
+      Output.Close_List;
+
+      --  Space_At
+
+      Output.Open_List;
+      Output.Append_Atom (To_Atom ("space"));
+      if Param.Space_At = Entity_Separator'(others => (others => True)) then
+         Output.Append_Atom (To_Atom ("all"));
+      else
+         Output.Append_Atom (To_Atom ("none"));
+         for Before in Entity loop
+            for After in Entity loop
+               if Param.Space_At (Before, After) then
+                  Output.Append_Atom (To_Atom (Before, After));
+               end if;
+            end loop;
+         end loop;
+      end if;
+      Output.Close_List;
+
+      --  Tab_Stop
+
+      Output.Open_List;
+      Output.Append_Atom (To_Atom ("tab-stop"));
+      Output.Append_Atom (To_Atom (Param.Tab_Stop));
+      Output.Close_List;
+
+      --  Width
+
+      if Param.Width > 0 then
+         Output.Open_List;
+         Output.Append_Atom (To_Atom ("width"));
+         Output.Append_Atom (To_Atom (Param.Width));
+         Output.Close_List;
+      else
+         Output.Append_Atom (To_Atom ("no-width"));
+      end if;
+
+      --  Indentation and Indent
+
+      if Param.Indentation = 0 then
+         Output.Append_Atom (To_Atom ("no-indentation"));
+      else
+         Output.Open_List;
+         Output.Append_Atom (To_Atom ("indentation"));
+         Output.Append_Atom (To_Atom (Param.Indentation));
+         if Param.Indentation > 1 then
+            case Param.Indent is
+               when Spaces =>
+                  Output.Append_Atom (To_Atom ("spaces"));
+               when Tabs =>
+                  Output.Append_Atom (To_Atom ("tabs"));
+               when Tabs_And_Spaces =>
+                  Output.Append_Atom (To_Atom ("tabbed-spaces"));
+            end case;
+         else
+            case Param.Indent is
+               when Spaces =>
+                  Output.Append_Atom (To_Atom ("space"));
+               when Tabs =>
+                  Output.Append_Atom (To_Atom ("tab"));
+               when Tabs_And_Spaces =>
+                  Output.Append_Atom (To_Atom ("tabbed-space"));
+            end case;
+         end if;
+         Output.Close_List;
+      end if;
+
+      --  Quoted
+
+      case Param.Quoted is
+         when No_Quoted    =>
+            Output.Append_Atom (To_Atom ("no-quoted-string"));
+         when Single_Line  =>
+            Output.Append_Atom (To_Atom ("single-line-quoted-string"));
+         when When_Shorter =>
+            Output.Append_Atom (To_Atom ("quoted-string-when-shorter"));
+      end case;
+
+      --  Quoted_Escape
+
+      Output.Open_List;
+      Output.Append_Atom (To_Atom ("escape"));
+      case Param.Quoted_Escape is
+         when Octal_Escape => Output.Append_Atom (To_Atom ("octal"));
+         when Hex_Escape   => Output.Append_Atom (To_Atom ("hexadecimal"));
+      end case;
+      Output.Close_List;
+
+      --  Token
+
+      Output.Open_List;
+      Output.Append_Atom (To_Atom ("token"));
+      case Param.Token is
+         when No_Token       => Output.Append_Atom (To_Atom ("never"));
+         when Extended_Token => Output.Append_Atom (To_Atom ("extended"));
+         when Standard_Token => Output.Append_Atom (To_Atom ("standard"));
+      end case;
+      Output.Close_List;
+
+      --  Char_Encoding
+
+      case Param.Char_Encoding is
+         when UTF_8 => Output.Append_Atom (To_Atom ("utf-8"));
+         when ASCII => Output.Append_Atom (To_Atom ("ascii"));
+         when Latin => Output.Append_Atom (To_Atom ("latin-1"));
+      end case;
+
+      --  Hex_Casing
+
+      case Param.Hex_Casing is
+         when Encodings.Upper => Output.Append_Atom (To_Atom ("upper-case"));
+         when Encodings.Lower => Output.Append_Atom (To_Atom ("lower-case"));
+      end case;
+
+      --  Fallback
+
+      case Param.Fallback is
+         when Base64      => Output.Append_Atom (To_Atom ("base-64"));
+         when Hexadecimal => Output.Append_Atom (To_Atom ("hexadecimal"));
+         when Verbatim    => Output.Append_Atom (To_Atom ("verbatim"));
+      end case;
+   end Print;
+
 
    procedure Update
      (Param : in out Parameters;

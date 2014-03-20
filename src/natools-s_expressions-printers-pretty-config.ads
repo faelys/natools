@@ -49,6 +49,11 @@ package Natools.S_Expressions.Printers.Pretty.Config is
       Expression : in out Lockable.Descriptor'Class);
       --  Update parameters using Interpreter (wrapper around its Execute)
 
+   procedure Print
+     (Output : in out Printers.Printer'Class;
+      Param : in Parameters);
+      --  Output parameters to S-expression printer
+
 
    ---------------------
    -- Building Blocks --
