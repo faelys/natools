@@ -196,6 +196,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
    procedure All_Tests (Report : in out NT.Reporter'Class) is
    begin
       Read_Test (Report);
+      Write_Test (Report);
    end All_Tests;
 
 
@@ -284,5 +285,171 @@ package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Read_Test;
+
+
+   procedure Write_Test (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Write parameters into S-expression");
+
+      procedure Testcase
+        (Title : in String;
+         Param : in Parameters;
+         Expr : in String);
+
+      procedure Testcase
+        (Title : in String;
+         Param : in Parameters;
+         Expr : in String)
+      is
+         Buffer : aliased Test_Tools.Memory_Stream;
+         Output : Printers.Canonical (Buffer'Access);
+         Parser : aliased Parsers.Parser;
+         Subparser : Parsers.Subparser (Parser'Access, Buffer'Access);
+         Reread : Parameters := Pretty.Canonical;
+      begin
+         Buffer.Set_Expected (To_Atom (Expr));
+         Print (Output, Param);
+         Subparser.Next;
+         Update (Reread, Subparser);
+         Check_Param (Test, Reread, Param, Title);
+         Buffer.Check_Stream (Test);
+      end Testcase;
+   begin
+      Testcase ("First case:",
+        (Width => 80,
+         Newline_At => (others => (others => True)),
+         Space_At => (others => (others => True)),
+         Tab_Stop => 4,
+         Indentation => 1,
+         Indent => Tabs,
+         Quoted => Single_Line,
+         Token => Standard_Token,
+         Hex_Casing => Encodings.Lower,
+         Quoted_Escape => Hex_Escape,
+         Char_Encoding => UTF_8,
+         Fallback => Hexadecimal,
+         Newline => CR_LF),
+         "(7:newline5:cr-lf3:all)(5:space3:all)(8:tab-stop1:4)(5:width2:80)"
+         & "(11:indentation1:13:tab)25:single-line-quoted-string"
+         & "(6:escape11:hexadecimal)(5:token8:standard)5:utf-8"
+         & "10:lower-case11:hexadecimal");
+
+      Testcase ("Second case:",
+        (Width => 0,
+         Newline_At => (others => (Opening => True, others => False)),
+         Space_At => (others => (Atom_Data => True, others => False)),
+         Tab_Stop => 4,
+         Indentation => 1,
+         Indent => Spaces,
+         Quoted => No_Quoted,
+         Token => No_Token,
+         Hex_Casing => Encodings.Upper,
+         Quoted_Escape => Octal_Escape,
+         Char_Encoding => ASCII,
+         Fallback => Verbatim,
+         Newline => LF),
+         "(7:newline2:lf4:none9:open-open9:atom-open10:close-open)"
+         & "(5:space4:none9:open-atom9:atom-atom10:close-atom)"
+         & "(8:tab-stop1:4)"
+         & "8:no-width(11:indentation1:15:space)16:no-quoted-string"
+         & "(6:escape5:octal)(5:token5:never)5:ascii10:upper-case"
+         & "8:verbatim");
+
+      Testcase ("Third case:",
+        (Width => 0,
+         Newline_At => (others => (others => False)),
+         Space_At => (others => (others => False)),
+         Tab_Stop => 8,
+         Indentation => 1,
+         Indent => Tabs_And_Spaces,
+         Quoted => When_Shorter,
+         Token => Extended_Token,
+         Hex_Casing => Encodings.Lower,
+         Quoted_Escape => Octal_Escape,
+         Char_Encoding => Latin,
+         Fallback => Base64,
+         Newline => CR),
+         "(7:newline2:cr4:none)(5:space4:none)(8:tab-stop1:8)8:no-width"
+         & "(11:indentation1:112:tabbed-space)26:quoted-string-when-shorter"
+         & "(6:escape5:octal)(5:token8:extended)7:latin-1"
+         & "10:lower-case7:base-64");
+
+      Testcase ("Fourth case:",
+        (Width => 0,
+         Newline_At => (others => (others => True)),
+         Space_At => (others => (others => True)),
+         Tab_Stop => 8,
+         Indentation => 3,
+         Indent => Spaces,
+         Quoted => No_Quoted,
+         Token => No_Token,
+         Hex_Casing => Encodings.Lower,
+         Quoted_Escape => Octal_Escape,
+         Char_Encoding => ASCII,
+         Fallback => Base64,
+         Newline => LF_CR),
+         "(7:newline5:lf-cr3:all)(5:space3:all)(8:tab-stop1:8)8:no-width"
+         & "(11:indentation1:36:spaces)16:no-quoted-string"
+         & "(6:escape5:octal)(5:token5:never)5:ascii"
+         & "10:lower-case7:base-64");
+
+      Testcase ("Fifth case:",
+        (Width => 0,
+         Newline_At => (others => (others => True)),
+         Space_At => (others => (others => True)),
+         Tab_Stop => 8,
+         Indentation => 2,
+         Indent => Tabs,
+         Quoted => No_Quoted,
+         Token => No_Token,
+         Hex_Casing => Encodings.Lower,
+         Quoted_Escape => Octal_Escape,
+         Char_Encoding => ASCII,
+         Fallback => Base64,
+         Newline => LF),
+         "(7:newline2:lf3:all)(5:space3:all)(8:tab-stop1:8)8:no-width"
+         & "(11:indentation1:24:tabs)16:no-quoted-string"
+         & "(6:escape5:octal)(5:token5:never)5:ascii"
+         & "10:lower-case7:base-64");
+
+      Testcase ("Sixth case:",
+        (Width => 0,
+         Newline_At => (others => (others => True)),
+         Space_At => (others => (others => True)),
+         Tab_Stop => 8,
+         Indentation => 4,
+         Indent => Tabs_And_Spaces,
+         Quoted => No_Quoted,
+         Token => No_Token,
+         Hex_Casing => Encodings.Lower,
+         Quoted_Escape => Octal_Escape,
+         Char_Encoding => ASCII,
+         Fallback => Base64,
+         Newline => LF),
+         "(7:newline2:lf3:all)(5:space3:all)(8:tab-stop1:8)8:no-width"
+         & "(11:indentation1:413:tabbed-spaces)16:no-quoted-string"
+         & "(6:escape5:octal)(5:token5:never)5:ascii"
+         & "10:lower-case7:base-64");
+
+      Testcase ("Seventh case:",
+        (Width => 0,
+         Newline_At => (others => (others => True)),
+         Space_At => (others => (others => True)),
+         Tab_Stop => 8,
+         Indentation => 0,
+         Indent => Spaces,
+         Quoted => No_Quoted,
+         Token => No_Token,
+         Hex_Casing => Encodings.Lower,
+         Quoted_Escape => Octal_Escape,
+         Char_Encoding => ASCII,
+         Fallback => Base64,
+         Newline => LF),
+         "(7:newline2:lf3:all)(5:space3:all)(8:tab-stop1:8)8:no-width"
+         & "14:no-indentation16:no-quoted-string"
+         & "(6:escape5:octal)(5:token5:never)5:ascii"
+         & "10:lower-case7:base-64");
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Write_Test;
 
 end Natools.S_Expressions.Printers.Pretty.Config.Tests;
