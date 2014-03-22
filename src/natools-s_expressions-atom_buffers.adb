@@ -91,6 +91,29 @@ package body Natools.S_Expressions.Atom_Buffers is
    end Append_Reverse;
 
 
+   procedure Invert (Buffer : in out Atom_Buffer) is
+      procedure Process (Data : in out Atom);
+
+      procedure Process (Data : in out Atom) is
+         Low : Count := Data'First;
+         High : Count := Buffer.Used;
+         Tmp : Octet;
+      begin
+         while Low < High loop
+            Tmp := Data (Low);
+            Data (Low) := Data (High);
+            Data (High) := Tmp;
+            Low := Low + 1;
+            High := High - 1;
+         end loop;
+      end Process;
+   begin
+      if not Buffer.Ref.Is_Empty then
+         Buffer.Ref.Update (Process'Access);
+      end if;
+   end Invert;
+
+
    function Length (Buffer : Atom_Buffer) return Count is
    begin
       return Buffer.Used;

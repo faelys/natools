@@ -46,6 +46,9 @@ package Natools.S_Expressions.Atom_Buffers is
    procedure Append_Reverse (Buffer : in out Atom_Buffer; Data : in Atom);
       --  Append bytes from Atom from last to first
 
+   procedure Invert (Buffer : in out Atom_Buffer);
+      --  Invert the order of bytes (first becomes last, etc)
+
    function Length (Buffer : Atom_Buffer) return Count;
    function Data (Buffer : Atom_Buffer) return Atom;
    procedure Query
