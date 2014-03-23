@@ -18,7 +18,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
    procedure Read_Screen_Offset
      (Expression : in out Lockable.Descriptor'Class;
-      Value : out Screen_Offset;
+      Value : in out Screen_Offset;
       Has_Value : out Boolean);
       --  Decode a screen offset from a S-expression
 
@@ -39,7 +39,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
    procedure Read_Screen_Offset
      (Expression : in out Lockable.Descriptor'Class;
-      Value : out Screen_Offset;
+      Value : in out Screen_Offset;
       Has_Value : out Boolean)
    is
       Result : Screen_Offset := 0;
@@ -556,7 +556,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
       Cmd : in out Lockable.Descriptor'Class)
    is
       pragma Unreferenced (Self, Context);
-      Value : Screen_Offset;
+      Value : Screen_Offset := 0;
       Has_Value : Boolean;
    begin
       Cmd.Next;
