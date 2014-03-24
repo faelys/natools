@@ -30,6 +30,7 @@ package Natools.S_Expressions.Atom_Buffers.Tests is
 
    procedure Test_Block_Append (Report : in out NT.Reporter'Class);
    procedure Test_Octet_Append (Report : in out NT.Reporter'Class);
+   procedure Test_Invert (Report : in out NT.Reporter'Class);
    procedure Test_Preallocate (Report : in out NT.Reporter'Class);
    procedure Test_Query (Report : in out NT.Reporter'Class);
    procedure Test_Query_Null (Report : in out NT.Reporter'Class);

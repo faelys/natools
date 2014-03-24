@@ -31,6 +31,7 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
       Test_Query_Null (Report);
       Test_Reset (Report);
       Test_Reverse_Append (Report);
+      Test_Invert (Report);
    end All_Tests;
 
 
@@ -61,6 +62,40 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
    exception
       when Error : others => Report.Report_Exception (Name, Error);
    end Test_Block_Append;
+
+
+   procedure Test_Invert (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Invert procedure");
+      Source : Atom (1 .. 10);
+      Inverse : Atom (1 .. 10);
+   begin
+      for I in Source'Range loop
+         Source (I) := 10 + Octet (I);
+         Inverse (11 - I) := Source (I);
+      end loop;
+
+      declare
+         Buffer : Atom_Buffer;
+      begin
+         Buffer.Invert;
+         Test_Tools.Test_Atom (Test, Null_Atom, Buffer.Data);
+
+         Buffer.Append (Source (1 .. 1));
+         Buffer.Invert;
+         Test_Tools.Test_Atom (Test, Source (1 .. 1), Buffer.Data);
+
+         Buffer.Append (Source (2 .. 7));
+         Buffer.Invert;
+         Test_Tools.Test_Atom (Test, Inverse (4 .. 10), Buffer.Data);
+
+         Buffer.Invert;
+         Buffer.Append (Source (8 .. 10));
+         Buffer.Invert;
+         Test_Tools.Test_Atom (Test, Inverse, Buffer.Data);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Test_Invert;
 
 
    procedure Test_Octet_Append (Report : in out NT.Reporter'Class) is
