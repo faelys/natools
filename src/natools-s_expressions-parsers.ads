@@ -31,58 +31,46 @@ with Natools.S_Expressions.Lockable;
 package Natools.S_Expressions.Parsers is
    pragma Preelaborate (Natools.S_Expressions.Parsers);
 
-   type Parser is tagged private;
+   type Parser is abstract limited new Lockable.Descriptor with private;
 
-   function Current_Event (P : in Parser) return Events.Event;
-   function Current_Atom (P : in Parser) return Atom;
-   function Current_Level (P : in Parser) return Natural;
+   procedure Read_More
+     (Self : in out Parser;
+      Buffer : out Atom_Buffers.Atom_Buffer)
+     is abstract;
+      --  Read data to be parsed.
+      --  Leaving the buffer empty signals end of input stream.
 
-   procedure Query_Atom
-     (P : in Parser;
-      Process : not null access procedure (Data : in Atom));
+   procedure Reset (Self : in out Parser; Hard : in Boolean := False);
+      --  Reset internal state, and free internal memory if Hard
 
-   procedure Read_Atom
-     (P      : in Parser;
-      Data   : out Atom;
-      Length : out Count);
-
-   procedure Next_Event
-     (P     : in out Parser;
-      Input : not null access Ada.Streams.Root_Stream_Type'Class);
-
-
-   type Subparser
-     (Backend : access Parser;
-      Input   : access Ada.Streams.Root_Stream_Type'Class)
-   is new Lockable.Descriptor with private;
-
-   overriding function Current_Event (P : in Subparser) return Events.Event;
-   overriding function Current_Atom (P : in Subparser) return Atom;
-   overriding function Current_Level (P : in Subparser) return Natural;
+   overriding function Current_Event (Self : Parser) return Events.Event;
+   overriding function Current_Atom (Self : Parser) return Atom;
+   overriding function Current_Level (Self : Parser) return Natural;
 
    overriding procedure Query_Atom
-     (P : in Subparser;
+     (Self : in Parser;
       Process : not null access procedure (Data : in Atom));
 
    overriding procedure Read_Atom
-     (P      : in Subparser;
-      Data   : out Atom;
+     (Self : in Parser;
+      Data : out Atom;
       Length : out Count);
 
-   overriding procedure Next (P : in out Subparser; Event : out Events.Event);
-
+   overriding procedure Next (Self : in out Parser; Event : out Events.Event);
 
    overriding procedure Lock
-     (Object : in out Subparser;
+     (Self : in out Parser;
       State : out Lockable.Lock_State);
 
    overriding procedure Unlock
-     (Object : in out Subparser;
+     (Self : in out Parser;
       State : in out Lockable.Lock_State;
       Finish : in Boolean := True);
 
-   procedure Finish (P : in out Subparser);
-      --  Read enough data to exhaust intial nesting level
+
+
+   type Stream_Parser (Input : access Ada.Streams.Root_Stream_Type'Class) is
+     limited new Lockable.Descriptor with private;
 
 private
 
@@ -119,22 +107,22 @@ private
       end case;
    end record;
 
-   type Parser is tagged record
+   type Parser is abstract limited new Lockable.Descriptor with record
       Internal     : State_Data;
-      Pending      : Events.Event := Events.End_Of_Input;
-      Override     : Atom_Buffers.Atom_Buffer;
+      Next_Event : Events.Event := Events.End_Of_Input;
       Latest       : Events.Event := Events.Error;
+      Pending : Atom_Buffers.Atom_Buffer;
       Buffer       : Atom_Buffers.Atom_Buffer;
       Level        : Natural := 0;
+      Lock_Stack : Lockable.Lock_Stack;
+      Locked : Boolean := False;
    end record;
 
-   type Subparser
-     (Backend : access Parser;
-      Input   : access Ada.Streams.Root_Stream_Type'Class)
-   is new Lockable.Descriptor with record
-      Levels      : Lockable.Lock_Stack;
-      Initialized : Boolean := False;
-      Terminated  : Boolean := False;
-   end record;
+   type Stream_Parser (Input : access Ada.Streams.Root_Stream_Type'Class) is
+     new Parser with null record;
+
+   overriding procedure Read_More
+     (Self : in out Stream_Parser;
+      Buffer : out Atom_Buffers.Atom_Buffer);
 
 end Natools.S_Expressions.Parsers;

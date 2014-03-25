@@ -22,74 +22,104 @@ package body Natools.S_Expressions.Parsers is
    -- Parser Interface --
    ----------------------
 
-   function Current_Event (P : in Parser) return Events.Event is
+   procedure Reset (Self : in out Parser; Hard : in Boolean := False) is
+      Null_Stack : Lockable.Lock_Stack;
    begin
-      return P.Latest;
+      Self.Internal := (State => Waiting);
+      Self.Next_Event := Events.End_Of_Input;
+      Self.Latest := Events.Error;
+      Self.Level := 0;
+      Self.Lock_Stack := Null_Stack;
+      Self.Locked := False;
+
+      if Hard then
+         Self.Pending.Hard_Reset;
+         Self.Buffer.Hard_Reset;
+      else
+         Self.Pending.Soft_Reset;
+         Self.Buffer.Soft_Reset;
+      end if;
+   end Reset;
+
+
+   overriding function Current_Event (Self : in Parser) return Events.Event is
+   begin
+      if Self.Locked then
+         return Events.End_Of_Input;
+      else
+         return Self.Latest;
+      end if;
    end Current_Event;
 
 
-   function Current_Atom (P : in Parser) return Atom is
+   overriding function Current_Atom (Self : in Parser) return Atom is
    begin
-      if P.Latest /= Events.Add_Atom then
+      if Self.Locked or Self.Latest /= Events.Add_Atom then
          raise Program_Error;
       end if;
 
-      return P.Buffer.Data;
+      return Self.Buffer.Data;
    end Current_Atom;
 
 
-   function Current_Level (P : in Parser) return Natural is
+   overriding function Current_Level (Self : in Parser) return Natural is
    begin
-      return P.Level;
+      if Self.Locked then
+         return 0;
+      else
+         return Self.Level - Lockable.Current_Level (Self.Lock_Stack);
+      end if;
    end Current_Level;
 
 
-   procedure Query_Atom
-     (P : in Parser;
+   overriding procedure Query_Atom
+     (Self : in Parser;
       Process : not null access procedure (Data : in Atom)) is
    begin
-      if P.Latest /= Events.Add_Atom then
+      if Self.Locked or Self.Latest /= Events.Add_Atom then
          raise Program_Error;
       end if;
 
-      P.Buffer.Query (Process);
+      Self.Buffer.Query (Process);
    end Query_Atom;
 
 
-   procedure Read_Atom
-     (P      : in Parser;
-      Data   : out Atom;
+   overriding procedure Read_Atom
+     (Self : in Parser;
+      Data : out Atom;
       Length : out Count) is
    begin
-      if P.Latest /= Events.Add_Atom then
+      if Self.Locked or Self.Latest /= Events.Add_Atom then
          raise Program_Error;
       end if;
 
-      P.Buffer.Read (Data, Length);
+      Self.Buffer.Read (Data, Length);
    end Read_Atom;
 
 
-   procedure Next_Event
-     (P     : in out Parser;
-      Input : not null access Ada.Streams.Root_Stream_Type'Class)
+   overriding procedure Next
+     (Self : in out Parser;
+      Event : out Events.Event)
    is
       O : Octet;
-      Item : Ada.Streams.Stream_Element_Array (1 .. 1);
-      Last : Ada.Streams.Stream_Element_Offset;
    begin
-      P.Latest := Events.Error;
+      if Self.Locked then
+         raise Constraint_Error;
+      end if;
+
+      Self.Latest := Events.Error;
       loop
          --  Process pending events
 
-         if P.Pending /= Events.End_Of_Input then
-            P.Latest := P.Pending;
-            P.Pending := Events.End_Of_Input;
-            case P.Latest is
+         if Self.Next_Event /= Events.End_Of_Input then
+            Self.Latest := Self.Next_Event;
+            Self.Next_Event := Events.End_Of_Input;
+            case Self.Latest is
                when Events.Open_List  =>
-                  P.Level := P.Level + 1;
+                  Self.Level := Self.Level + 1;
                when Events.Close_List =>
-                  if P.Level > 0 then
-                     P.Level := P.Level - 1;
+                  if Self.Level > 0 then
+                     Self.Level := Self.Level - 1;
                   end if;
                when others => null;
             end case;
@@ -98,259 +128,269 @@ package body Natools.S_Expressions.Parsers is
 
          --  Read a single octet from source
 
-         if P.Override.Length > 0 then
-            P.Override.Pop (O);
-         else
-            Input.Read (Item, Last);
-            if Last not in Item'Range then
-               P.Latest := Events.End_Of_Input;
+         if Self.Pending.Length = 0 then
+            Read_More (Parser'Class (Self), Self.Pending);
+
+            if Self.Pending.Length = 0 then
+               Self.Latest := Events.End_Of_Input;
                exit;
             end if;
-            O := Item (Last);
+
+            Self.Pending.Invert;
          end if;
+         Self.Pending.Pop (O);
 
          --  Process octet
 
-         case P.Internal.State is
+         case Self.Internal.State is
             when Waiting =>
-               P.Buffer.Soft_Reset;
+               Self.Buffer.Soft_Reset;
                case O is
                   when 0 | Encodings.Space | Encodings.HT
                     | Encodings.CR | Encodings.LF
                     | Encodings.VT | Encodings.FF =>
                      null;
                   when Encodings.List_Begin =>
-                     P.Latest := Events.Open_List;
-                     P.Level := P.Level + 1;
+                     Self.Latest := Events.Open_List;
+                     Self.Level := Self.Level + 1;
                   when Encodings.List_End =>
-                     P.Latest := Events.Close_List;
-                     if P.Level > 0 then
-                        P.Level := P.Level - 1;
+                     Self.Latest := Events.Close_List;
+                     if Self.Level > 0 then
+                        Self.Level := Self.Level - 1;
                      end if;
                   when Encodings.Base64_Atom_Begin =>
-                     P.Internal := (State => Base64_Atom,
-                                    Chunk => (Data => <>, Length => 0));
+                     Self.Internal
+                       := (State => Base64_Atom,
+                           Chunk => (Data => <>, Length => 0));
                   when Encodings.Base64_Expr_Begin =>
-                     P.Internal := (State => Base64_Expr,
-                                    Chunk => (Data => <>, Length => 0));
+                     Self.Internal
+                       := (State => Base64_Expr,
+                           Chunk => (Data => <>, Length => 0));
                   when Encodings.Hex_Atom_Begin =>
-                     P.Internal := (State => Hex_Atom,
-                                    Nibble_Buffer => 0);
+                     Self.Internal := (State => Hex_Atom, Nibble_Buffer => 0);
                   when Encodings.Quoted_Atom_Begin =>
-                     P.Internal := (State => Quoted_Atom,
-                                    Escape => (Data => <>, Length => 0));
+                     Self.Internal :=
+                       (State => Quoted_Atom,
+                        Escape => (Data => <>, Length => 0));
                   when Encodings.Digit_0 .. Encodings.Digit_9 =>
-                     P.Internal := (State => Number);
-                     Atom_Buffers.Append (P.Buffer, O);
+                     Self.Internal := (State => Number);
+                     Atom_Buffers.Append (Self.Buffer, O);
                   when others =>
-                     P.Internal := (State => Token);
-                     Atom_Buffers.Append (P.Buffer, O);
+                     Self.Internal := (State => Token);
+                     Atom_Buffers.Append (Self.Buffer, O);
                end case;
 
             when Base64_Atom | Base64_Expr =>
                if Encodings.Is_Base64_Digit (O) then
-                  P.Internal.Chunk.Data (P.Internal.Chunk.Length) := O;
-                  P.Internal.Chunk.Length := P.Internal.Chunk.Length + 1;
-                  if P.Internal.Chunk.Length = 4 then
-                     P.Buffer.Append
-                       (Encodings.Decode_Base64 (P.Internal.Chunk.Data));
-                     P.Internal.Chunk.Length := 0;
+                  Self.Internal.Chunk.Data (Self.Internal.Chunk.Length) := O;
+                  Self.Internal.Chunk.Length := Self.Internal.Chunk.Length + 1;
+                  if Self.Internal.Chunk.Length = 4 then
+                     Self.Buffer.Append
+                       (Encodings.Decode_Base64 (Self.Internal.Chunk.Data));
+                     Self.Internal.Chunk.Length := 0;
                   end if;
                elsif (O = Encodings.Base64_Atom_End
-                      and P.Internal.State = Base64_Atom)
+                      and Self.Internal.State = Base64_Atom)
                  or (O = Encodings.Base64_Expr_End
-                     and P.Internal.State = Base64_Expr)
+                     and Self.Internal.State = Base64_Expr)
                then
-                  P.Buffer.Append
-                    (Encodings.Decode_Base64 (P.Internal.Chunk.Data
-                                          (0 .. P.Internal.Chunk.Length - 1)));
-                  if P.Internal.State = Base64_Atom then
-                     P.Latest := Events.Add_Atom;
+                  Self.Buffer.Append (Encodings.Decode_Base64
+                    (Self.Internal.Chunk.Data
+                       (0 .. Self.Internal.Chunk.Length - 1)));
+                  if Self.Internal.State = Base64_Atom then
+                     Self.Latest := Events.Add_Atom;
                   else
-                     P.Override.Append_Reverse (P.Buffer.Data);
-                     P.Buffer.Soft_Reset;
+                     Self.Pending.Append_Reverse (Self.Buffer.Data);
+                     Self.Buffer.Soft_Reset;
                   end if;
-                  P.Internal := (State => Waiting);
+                  Self.Internal := (State => Waiting);
                end if;
 
             when Hex_Atom =>
                if Encodings.Is_Hex_Digit (O) then
-                  if Encodings.Is_Hex_Digit (P.Internal.Nibble_Buffer) then
-                     P.Buffer.Append
-                       (Encodings.Decode_Hex (P.Internal.Nibble_Buffer, O));
-                     P.Internal.Nibble_Buffer := 0;
+                  if Encodings.Is_Hex_Digit (Self.Internal.Nibble_Buffer) then
+                     Self.Buffer.Append
+                       (Encodings.Decode_Hex (Self.Internal.Nibble_Buffer, O));
+                     Self.Internal.Nibble_Buffer := 0;
                   else
-                     P.Internal.Nibble_Buffer := O;
+                     Self.Internal.Nibble_Buffer := O;
                   end if;
                elsif O = Encodings.Hex_Atom_End then
-                  P.Latest := Events.Add_Atom;
-                  P.Internal := (State => Waiting);
+                  Self.Latest := Events.Add_Atom;
+                  Self.Internal := (State => Waiting);
                end if;
 
             when Number =>
                case O is
                   when Encodings.Digit_0 .. Encodings.Digit_9 =>
-                     P.Buffer.Append (O);
+                     Self.Buffer.Append (O);
                   when Encodings.Verbatim_Begin =>
-                     P.Internal := (State => Verbatim_Atom, Size => 0);
-                     for I in 1 .. P.Buffer.Length loop
-                        P.Internal.Size := P.Internal.Size * 10
-                          + Count (P.Buffer.Element (I) - Encodings.Digit_0);
+                     Self.Internal := (State => Verbatim_Atom, Size => 0);
+                     for I in 1 .. Self.Buffer.Length loop
+                        Self.Internal.Size := Self.Internal.Size * 10
+                          + Count (Self.Buffer.Element (I)
+                          - Encodings.Digit_0);
                      end loop;
-                     P.Buffer.Soft_Reset;
-                     if P.Internal.Size = 0 then
-                        P.Latest := Events.Add_Atom;
-                        P.Internal := (State => Waiting);
+                     Self.Buffer.Soft_Reset;
+                     if Self.Internal.Size = 0 then
+                        Self.Latest := Events.Add_Atom;
+                        Self.Internal := (State => Waiting);
                      else
-                        P.Buffer.Preallocate (P.Internal.Size);
+                        Self.Buffer.Preallocate (Self.Internal.Size);
                      end if;
                   when 0 | Encodings.Space | Encodings.HT
                     | Encodings.CR | Encodings.LF
                     | Encodings.VT | Encodings.FF =>
-                     P.Latest := Events.Add_Atom;
-                     P.Internal := (State => Waiting);
+                     Self.Latest := Events.Add_Atom;
+                     Self.Internal := (State => Waiting);
                   when Encodings.List_Begin =>
-                     P.Internal := (State => Waiting);
-                     P.Pending := Events.Open_List;
-                     P.Latest := Events.Add_Atom;
+                     Self.Internal := (State => Waiting);
+                     Self.Next_Event := Events.Open_List;
+                     Self.Latest := Events.Add_Atom;
                   when Encodings.List_End =>
-                     P.Internal := (State => Waiting);
-                     P.Pending := Events.Close_List;
-                     P.Latest := Events.Add_Atom;
+                     Self.Internal := (State => Waiting);
+                     Self.Next_Event := Events.Close_List;
+                     Self.Latest := Events.Add_Atom;
                   when Encodings.Base64_Atom_Begin =>
-                     P.Internal := (State => Base64_Atom,
-                                    Chunk => (Data => <>, Length => 0));
-                     P.Buffer.Soft_Reset;
+                     Self.Internal
+                       := (State => Base64_Atom,
+                           Chunk => (Data => <>, Length => 0));
+                     Self.Buffer.Soft_Reset;
                   when Encodings.Base64_Expr_Begin =>
-                     P.Internal := (State => Base64_Expr,
-                                    Chunk => (Data => <>, Length => 0));
-                     P.Buffer.Soft_Reset;
+                     Self.Internal
+                       := (State => Base64_Expr,
+                           Chunk => (Data => <>, Length => 0));
+                     Self.Buffer.Soft_Reset;
                   when Encodings.Hex_Atom_Begin =>
-                     P.Internal := (State => Hex_Atom,
-                                    Nibble_Buffer => 0);
-                     P.Buffer.Soft_Reset;
+                     Self.Internal := (State => Hex_Atom, Nibble_Buffer => 0);
+                     Self.Buffer.Soft_Reset;
                   when Encodings.Quoted_Atom_Begin =>
-                     P.Internal := (State => Quoted_Atom,
-                                    Escape => (Data => <>, Length => 0));
-                     P.Buffer.Soft_Reset;
+                     Self.Internal
+                       := (State => Quoted_Atom,
+                           Escape => (Data => <>, Length => 0));
+                     Self.Buffer.Soft_Reset;
                   when others =>
-                     P.Buffer.Append (O);
-                     P.Internal := (State => Token);
+                     Self.Buffer.Append (O);
+                     Self.Internal := (State => Token);
                end case;
 
             when Quoted_Atom =>
-               case P.Internal.Escape.Length is
+               case Self.Internal.Escape.Length is
                   when 0 =>
                      case O is
                         when Encodings.Escape =>
-                           P.Internal.Escape.Data (0) := O;
-                           P.Internal.Escape.Length := 1;
+                           Self.Internal.Escape.Data (0) := O;
+                           Self.Internal.Escape.Length := 1;
                         when Encodings.Quoted_Atom_End =>
-                           P.Internal := (State => Waiting);
-                           P.Latest := Events.Add_Atom;
+                           Self.Internal := (State => Waiting);
+                           Self.Latest := Events.Add_Atom;
                         when others =>
-                           P.Buffer.Append (O);
+                           Self.Buffer.Append (O);
                      end case;
 
                   when 1 =>
                      case O is
                         when Character'Pos ('b') =>
-                           P.Buffer.Append (8);
-                           P.Internal.Escape.Length := 0;
+                           Self.Buffer.Append (8);
+                           Self.Internal.Escape.Length := 0;
                         when Character'Pos ('t') =>
-                           P.Buffer.Append (9);
-                           P.Internal.Escape.Length := 0;
+                           Self.Buffer.Append (9);
+                           Self.Internal.Escape.Length := 0;
                         when Character'Pos ('n') =>
-                           P.Buffer.Append (10);
-                           P.Internal.Escape.Length := 0;
+                           Self.Buffer.Append (10);
+                           Self.Internal.Escape.Length := 0;
                         when Character'Pos ('v') =>
-                           P.Buffer.Append (11);
-                           P.Internal.Escape.Length := 0;
+                           Self.Buffer.Append (11);
+                           Self.Internal.Escape.Length := 0;
                         when Character'Pos ('f') =>
-                           P.Buffer.Append (12);
-                           P.Internal.Escape.Length := 0;
+                           Self.Buffer.Append (12);
+                           Self.Internal.Escape.Length := 0;
                         when Character'Pos ('r') =>
-                           P.Buffer.Append (13);
-                           P.Internal.Escape.Length := 0;
+                           Self.Buffer.Append (13);
+                           Self.Internal.Escape.Length := 0;
 
                         when Character'Pos (''') | Encodings.Escape
                           | Encodings.Quoted_Atom_End =>
-                           P.Buffer.Append (O);
-                           P.Internal.Escape.Length := 0;
+                           Self.Buffer.Append (O);
+                           Self.Internal.Escape.Length := 0;
 
                         when Encodings.Digit_0 .. Encodings.Digit_0 + 3
                           | Character'Pos ('x')
                           | Encodings.CR | Encodings.LF =>
-                           P.Internal.Escape.Data (1) := O;
-                           P.Internal.Escape.Length := 2;
+                           Self.Internal.Escape.Data (1) := O;
+                           Self.Internal.Escape.Length := 2;
 
                         when others =>
-                           P.Buffer.Append (P.Internal.Escape.Data (0));
-                           P.Override.Append (O);
-                           P.Internal.Escape.Length := 0;
+                           Self.Buffer.Append (Self.Internal.Escape.Data (0));
+                           Self.Pending.Append (O);
+                           Self.Internal.Escape.Length := 0;
                      end case;
 
                   when 2 =>
-                     if (P.Internal.Escape.Data (1) in Encodings.Digit_0
-                                                    .. Encodings.Digit_0 + 3
+                     if (Self.Internal.Escape.Data (1)
+                           in Encodings.Digit_0 .. Encodings.Digit_0 + 3
                          and O in Encodings.Digit_0 .. Encodings.Digit_0 + 7)
-                       or (P.Internal.Escape.Data (1) = Character'Pos ('x')
+                       or (Self.Internal.Escape.Data (1) = Character'Pos ('x')
                            and then Encodings.Is_Hex_Digit (O))
                      then
-                        P.Internal.Escape.Data (2) := O;
-                        P.Internal.Escape.Length := 3;
+                        Self.Internal.Escape.Data (2) := O;
+                        Self.Internal.Escape.Length := 3;
 
-                     elsif P.Internal.Escape.Data (1) = Encodings.CR
-                       or P.Internal.Escape.Data (1) = Encodings.LF
+                     elsif Self.Internal.Escape.Data (1) = Encodings.CR
+                       or Self.Internal.Escape.Data (1) = Encodings.LF
                      then
-                        P.Internal.Escape.Length := 0;
+                        Self.Internal.Escape.Length := 0;
                         if not ((O = Encodings.CR or O = Encodings.LF)
-                                and O /= P.Internal.Escape.Data (1))
+                                and O /= Self.Internal.Escape.Data (1))
                         then
-                           P.Override.Append (O);
+                           Self.Pending.Append (O);
                         end if;
 
                      else
-                        P.Buffer.Append
-                          ((P.Internal.Escape.Data (0),
-                            P.Internal.Escape.Data (1)));
-                        P.Override.Append (O);
-                        P.Internal.Escape.Length := 0;
+                        Self.Buffer.Append
+                          ((Self.Internal.Escape.Data (0),
+                            Self.Internal.Escape.Data (1)));
+                        Self.Pending.Append (O);
+                        Self.Internal.Escape.Length := 0;
                      end if;
 
                   when 3 =>
-                     if P.Internal.Escape.Data (1) = Character'Pos ('x') then
+                     if Self.Internal.Escape.Data (1)
+                       = Character'Pos ('x')
+                     then
                         if Encodings.Is_Hex_Digit (O) then
-                           P.Buffer.Append
-                             (Encodings.Decode_Hex (P.Internal.Escape.Data (2),
-                                                    O));
+                           Self.Buffer.Append
+                             (Encodings.Decode_Hex
+                                (Self.Internal.Escape.Data (2), O));
                         else
-                           P.Buffer.Append
-                             ((P.Internal.Escape.Data (0),
-                               P.Internal.Escape.Data (1),
-                               P.Internal.Escape.Data (2)));
-                           P.Override.Append (O);
+                           Self.Buffer.Append
+                             ((Self.Internal.Escape.Data (0),
+                               Self.Internal.Escape.Data (1),
+                               Self.Internal.Escape.Data (2)));
+                           Self.Pending.Append (O);
                         end if;
                      else
-                        pragma Assert (P.Internal.Escape.Data (1)
+                        pragma Assert (Self.Internal.Escape.Data (1)
                           in Encodings.Digit_0 .. Encodings.Digit_0 + 3);
                         if O in Encodings.Digit_0 .. Encodings.Digit_0 + 7 then
                            Atom_Buffers.Append
-                             (P.Buffer,
-                              (P.Internal.Escape.Data (1) - Encodings.Digit_0)
+                             (Self.Buffer,
+                              (Self.Internal.Escape.Data (1)
+                                 - Encodings.Digit_0)
                                * 2**6 +
-                              (P.Internal.Escape.Data (2) - Encodings.Digit_0)
+                              (Self.Internal.Escape.Data (2)
+                                 - Encodings.Digit_0)
                                * 2**3 +
                               (O - Encodings.Digit_0));
                         else
-                           P.Buffer.Append
-                             ((P.Internal.Escape.Data (0),
-                               P.Internal.Escape.Data (1),
-                               P.Internal.Escape.Data (2)));
-                           P.Override.Append (O);
+                           Self.Buffer.Append
+                             ((Self.Internal.Escape.Data (0),
+                               Self.Internal.Escape.Data (1),
+                               Self.Internal.Escape.Data (2)));
+                           Self.Pending.Append (O);
                         end if;
                      end if;
-                     P.Internal.Escape.Length := 0;
+                     Self.Internal.Escape.Length := 0;
 
                   when 4 =>
                      raise Program_Error;
@@ -361,172 +401,99 @@ package body Natools.S_Expressions.Parsers is
                   when 0 | Encodings.Space | Encodings.HT
                     | Encodings.CR | Encodings.LF
                     | Encodings.VT | Encodings.FF =>
-                     P.Internal := (State => Waiting);
-                     P.Latest := Events.Add_Atom;
+                     Self.Internal := (State => Waiting);
+                     Self.Latest := Events.Add_Atom;
                   when Encodings.List_Begin =>
-                     P.Internal := (State => Waiting);
-                     P.Pending := Events.Open_List;
-                     P.Latest := Events.Add_Atom;
+                     Self.Internal := (State => Waiting);
+                     Self.Next_Event := Events.Open_List;
+                     Self.Latest := Events.Add_Atom;
                   when Encodings.List_End =>
-                     P.Internal := (State => Waiting);
-                     P.Pending := Events.Close_List;
-                     P.Latest := Events.Add_Atom;
+                     Self.Internal := (State => Waiting);
+                     Self.Next_Event := Events.Close_List;
+                     Self.Latest := Events.Add_Atom;
                   when others =>
-                     P.Buffer.Append (O);
+                     Self.Buffer.Append (O);
                end case;
 
             when Verbatim_Atom =>
-               P.Buffer.Append (O);
-               pragma Assert (P.Buffer.Length <= P.Internal.Size);
-               if P.Buffer.Length = P.Internal.Size then
-                  P.Internal := (State => Waiting);
-                  P.Latest := Events.Add_Atom;
+               Self.Buffer.Append (O);
+               pragma Assert (Self.Buffer.Length <= Self.Internal.Size);
+               if Self.Buffer.Length = Self.Internal.Size then
+                  Self.Internal := (State => Waiting);
+                  Self.Latest := Events.Add_Atom;
                end if;
          end case;
 
-         exit when P.Latest /= Events.Error;
+         exit when Self.Latest /= Events.Error;
       end loop;
-   end Next_Event;
 
-
-
-   -------------------------
-   -- Subparser functions --
-   -------------------------
-
-   function Current_Event (P : in Subparser) return Events.Event is
-   begin
-      if P.Terminated then
-         return Events.End_Of_Input;
-      else
-         return Current_Event (P.Backend.all);
-      end if;
-   end Current_Event;
-
-
-   function Current_Atom (P : in Subparser) return Atom is
-   begin
-      if P.Terminated then
-         raise Program_Error;
-      else
-         return Current_Atom (P.Backend.all);
-      end if;
-   end Current_Atom;
-
-
-   function Current_Level (P : in Subparser) return Natural is
-   begin
-      if P.Terminated then
-         return 0;
-      else
-         return Current_Level (P.Backend.all)
-           - Lockable.Current_Level (P.Levels);
-      end if;
-   end Current_Level;
-
-
-   procedure Query_Atom
-     (P : in Subparser;
-      Process : not null access procedure (Data : in Atom)) is
-   begin
-      if P.Terminated then
-         raise Program_Error;
-      else
-         Query_Atom (P.Backend.all, Process);
-      end if;
-   end Query_Atom;
-
-
-   procedure Read_Atom
-     (P      : in Subparser;
-      Data   : out Atom;
-      Length : out Count) is
-   begin
-      if P.Terminated then
-         raise Program_Error;
-      else
-         Read_Atom (P.Backend.all, Data, Length);
-      end if;
-   end Read_Atom;
-
-
-   procedure Next (P : in out Subparser; Event : out Events.Event) is
-   begin
-      if P.Terminated then
-         raise Constraint_Error;
-      end if;
-
-      if not P.Initialized then
-         declare
-            Lost_State : Lockable.Lock_State;
-            pragma Unreferenced (Lost_State);
-         begin
-            Lock (P, Lost_State);
-         end;
-         P.Initialized := True;
-      end if;
-
-      Next_Event (P.Backend.all, P.Input);
-
-      Event := Current_Event (P.Backend.all);
-
-      if Event = Events.Close_List
-        and then Current_Level (P.Backend.all)
-                   < Lockable.Current_Level (P.Levels)
+      if Self.Latest = Events.Close_List
+        and then Self.Level < Lockable.Current_Level (Self.Lock_Stack)
       then
-         P.Terminated := True;
+         Self.Locked := True;
          Event := Events.End_Of_Input;
+      else
+         Event := Self.Latest;
       end if;
    end Next;
 
 
    overriding procedure Lock
-     (Object : in out Subparser;
+     (Self : in out Parser;
       State : out Lockable.Lock_State) is
    begin
-      Lockable.Push_Level
-        (Object.Levels,
-         Current_Level (Object.Backend.all),
-         State);
+      Lockable.Push_Level (Self.Lock_Stack, Self.Level, State);
    end Lock;
 
 
    overriding procedure Unlock
-     (Object : in out Subparser;
+     (Self : in out Parser;
       State : in out Lockable.Lock_State;
       Finish : in Boolean := True)
    is
       Previous_Level : constant Natural
-        := Lockable.Current_Level (Object.Levels);
+        := Lockable.Current_Level (Self.Lock_Stack);
+      Event : Events.Event;
    begin
-      Lockable.Pop_Level (Object.Levels, State);
+      Lockable.Pop_Level (Self.Lock_Stack, State);
       State := Lockable.Null_State;
 
       if Finish then
+         Event := Self.Current_Event;
          loop
-            case Object.Backend.Current_Event is
+            case Event is
                when Events.Open_List | Events.Add_Atom =>
                   null;
                when Events.Close_List =>
-                  exit when Object.Backend.Current_Level < Previous_Level;
+                  exit when Self.Level < Previous_Level;
                when Events.Error | Events.End_Of_Input =>
                   exit;
             end case;
-            Next_Event (Object.Backend.all, Object.Input);
+            Self.Next (Event);
          end loop;
       end if;
 
-      Object.Terminated := Object.Backend.Current_Level
-        < Lockable.Current_Level (Object.Levels);
+      Self.Locked := Self.Level < Lockable.Current_Level (Self.Lock_Stack);
    end Unlock;
 
 
-   procedure Finish (P : in out Subparser) is
-      Event : Events.Event := Current_Event (P);
+
+   -------------------
+   -- Stream Parser --
+   -------------------
+
+   overriding procedure Read_More
+     (Self : in out Stream_Parser;
+      Buffer : out Atom_Buffers.Atom_Buffer)
+   is
+      Item : Ada.Streams.Stream_Element_Array (1 .. 128);
+      Last : Ada.Streams.Stream_Element_Offset;
    begin
-      while Event /= Events.Error and Event /= Events.End_Of_Input loop
-         Next (P, Event);
-      end loop;
-   end Finish;
+      Self.Input.Read (Item, Last);
+
+      if Last in Item'Range then
+         Buffer.Append (Item (Item'First .. Last));
+      end if;
+   end Read_More;
 
 end Natools.S_Expressions.Parsers;
