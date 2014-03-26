@@ -44,15 +44,14 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    begin
       declare
          Input, Output : aliased Test_Tools.Memory_Stream;
-         Parser : aliased Parsers.Parser;
-         Subparser : Parsers.Subparser (Parser'Access, Input'Access);
+         Parser : Parsers.Stream_Parser (Input'Access);
          Pretty_Printer : Printer (Output'Access);
       begin
          Input.Set_Data (Expected);
          Output.Set_Expected (Expected);
          Pretty_Printer.Set_Parameters (Param);
-         Subparser.Next;
-         Transfer (Subparser, Pretty_Printer);
+         Parser.Next;
+         Transfer (Parser, Pretty_Printer);
          Output.Check_Stream (Test);
       end;
    exception

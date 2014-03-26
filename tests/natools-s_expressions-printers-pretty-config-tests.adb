@@ -212,8 +212,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
          Param : Parameters := Canonical;
          Expected : Parameters;
          Input : aliased Test_Tools.Memory_Stream;
-         Parser : aliased Parsers.Parser;
-         Subparser : Parsers.Subparser (Parser'Access, Input'Access);
+         Parser : Parsers.Stream_Parser (Input'Access);
       begin
          Input.Write (To_Atom
            ("(width 80)"
@@ -241,8 +240,8 @@ package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
                Char_Encoding => UTF_8,
                Fallback => Hexadecimal,
                Newline => CR_LF);
-         Test_Tools.Next_And_Check (Test, Subparser, Events.Open_List, 1);
-         Update (Param, Subparser);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Update (Param, Parser);
          Check_Param (Test, Param, Expected, "In first expression:");
 
          Input.Write (To_Atom
@@ -253,8 +252,8 @@ package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
          Expected.Width := 0;
          Expected.Token := Extended_Token;
          Expected.Newline_At (Closing, Closing) := False;
-         Test_Tools.Next_And_Check (Test, Subparser, Events.Open_List, 1);
-         Update (Param, Subparser);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Update (Param, Parser);
          Check_Param (Test, Param, Expected, "In second expression:");
 
          Input.Write (To_Atom
@@ -262,24 +261,24 @@ package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
          Expected.Indentation := 4;
          Expected.Indent := Tabs_And_Spaces;
          Expected.Hex_Casing := Encodings.Upper;
-         Test_Tools.Next_And_Check (Test, Subparser, Events.Open_List, 1);
-         Update (Param, Subparser);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Update (Param, Parser);
          Check_Param (Test, Param, Expected, "In third expression:");
 
          Input.Write (To_Atom
            ("no-indentation(token never)"));
          Expected.Indentation := 0;
          Expected.Token := No_Token;
-         Test_Tools.Next_And_Check (Test, Subparser, Events.Add_Atom, 0);
-         Update (Param, Subparser);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Add_Atom, 0);
+         Update (Param, Parser);
          Check_Param (Test, Param, Expected, "In fourth expression:");
 
          Input.Write (To_Atom
            ("lower-case(token standard)"));
          Expected.Token := Standard_Token;
          Expected.Hex_Casing := Encodings.Lower;
-         Test_Tools.Next_And_Check (Test, Subparser, Events.Add_Atom, 0);
-         Update (Param, Subparser);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Add_Atom, 0);
+         Update (Param, Parser);
          Check_Param (Test, Param, Expected, "In fifth expression:");
       end;
    exception
@@ -302,14 +301,13 @@ package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
       is
          Buffer : aliased Test_Tools.Memory_Stream;
          Output : Printers.Canonical (Buffer'Access);
-         Parser : aliased Parsers.Parser;
-         Subparser : Parsers.Subparser (Parser'Access, Buffer'Access);
+         Parser : Parsers.Stream_Parser (Buffer'Access);
          Reread : Parameters := Pretty.Canonical;
       begin
          Buffer.Set_Expected (To_Atom (Expr));
          Print (Output, Param);
-         Subparser.Next;
-         Update (Reread, Subparser);
+         Parser.Next;
+         Update (Reread, Parser);
          Check_Param (Test, Reread, Param, Title);
          Buffer.Check_Stream (Test);
       end Testcase;

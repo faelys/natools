@@ -268,9 +268,8 @@ package body Natools.S_Expressions.Lockable.Tests is
    begin
       declare
          Input : aliased Test_Tools.Memory_Stream;
-         Parser : aliased Parsers.Parser;
-         Subparser : aliased Parsers.Subparser (Parser'Access, Input'Access);
-         Tested : Wrapper (Subparser'Access);
+         Parser : aliased Parsers.Stream_Parser (Input'Access);
+         Tested : Wrapper (Parser'Access);
          State : Lock_State;
       begin
          Input.Set_Data (To_Atom ("(cmd1 arg1)(cmd2 4:arg2"));
@@ -304,12 +303,11 @@ package body Natools.S_Expressions.Lockable.Tests is
    begin
       declare
          Input : aliased Test_Tools.Memory_Stream;
-         Parser : aliased Parsers.Parser;
-         Subparser : aliased Parsers.Subparser (Parser'Access, Input'Access);
-         Tested : Wrapper (Subparser'Access);
+         Parser : aliased Parsers.Stream_Parser (Input'Access);
+         Tested : Wrapper (Parser'Access);
       begin
          Input.Set_Data (Test_Expression);
-         Test_Tools.Next_And_Check (Test, Subparser, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
          Test_Interface (Test, Tested);
       end;
    exception

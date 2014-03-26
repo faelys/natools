@@ -319,12 +319,11 @@ package body Natools.S_Expressions.Cache_Tests is
       begin
          declare
             Input : aliased Test_Tools.Memory_Stream;
-            Parser : aliased Parsers.Parser;
-            Subparser : Parsers.Subparser (Parser'Access, Input'Access);
+            Parser : Parsers.Stream_Parser (Input'Access);
          begin
             Input.Set_Data (Lockable.Tests.Test_Expression);
-            Test_Tools.Next_And_Check (Test, Subparser, Events.Open_List, 1);
-            Printers.Transfer (Subparser, Cache);
+            Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+            Printers.Transfer (Parser, Cache);
          end;
 
          declare
