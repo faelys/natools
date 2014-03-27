@@ -34,9 +34,7 @@ package Natools.S_Expressions.Parsers.Tests is
    procedure Lockable_Interface (Report : in out NT.Reporter'Class);
    procedure Nested_Subpexression (Report : in out NT.Reporter'Class);
    procedure Number_Prefixes (Report : in out NT.Reporter'Class);
-   procedure Parser_Interface (Report : in out NT.Reporter'Class);
    procedure Quoted_Escapes (Report : in out NT.Reporter'Class);
    procedure Special_Subexpression (Report : in out NT.Reporter'Class);
-   procedure Subparser_Interface (Report : in out NT.Reporter'Class);
 
 end Natools.S_Expressions.Parsers.Tests;

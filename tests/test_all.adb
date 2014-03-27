@@ -28,7 +28,7 @@ with Natools.S_Expressions.Cache_Tests;
 with Natools.S_Expressions.Encodings.Tests;
 with Natools.S_Expressions.Interpreter_Tests;
 with Natools.S_Expressions.Lockable.Tests;
---  with Natools.S_Expressions.Parsers.Tests;
+with Natools.S_Expressions.Parsers.Tests;
 with Natools.S_Expressions.Printers.Tests;
 with Natools.S_Expressions.Printers.Pretty.Tests;
 with Natools.S_Expressions.Printers.Pretty.Config.Tests;
@@ -97,9 +97,9 @@ begin
    Natools.S_Expressions.Lockable.Tests.All_Tests (Report);
    Report.End_Section;
 
---   Report.Section ("S_Expressions.Parsers");
---   Natools.S_Expressions.Parsers.Tests.All_Tests (Report);
---   Report.End_Section;
+   Report.Section ("S_Expressions.Parsers");
+   Natools.S_Expressions.Parsers.Tests.All_Tests (Report);
+   Report.End_Section;
 
    Report.Section ("S_Expressions.Printers");
    Natools.S_Expressions.Printers.Tests.All_Tests (Report);
