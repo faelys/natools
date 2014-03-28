@@ -104,7 +104,8 @@ package body Natools.S_Expressions.Parsers is
       O : Octet;
    begin
       if Self.Locked then
-         raise Constraint_Error;
+         Event := Evnets.End_Of_Input;
+         return;
       end if;
 
       Self.Latest := Events.Error;
