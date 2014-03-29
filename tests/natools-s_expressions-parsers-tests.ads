@@ -32,9 +32,11 @@ package Natools.S_Expressions.Parsers.Tests is
    procedure Base64_Subexpression (Report : in out NT.Reporter'Class);
    procedure Canonical_Encoding (Report : in out NT.Reporter'Class);
    procedure Lockable_Interface (Report : in out NT.Reporter'Class);
+   procedure Locked_Next (Report : in out NT.Reporter'Class);
    procedure Nested_Subpexression (Report : in out NT.Reporter'Class);
    procedure Number_Prefixes (Report : in out NT.Reporter'Class);
    procedure Quoted_Escapes (Report : in out NT.Reporter'Class);
+   procedure Reset (Report : in out NT.Reporter'Class);
    procedure Special_Subexpression (Report : in out NT.Reporter'Class);
 
 end Natools.S_Expressions.Parsers.Tests;

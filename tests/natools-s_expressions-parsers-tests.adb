@@ -67,6 +67,8 @@ package body Natools.S_Expressions.Parsers.Tests is
       Number_Prefixes (Report);
       Quoted_Escapes (Report);
       Lockable_Interface (Report);
+      Reset (Report);
+      Locked_Next (Report);
    end All_Tests;
 
 
@@ -132,6 +134,39 @@ package body Natools.S_Expressions.Parsers.Tests is
    end Lockable_Interface;
 
 
+   procedure Locked_Next (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Next on locked parser");
+   begin
+      declare
+         Input : aliased Test_Tools.Memory_Stream;
+         Parser : Parsers.Stream_Parser (Input'Access);
+         Lock_State : Lockable.Lock_State;
+      begin
+         Input.Set_Data (To_Atom ("(command (subcommand arg (arg list)))0:"));
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("command"), 1);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 2);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("subcommand"), 2);
+         Parser.Lock (Lock_State);
+         Test_Tools.Test_Atom_Accessors
+           (Test, Parser, To_Atom ("subcommand"), 0);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("arg"), 0);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("arg"), 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("list"), 1);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Close_List, 0);
+         Test_Tools.Next_And_Check (Test, Parser, Events.End_Of_Input, 0);
+         Test_Tools.Next_And_Check (Test, Parser, Events.End_Of_Input, 0);
+         Test_Tools.Next_And_Check (Test, Parser, Events.End_Of_Input, 0);
+         Parser.Unlock (Lock_State);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Close_List, 0);
+         Test_Tools.Next_And_Check (Test, Parser, Null_Atom, 0);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Locked_Next;
+
+
    procedure Nested_Subpexression (Report : in out NT.Reporter'Class) is
       procedure Test is new Blackbox_Test
         (Name => "Nested base-64 subepxressions",
@@ -188,6 +223,49 @@ package body Natools.S_Expressions.Parsers.Tests is
    begin
       Test (Report);
    end Quoted_Escapes;
+
+
+   procedure Reset (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Parser reset");
+   begin
+      declare
+         Input : aliased Test_Tools.Memory_Stream;
+         Parser : Parsers.Stream_Parser (Input'Access);
+         Empty : Parsers.Stream_Parser (Input'Access);
+
+         use type Atom_Buffers.Atom_Buffer;
+         use type Lockable.Lock_Stack;
+      begin
+         Input.Write (To_Atom ("(begin(first second"));
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("begin"), 1);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 2);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("first"), 2);
+         Test_Tools.Next_And_Check (Test, Parser, Events.End_Of_Input, 2);
+         Parser.Reset (Hard => False);
+         Input.Write (To_Atom ("other(new list)end"));
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("other"), 0);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("new"), 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("list"), 1);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Close_List, 0);
+         Parser.Reset (Hard => True);
+
+         if Parser.Internal /= Empty.Internal
+           or else Parser.Next_Event /= Empty.Next_Event
+           or else Parser.Latest /= Empty.Latest
+           or else Parser.Pending /= Empty.Pending
+           or else Parser.Buffer /= Empty.Buffer
+           or else Parser.Level /= Empty.Level
+           or else Parser.Lock_Stack /= Empty.Lock_Stack
+           or else Parser.Locked /= Empty.Locked
+         then
+            Test.Fail ("Parser after hard reset is not empty");
+         end if;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Reset;
 
 
    procedure Special_Subexpression (Report : in out NT.Reporter'Class) is
