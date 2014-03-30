@@ -32,6 +32,7 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
       Test_Reset (Report);
       Test_Reverse_Append (Report);
       Test_Invert (Report);
+      Test_Empty_Append (Report);
    end All_Tests;
 
 
@@ -448,5 +449,19 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
    exception
       when Error : others => Report.Report_Exception (Name, Error);
    end Test_Reverse_Append;
+
+
+   procedure Test_Empty_Append (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Empty append on empty buffer");
+   begin
+      declare
+         Buffer : Atom_Buffer;
+      begin
+         Buffer.Append (Null_Atom);
+         Test_Tools.Test_Atom (Test, Null_Atom, Buffer.Data);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Test_Empty_Append;
 
 end Natools.S_Expressions.Atom_Buffers.Tests;
