@@ -60,10 +60,13 @@ package body Natools.S_Expressions.Atom_Buffers is
 
    procedure Append (Buffer : in out Atom_Buffer; Data : in Atom) is
    begin
-      Preallocate (Buffer, Data'Length);
-      Buffer.Ref.Update.Data.all (Buffer.Used + 1 .. Buffer.Used + Data'Length)
-        := Data;
-      Buffer.Used := Buffer.Used + Data'Length;
+      if Data'Length > 0 then
+         Preallocate (Buffer, Data'Length);
+         Buffer.Ref.Update.Data.all
+           (Buffer.Used + 1 .. Buffer.Used + Data'Length)
+           := Data;
+         Buffer.Used := Buffer.Used + Data'Length;
+      end if;
    end Append;
 
 
