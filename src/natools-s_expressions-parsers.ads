@@ -16,11 +16,12 @@
 
 ------------------------------------------------------------------------------
 -- Natools.S_Expressions.Parsers implements an event-based S-expression     --
--- parser that reads from an input stream.                                  --
+-- parser that reads from an internal cache updated through a dispatching   --
+-- call.                                                                    --
 --                                                                          --
--- Subparser objects wrap together Parser and input Stream, exposing a      --
--- Descriptor interface. A subparser is constrained to its initial nesting  --
--- level, and reports end-of-input instead of reaching lower.               --
+-- Stream_Parser is a basic concrete parser that fills the internal cache   --
+-- from a stream provided as a discriminant. It functionally replaces the   --
+-- former Subparser type.                                                   --
 ------------------------------------------------------------------------------
 
 with Ada.Streams;
