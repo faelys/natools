@@ -23,15 +23,15 @@
 ------------------------------------------------------------------------------
 
 with Natools.References;
+with Natools.Storage_Pools;
 
 package Natools.S_Expressions.Atom_Buffers is
    pragma Preelaborate (Atom_Buffers);
 
-   type Dummy_Access is access Boolean;
-      --  Used to access default storage pool
-
    package Atom_Refs is new Natools.References
-     (Atom, Dummy_Access'Storage_Pool, Dummy_Access'Storage_Pool);
+     (Atom,
+      Storage_Pools.Access_In_Default_Pool'Storage_Pool,
+      Storage_Pools.Access_In_Default_Pool'Storage_Pool);
 
    type Atom_Buffer is tagged private;
 
