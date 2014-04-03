@@ -257,7 +257,8 @@ package body Natools.Chunked_Strings is
       if Data = null or else Data'Length < Chunk_Nb then
          declare
             First_New : Positive := 1;
-            New_Data : Chunk_Array_Access := new Chunk_Array (1 .. Chunk_Nb);
+            New_Data : constant Chunk_Array_Access
+              := new Chunk_Array (1 .. Chunk_Nb);
          begin
             if Data /= null then
                Resize_Chunk (Data (Data'Last), Chunk_Size);

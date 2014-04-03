@@ -88,7 +88,8 @@ begin
          Incomplete_String := 'I' & Incomplete_String;
          Incomplete_String := Incomplete_String & A_Small_G;
          if not Is_Valid (Incomplete_String)
-           or not Is_Valid (Complete_String) then
+           or not Is_Valid (Complete_String)
+         then
             NT.Item (Report, Name, NT.Error);
             if not Is_Valid (Incomplete_String) then
                NT.Info (Report, "Incomplete_String is invalid");
