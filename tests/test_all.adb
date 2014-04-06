@@ -22,6 +22,7 @@ with Ada.Command_Line;
 with Ada.Text_IO;
 with Natools.Chunked_Strings.Tests;
 with Natools.Getopt_Long_Tests;
+with Natools.HMAC_Tests;
 with Natools.Reference_Tests;
 with Natools.S_Expressions.Atom_Buffers.Tests;
 with Natools.S_Expressions.Cache_Tests;
@@ -71,6 +72,10 @@ begin
 
    Report.Section ("Getopt_Long");
    Natools.Getopt_Long_Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("HMAC and GNAT_HMAC");
+   Natools.HMAC_Tests.All_Tests (Report);
    Report.End_Section;
 
    Report.Section ("References");
