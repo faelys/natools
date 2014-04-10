@@ -23,6 +23,7 @@ with Ada.Text_IO.Text_Streams;
 with Natools.Getopt_Long;
 with Natools.S_Expressions;
 with Natools.S_Expressions.Encodings;
+with Natools.S_Expressions.File_Readers;
 
 procedure HMAC.Main is
 
@@ -42,6 +43,7 @@ procedure HMAC.Main is
    package Options is
       type Id is
         (Base64_Output,
+         Key_File,
          Lower_Hex_Output,
          Raw_Output,
          Upper_Hex_Output);
@@ -72,13 +74,22 @@ procedure HMAC.Main is
    overriding procedure Option
      (Handler : in out Callback;
       Id : in Options.Id;
-      Argument : in String)
-   is
-      pragma Unreferenced (Argument);
+      Argument : in String) is
    begin
       case Id is
          when Options.Base64_Output =>
             Handler.Output := Base64_Output'Access;
+         when Options.Key_File =>
+            if Argument = "-" then
+               Handler.Key := Ada.Strings.Unbounded.To_Unbounded_String
+                 (Ada.Text_IO.Get_Line);
+            else
+               Handler.Key := Ada.Strings.Unbounded.To_Unbounded_String
+                 (Natools.S_Expressions.To_String
+                    (Natools.S_Expressions.File_Readers.Reader
+                       (Argument).Read));
+            end if;
+            Handler.Has_Key := True;
          when Options.Lower_Hex_Output =>
             Handler.Output := Lower_Hex_Output'Access;
          when Options.Raw_Output =>
@@ -136,6 +147,8 @@ procedure HMAC.Main is
 begin
    Opt_Config.Add_Option
      ("base64", 'b', Getopt.No_Argument, Options.Base64_Output);
+   Opt_Config.Add_Option
+     ("key-file", 'f', Getopt.Required_Argument, Options.Key_File);
    Opt_Config.Add_Option
      ("lower-hex", 'h', Getopt.No_Argument, Options.Lower_Hex_Output);
    Opt_Config.Add_Option
