@@ -22,7 +22,7 @@ package body Natools.References is
    -- Low-level memory management --
    ---------------------------------
 
-   overriding procedure Adjust (Object : in out Reference) is
+   overriding procedure Adjust (Object : in out Immutable_Reference) is
    begin
       if Object.Count /= null then
          Object.Count.all := Object.Count.all + 1;
@@ -30,7 +30,7 @@ package body Natools.References is
    end Adjust;
 
 
-   overriding procedure Finalize (Object : in out Reference) is
+   overriding procedure Finalize (Object : in out Immutable_Reference) is
       procedure Free is
         new Ada.Unchecked_Deallocation (Held_Data, Data_Access);
       procedure Free is
@@ -57,7 +57,7 @@ package body Natools.References is
 
    function Create
      (Constructor : not null access function return Held_Data)
-      return Reference is
+      return Immutable_Reference is
    begin
       return (Ada.Finalization.Controlled with
          Data => new Held_Data'(Constructor.all),
@@ -66,7 +66,7 @@ package body Natools.References is
 
 
    procedure Replace
-     (Ref : in out Reference;
+     (Ref : in out Immutable_Reference;
       Constructor : not null access function return Held_Data) is
    begin
       Finalize (Ref);
@@ -75,19 +75,19 @@ package body Natools.References is
    end Replace;
 
 
-   procedure Reset (Ref : in out Reference) is
+   procedure Reset (Ref : in out Immutable_Reference) is
    begin
       Finalize (Ref);
    end Reset;
 
 
-   function Is_Empty (Ref : Reference) return Boolean is
+   function Is_Empty (Ref : Immutable_Reference) return Boolean is
    begin
       return Ref.Count = null;
    end Is_Empty;
 
 
-   function "=" (Left, Right : Reference) return Boolean is
+   function "=" (Left, Right : Immutable_Reference) return Boolean is
    begin
       return Left.Data = Right.Data;
    end "=";
@@ -98,7 +98,7 @@ package body Natools.References is
    -- Dereferenciation --
    ----------------------
 
-   function Query (Ref : in Reference) return Accessor is
+   function Query (Ref : in Immutable_Reference) return Accessor is
    begin
       return Accessor'(Data => Ref.Data, Parent => Ref);
    end Query;
@@ -111,7 +111,7 @@ package body Natools.References is
 
 
    procedure Query
-     (Ref : in Reference;
+     (Ref : in Immutable_Reference;
       Process : not null access procedure (Object : in Held_Data)) is
    begin
       Process.all (Ref.Data.all);

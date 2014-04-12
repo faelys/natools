@@ -143,7 +143,12 @@ package body Natools.S_Expressions.Atom_Buffers is
       end Create;
    begin
       if Buffer.Ref.Is_Empty then
-         return Atom_Refs.Create (Create'Access).Query;
+         declare
+            Tmp_Ref : constant Atom_Refs.Reference
+              := Atom_Refs.Create (Create'Access);
+         begin
+            return Tmp_Ref.Query;
+         end;
       else
          return Buffer.Ref.Query;
       end if;

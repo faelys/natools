@@ -33,46 +33,50 @@ generic
 package Natools.References is
    pragma Preelaborate (References);
 
-   type Reference is new Ada.Finalization.Controlled with private;
-
    type Accessor (Data : not null access constant Held_Data) is
      limited private;
    type Mutator (Data : not null access Held_Data) is
      limited private;
 
 
+   type Immutable_Reference is new Ada.Finalization.Controlled with private;
+
    function Create
      (Constructor : not null access function return Held_Data)
-      return Reference;
+      return Immutable_Reference;
       --  Create a new held object and return a reference to it
 
    procedure Replace
-     (Ref : in out Reference;
+     (Ref : in out Immutable_Reference;
       Constructor : not null access function return Held_Data);
       --  Replace the object held in Ref with a newly created object
 
-   procedure Reset (Ref : in out Reference);
+   procedure Reset (Ref : in out Immutable_Reference);
       --  Empty Ref
 
-   function Is_Empty (Ref : Reference) return Boolean;
+   function Is_Empty (Ref : Immutable_Reference) return Boolean;
       --  Check whether Ref refers to an actual object
 
-   function "=" (Left, Right : Reference) return Boolean;
+   function "=" (Left, Right : Immutable_Reference) return Boolean;
       --  Check whether Left and Right refer to the same object
 
-
-   function Query (Ref : in Reference) return Accessor;
+   function Query (Ref : in Immutable_Reference) return Accessor;
    pragma Inline (Query);
       --  Return a derefenciable constant access to the held object
 
-   function Update (Ref : in Reference) return Mutator;
-   pragma Inline (Update);
-      --  Return a derefenciable mutable access to the held object
-
    procedure Query
-     (Ref : in Reference;
+     (Ref : in Immutable_Reference;
       Process : not null access procedure (Object : in Held_Data));
       --  Call Process with the held object
+
+   Null_Immutable_Reference : constant Immutable_Reference;
+
+
+   type Reference is new Immutable_Reference with private;
+
+   function Update (Ref : in Reference) return Mutator;
+   pragma Inline (Update);
+      --  Return a ereferenciable mutable access to the held object
 
    procedure Update
      (Ref : in Reference;
@@ -91,26 +95,31 @@ private
    type Data_Access is access Held_Data;
    for Data_Access'Storage_Pool use Data_Pool;
 
-   type Reference is new Ada.Finalization.Controlled with record
+   type Immutable_Reference is new Ada.Finalization.Controlled with record
       Count : Counter_Access := null;
       Data : Data_Access := null;
    end record;
 
-   overriding procedure Adjust (Object : in out Reference);
+   overriding procedure Adjust (Object : in out Immutable_Reference);
       --  Increate reference counter
 
-   overriding procedure Finalize (Object : in out Reference);
+   overriding procedure Finalize (Object : in out Immutable_Reference);
       --  Decrease reference counter and release memory if needed
 
+   type Reference is new Immutable_Reference with null record;
+
    type Accessor (Data : not null access constant Held_Data) is limited record
-      Parent : Reference;
+      Parent : Immutable_Reference;
    end record;
 
    type Mutator (Data : not null access Held_Data) is limited record
       Parent : Reference;
    end record;
 
-   Null_Reference : constant Reference
+   Null_Immutable_Reference : constant Immutable_Reference
      := (Ada.Finalization.Controlled with Count => null, Data => null);
+
+   Null_Reference : constant Reference
+     := (Null_Immutable_Reference with null record);
 
 end Natools.References;
