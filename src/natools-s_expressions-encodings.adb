@@ -335,4 +335,71 @@ package body Natools.S_Expressions.Encodings is
       return Result;
    end Encode_Base64;
 
+
+
+   ---------------------------------
+   -- Base-64 with other charsets --
+   ---------------------------------
+
+   function Decode_Base64 (Data : in Atom; Digit_62, Digit_63 : in Octet)
+     return Atom
+   is
+      Recoded : Atom := Data;
+   begin
+      for I in Recoded'Range loop
+         if Recoded (I) = Digit_62 then
+            Recoded (I) := Plus;
+         elsif Recoded (I) = Digit_63 then
+            Recoded (I) := Slash;
+         end if;
+      end loop;
+
+      return Decode_Base64 (Recoded);
+   end Decode_Base64;
+
+
+   function Encode_Base64 (Data : in Atom; Digit_62, Digit_63 : in Octet)
+     return Atom
+   is
+      Result : Atom := Encode_Base64 (Data);
+      Last : Count := Result'Last;
+   begin
+      for I in Result'Range loop
+         if Result (I) = Plus then
+            Result (I) := Digit_62;
+         elsif Result (I) = Slash then
+            Result (I) := Digit_63;
+         elsif Result (I) = Base64_Filler then
+            for J in I + 1 .. Result'Last loop
+               pragma Assert (Result (J) = Base64_Filler);
+            end loop;
+            Last := I - 1;
+            exit;
+         end if;
+      end loop;
+
+      return Result (Result'First .. Last);
+   end Encode_Base64;
+
+
+   function Encode_Base64
+     (Data : in Atom;
+      Digit_62, Digit_63, Padding : in Octet)
+     return Atom
+   is
+      Result : Atom := Encode_Base64 (Data);
+   begin
+      for I in Result'Range loop
+         if Result (I) = Plus then
+            Result (I) := Digit_62;
+         elsif Result (I) = Slash then
+            Result (I) := Digit_63;
+         elsif Result (I) = Base64_Filler then
+            Result (I) := Padding;
+         end if;
+      end loop;
+
+      return Result;
+   end Encode_Base64;
+
 end Natools.S_Expressions.Encodings;

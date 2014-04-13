@@ -101,4 +101,22 @@ package Natools.S_Expressions.Encodings is
    procedure Encode_Base64 (Output : out Atom; A, B, C : in Octet);
    function Encode_Base64 (Data : in Atom) return Atom;
 
+
+
+   ---------------------------------
+   -- Base-64 with other charsets --
+   ---------------------------------
+
+   function Decode_Base64 (Data : in Atom; Digit_62, Digit_63 : in Octet)
+     return Atom;
+
+   function Encode_Base64 (Data : in Atom; Digit_62, Digit_63 : in Octet)
+     return Atom;
+      --  Paddingless encoding
+
+   function Encode_Base64
+     (Data : in Atom;
+      Digit_62, Digit_63, Padding : in Octet)
+     return Atom;
+
 end Natools.S_Expressions.Encodings;
