@@ -31,6 +31,7 @@ package Natools.S_Expressions.Encodings.Tests is
 
    procedure Hexadecimal_Test (Report : in out NT.Reporter'Class);
    procedure Base64_Test (Report : in out NT.Reporter'Class);
+   procedure User_Base64_Test (Report : in out NT.Reporter'Class);
       --  Run test suite for each encoding type
 
 end Natools.S_Expressions.Encodings.Tests;
