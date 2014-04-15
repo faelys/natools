@@ -59,6 +59,11 @@ package Natools.S_Expressions.Interpreters is
       --  Execute a single command with arguments
 
 
+   type Null_Command is new Command with null record;
+
+   Do_Nothing : Null_Command := Null_Command'(null record);
+
+
    type Interpreter is new Command with private;
 
    procedure Add_Command
