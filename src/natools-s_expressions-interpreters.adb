@@ -16,18 +16,6 @@
 
 package body Natools.S_Expressions.Interpreters is
 
-   ---------------------
-   -- Atom Comparison --
-   ---------------------
-
-   function Less_Than (Left, Right : Atom) return Boolean is
-   begin
-      return Left'Length < Right'Length
-        or else (Left'Length = Right'Length and then Left < Right);
-   end Less_Than;
-
-
-
    -----------------
    -- Interpreter --
    -----------------

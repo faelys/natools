@@ -115,8 +115,6 @@ private
 
    type Exception_Command is new Command with null record;
 
-   function Less_Than (Left, Right : Atom) return Boolean;
-
    package Command_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Atom, Command'Class, Less_Than);
 
