@@ -22,16 +22,10 @@
 -- recursive buffer.                                                        --
 ------------------------------------------------------------------------------
 
-with Natools.References;
-with Natools.Storage_Pools;
+with Natools.S_Expressions.Atom_Refs;
 
 package Natools.S_Expressions.Atom_Buffers is
    pragma Preelaborate (Atom_Buffers);
-
-   package Atom_Refs is new Natools.References
-     (Atom,
-      Storage_Pools.Access_In_Default_Pool'Storage_Pool,
-      Storage_Pools.Access_In_Default_Pool'Storage_Pool);
 
    type Atom_Buffer is tagged private;
 

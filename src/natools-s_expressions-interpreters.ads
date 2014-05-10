@@ -28,7 +28,7 @@
 with Natools.S_Expressions.Lockable;
 
 private with Ada.Containers.Indefinite_Ordered_Maps;
-private with Natools.S_Expressions.Atom_Buffers;
+private with Natools.S_Expressions.Atom_Refs;
 
 generic
    type Shared_State (<>) is limited private;
@@ -121,7 +121,7 @@ private
    type Interpreter is new Command with record
       Commands : Command_Maps.Map;
       Max_Length : Count := 0;
-      Fallback_Name : Atom_Buffers.Atom_Refs.Reference;
+      Fallback_Name : Atom_Refs.Reference;
    end record;
 
 end Natools.S_Expressions.Interpreters;
