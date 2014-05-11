@@ -30,6 +30,15 @@ package body Natools.S_Expressions.Interpreters is
    end Add_Command;
 
 
+   procedure Add
+     (Self : in out Interpreter;
+      Name : in String;
+      Cmd : in Command'Class) is
+   begin
+      Self.Add_Command (To_Atom (Name), Cmd);
+   end Add;
+
+
    function Has_Command (Self : Interpreter; Name : Atom) return Boolean is
    begin
       return Self.Commands.Contains (Name);

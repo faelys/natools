@@ -71,6 +71,11 @@ package Natools.S_Expressions.Interpreters is
       Name : in Atom;
       Cmd : in Command'Class);
 
+   procedure Add
+     (Self : in out Interpreter;
+      Name : in String;
+      Cmd : in Command'Class);
+
    function Has_Command (Self : Interpreter; Name : Atom) return Boolean;
 
    function Is_Empty (Self : Interpreter) return Boolean;
