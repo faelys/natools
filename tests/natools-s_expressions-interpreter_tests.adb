@@ -52,8 +52,8 @@ package body Natools.S_Expressions.Interpreter_Tests is
       Template : Recorder;
    begin
       return Inter : Test_Interpreters.Interpreter do
-         Inter.Add_Command (To_Atom ("cmd"), Template);
-         Inter.Add_Command (To_Atom ("command"), Template);
+         Inter.Add ("cmd", Template);
+         Inter.Add ("command", Template);
       end return;
    end Test_Interpreter;
 
