@@ -47,13 +47,13 @@ private
    type Recorder is new Test_Interpreters.Command with null record;
 
    overriding procedure Execute
-     (Self : in out Recorder;
+     (Self : in Recorder;
       State : in out Printers.Printer'Class;
       Context : in Boolean;
       Name : in Atom);
 
    overriding procedure Execute
-     (Self : in out Recorder;
+     (Self : in Recorder;
       State : in out Printers.Printer'Class;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class);
@@ -63,13 +63,13 @@ private
    type Raiser is new Test_Interpreters.Command with null record;
 
    overriding procedure Execute
-     (Self : in out Raiser;
+     (Self : in Raiser;
       State : in out Printers.Printer'Class;
       Context : in Boolean;
       Name : in Atom);
 
    overriding procedure Execute
-     (Self : in out Raiser;
+     (Self : in Raiser;
       State : in out Printers.Printer'Class;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class);

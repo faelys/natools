@@ -43,7 +43,7 @@ package Natools.S_Expressions.Interpreters is
    type Command is interface;
 
    procedure Execute
-     (Self : in out Command;
+     (Self : in Command;
       State : in out Shared_State;
       Context : in Shared_Context;
       Name : in Atom)
@@ -51,7 +51,7 @@ package Natools.S_Expressions.Interpreters is
       --  Execute a single argumentless command
 
    procedure Execute
-     (Self : in out Command;
+     (Self : in Command;
       State : in out Shared_State;
       Context : in Shared_Context;
       Cmd : in out Lockable.Descriptor'Class)
@@ -87,29 +87,29 @@ package Natools.S_Expressions.Interpreters is
    procedure Reset_Fallback (Self : in out Interpreter);
 
    not overriding procedure Execute
-     (Self : in out Interpreter;
+     (Self : in Interpreter;
       Expression : in out Lockable.Descriptor'Class;
       State : in out Shared_State;
       Context : in Shared_Context);
       --  Execute an expression, raising Command_Not_Found on unknown commands
 
    not overriding procedure Execute
-     (Self : in out Interpreter;
-      Fallback : in out Command'Class;
+     (Self : in Interpreter;
+      Fallback : in Command'Class;
       Expression : in out Lockable.Descriptor'Class;
       State : in out Shared_State;
       Context : in Shared_Context);
       --  Execute an expression with temporary fallback for unknown commands
 
    overriding procedure Execute
-     (Self : in out Interpreter;
+     (Self : in Interpreter;
       State : in out Shared_State;
       Context : in Shared_Context;
       Name : in Atom);
       --  Execute a single argumentless command
 
    overriding procedure Execute
-     (Self : in out Interpreter;
+     (Self : in Interpreter;
       State : in out Shared_State;
       Context : in Shared_Context;
       Cmd : in out Lockable.Descriptor'Class);

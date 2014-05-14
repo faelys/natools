@@ -64,7 +64,7 @@ package body Natools.S_Expressions.Interpreter_Tests is
    ----------------------
 
    overriding procedure Execute
-     (Self : in out Recorder;
+     (Self : in Recorder;
       State : in out Printers.Printer'Class;
       Context : in Boolean;
       Name : in Atom)
@@ -78,7 +78,7 @@ package body Natools.S_Expressions.Interpreter_Tests is
 
 
    overriding procedure Execute
-     (Self : in out Recorder;
+     (Self : in Recorder;
       State : in out Printers.Printer'Class;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class)
@@ -107,7 +107,7 @@ package body Natools.S_Expressions.Interpreter_Tests is
    --------------------
 
    overriding procedure Execute
-     (Self : in out Raiser;
+     (Self : in Raiser;
       State : in out Printers.Printer'Class;
       Context : in Boolean;
       Name : in Atom)
@@ -119,7 +119,7 @@ package body Natools.S_Expressions.Interpreter_Tests is
 
 
    overriding procedure Execute
-     (Self : in out Raiser;
+     (Self : in Raiser;
       State : in out Printers.Printer'Class;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class)
@@ -155,7 +155,7 @@ package body Natools.S_Expressions.Interpreter_Tests is
       Test : NT.Test := Report.Item ("Basic usage");
    begin
       declare
-         Inter : Test_Interpreters.Interpreter := Test_Interpreter;
+         Inter : constant Test_Interpreters.Interpreter := Test_Interpreter;
          Buffer : aliased Test_Tools.Memory_Stream;
          Printer : Printers.Canonical (Buffer'Access);
          Input : Caches.Reference;
@@ -196,7 +196,7 @@ package body Natools.S_Expressions.Interpreter_Tests is
       Test : NT.Test := Report.Item ("Local fallback raising an exception");
    begin
       declare
-         Inter : Test_Interpreters.Interpreter := Test_Interpreter;
+         Inter : constant Test_Interpreters.Interpreter := Test_Interpreter;
          Buffer : aliased Test_Tools.Memory_Stream;
          Printer : Printers.Canonical (Buffer'Access);
          Input : Caches.Reference;
@@ -278,7 +278,7 @@ package body Natools.S_Expressions.Interpreter_Tests is
       Test : NT.Test := Report.Item ("Local fallback");
    begin
       declare
-         Inter : Test_Interpreters.Interpreter := Test_Interpreter;
+         Inter : constant Test_Interpreters.Interpreter := Test_Interpreter;
          Buffer : aliased Test_Tools.Memory_Stream;
          Printer : Printers.Canonical (Buffer'Access);
          Input : Caches.Reference := Invalid_Commands;

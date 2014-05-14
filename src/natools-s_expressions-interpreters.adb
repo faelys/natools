@@ -73,7 +73,7 @@ package body Natools.S_Expressions.Interpreters is
 
 
    not overriding procedure Execute
-     (Self : in out Interpreter;
+     (Self : in Interpreter;
       Expression : in out Lockable.Descriptor'Class;
       State : in out Shared_State;
       Context : in Shared_Context)
@@ -108,19 +108,19 @@ package body Natools.S_Expressions.Interpreters is
 
 
    not overriding procedure Execute
-     (Self : in out Interpreter;
-      Fallback : in out Command'Class;
+     (Self : in Interpreter;
+      Fallback : in Command'Class;
       Expression : in out Lockable.Descriptor'Class;
       State : in out Shared_State;
       Context : in Shared_Context)
    is
       procedure Dispatch (Process : not null access procedure
-                            (Name : in Atom; Cmd : in out Command'Class));
-      procedure Process_Atom (Name : in Atom; Cmd : in out Command'Class);
-      procedure Process_Exp (Name : in Atom; Cmd : in out Command'Class);
+                            (Name : in Atom; Cmd : in Command'Class));
+      procedure Process_Atom (Name : in Atom; Cmd : in Command'Class);
+      procedure Process_Exp (Name : in Atom; Cmd : in Command'Class);
 
       procedure Dispatch (Process : not null access procedure
-                            (Name : in Atom; Cmd : in out Command'Class))
+                            (Name : in Atom; Cmd : in Command'Class))
       is
          procedure Process_Fallback (Name : in Atom);
 
@@ -139,19 +139,19 @@ package body Natools.S_Expressions.Interpreters is
          else
             Cursor := Self.Commands.Find (Buffer (1 .. Length));
             if Command_Maps.Has_Element (Cursor) then
-               Self.Commands.Update_Element (Cursor, Process);
+               Command_Maps.Query_Element (Cursor, Process);
             else
                Process (Buffer (1 .. Length), Fallback);
             end if;
          end if;
       end Dispatch;
 
-      procedure Process_Atom (Name : in Atom; Cmd : in out Command'Class) is
+      procedure Process_Atom (Name : in Atom; Cmd : in Command'Class) is
       begin
          Cmd.Execute (State, Context, Name);
       end Process_Atom;
 
-      procedure Process_Exp (Name : in Atom; Cmd : in out Command'Class) is
+      procedure Process_Exp (Name : in Atom; Cmd : in Command'Class) is
          pragma Unreferenced (Name);
       begin
          Cmd.Execute (State, Context, Expression);
@@ -189,14 +189,14 @@ package body Natools.S_Expressions.Interpreters is
 
 
    overriding procedure Execute
-     (Self : in out Interpreter;
+     (Self : in Interpreter;
       State : in out Shared_State;
       Context : in Shared_Context;
       Name : in Atom)
    is
-      procedure Process_Atom (Key : in Atom; Cmd : in out Command'Class);
+      procedure Process_Atom (Key : in Atom; Cmd : in Command'Class);
 
-      procedure Process_Atom (Key : in Atom; Cmd : in out Command'Class) is
+      procedure Process_Atom (Key : in Atom; Cmd : in Command'Class) is
          pragma Unreferenced (Key);
       begin
          Cmd.Execute (State, Context, Name);
@@ -207,7 +207,7 @@ package body Natools.S_Expressions.Interpreters is
       if Name'Length <= Self.Max_Length then
          Cursor := Self.Commands.Find (Name);
          if Command_Maps.Has_Element (Cursor) then
-            Self.Commands.Update_Element (Cursor, Process_Atom'Access);
+            Command_Maps.Query_Element (Cursor, Process_Atom'Access);
             return;
          end if;
       end if;
@@ -215,7 +215,7 @@ package body Natools.S_Expressions.Interpreters is
       if not Self.Fallback_Name.Is_Empty then
          Cursor := Self.Commands.Find (Self.Fallback_Name.Query.Data.all);
          if Command_Maps.Has_Element (Cursor) then
-            Self.Commands.Update_Element (Cursor, Process_Atom'Access);
+            Command_Maps.Query_Element (Cursor, Process_Atom'Access);
             return;
          end if;
       end if;
@@ -226,14 +226,14 @@ package body Natools.S_Expressions.Interpreters is
 
 
    overriding procedure Execute
-     (Self : in out Interpreter;
+     (Self : in Interpreter;
       State : in out Shared_State;
       Context : in Shared_Context;
       Cmd : in out Lockable.Descriptor'Class)
    is
-      procedure Process_Exp (Name : in Atom; Actual : in out Command'Class);
+      procedure Process_Exp (Name : in Atom; Actual : in Command'Class);
 
-      procedure Process_Exp (Name : in Atom; Actual : in out Command'Class) is
+      procedure Process_Exp (Name : in Atom; Actual : in Command'Class) is
          pragma Unreferenced (Name);
       begin
          Actual.Execute (State, Context, Cmd);
@@ -252,7 +252,7 @@ package body Natools.S_Expressions.Interpreters is
       if Length <= Self.Max_Length then
          Cursor := Self.Commands.Find (Buffer (1 .. Length));
          if Command_Maps.Has_Element (Cursor) then
-            Self.Commands.Update_Element (Cursor, Process_Exp'Access);
+            Command_Maps.Query_Element (Cursor, Process_Exp'Access);
             return;
          end if;
       end if;
@@ -260,7 +260,7 @@ package body Natools.S_Expressions.Interpreters is
       if not Self.Fallback_Name.Is_Empty then
          Cursor := Self.Commands.Find (Self.Fallback_Name.Query.Data.all);
          if Command_Maps.Has_Element (Cursor) then
-            Self.Commands.Update_Element (Cursor, Process_Exp'Access);
+            Command_Maps.Query_Element (Cursor, Process_Exp'Access);
             return;
          end if;
       end if;
