@@ -298,14 +298,14 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
      (Param : in out Parameters;
       Expression : in out Lockable.Descriptor'Class)
    is
-      Interpreter : Interpreters.Interpreter := Config_Interpreter;
+      Interpreter : constant Interpreters.Interpreter := Config_Interpreter;
    begin
       Update (Interpreter, Param, Expression);
    end Update;
 
 
    procedure Update
-     (Interpreter : in out Interpreters.Interpreter;
+     (Interpreter : in Interpreters.Interpreter;
       Param : in out Parameters;
       Expression : in out Lockable.Descriptor'Class) is
    begin
@@ -319,10 +319,18 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
    ------------------------------
 
    function Config_Interpreter return Interpreters.Interpreter is
-      Result : Interpreters.Interpreter;
+      Quoted_SI, Newline_SI, Space_SI, Result : Interpreters.Interpreter;
    begin
+      --  Setup subinterpreters
+      Add_Separator_Commands (Newline_SI, True, True);
+      Add_Newline_Encoding_Commands (Newline_SI);
+      Add_Quoted_Commands (Quoted_SI);
+      Add_Quoted_Escape_Commands (Quoted_SI);
+      Add_Separator_Commands (Space_SI, True, False);
+
+      --  Build final interpreter
       Result.Add_Command (To_Atom ("escape"),
-                          Set_Quoted_String'(others => <>));
+                          Set_Quoted_String'(Subinterpreter => Quoted_SI));
       Result.Add_Command (To_Atom ("indent"), Set_Indentation'(null record));
       Result.Add_Command (To_Atom ("indentation"),
                           Set_Indentation'(null record));
@@ -330,10 +338,12 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
                           Set_Indentation'(null record));
       Result.Add_Command (To_Atom ("no-indentation"),
                           Set_Indentation'(null record));
-      Result.Add_Command (To_Atom ("newline"), Set_Newline'(others => <>));
+      Result.Add_Command (To_Atom ("newline"),
+                          Set_Newline'(Subinterpreter => Newline_SI));
       Result.Add_Command (To_Atom ("quoted"),
-                          Set_Quoted_String'(others => <>));
-      Result.Add_Command (To_Atom ("space"), Set_Space_At'(others => <>));
+                          Set_Quoted_String'(Subinterpreter => Quoted_SI));
+      Result.Add_Command (To_Atom ("space"),
+                          Set_Space_At'(Subinterpreter => Space_SI));
       Result.Add_Command (To_Atom ("tab-stop"), Set_Tab_Stop'(null record));
       Result.Add_Command (To_Atom ("width"), Set_Width'(null record));
       Result.Add_Command (To_Atom ("no-width"), Set_Width'(null record));
@@ -524,7 +534,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
    -------------------------
 
    procedure Execute
-     (Self : in out Set_Width;
+     (Self : in Set_Width;
       State : in out Parameters;
       Context : in Boolean;
       Name : in Atom)
@@ -536,7 +546,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Width;
+     (Self : in Set_Width;
       State : in out Parameters;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class)
@@ -550,7 +560,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Tab_Stop;
+     (Self : in Set_Tab_Stop;
       State : in out Parameters;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class)
@@ -568,7 +578,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Indentation;
+     (Self : in Set_Indentation;
       State : in out Parameters;
       Context : in Boolean;
       Name : in Atom)
@@ -580,7 +590,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Indentation;
+     (Self : in Set_Indentation;
       State : in out Parameters;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class)
@@ -612,36 +622,31 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Newline;
+     (Self : in Set_Newline;
       State : in out Parameters;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class) is
    begin
-      if Self.Subinterpreter.Is_Empty then
-         Add_Separator_Commands (Self.Subinterpreter, True, True);
-         Add_Newline_Encoding_Commands (Self.Subinterpreter);
-      end if;
+      pragma Assert (not Self.Subinterpreter.Is_Empty);
       Cmd.Next;
       Self.Subinterpreter.Execute (Cmd, State, Context);
    end Execute;
 
 
    procedure Execute
-     (Self : in out Set_Space_At;
+     (Self : in Set_Space_At;
       State : in out Parameters;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class) is
    begin
-      if Self.Subinterpreter.Is_Empty then
-         Add_Separator_Commands (Self.Subinterpreter, True, False);
-      end if;
+      pragma Assert (not Self.Subinterpreter.Is_Empty);
       Cmd.Next;
       Self.Subinterpreter.Execute (Cmd, State, Context);
    end Execute;
 
 
    procedure Execute
-     (Self : in out Set_Char_Encoding;
+     (Self : in Set_Char_Encoding;
       State : in out Parameters;
       Context : in Boolean;
       Name : in Atom)
@@ -653,7 +658,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Newline_Encoding;
+     (Self : in Set_Newline_Encoding;
       State : in out Parameters;
       Context : in Boolean;
       Name : in Atom)
@@ -665,7 +670,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Separator;
+     (Self : in Set_Separator;
       State : in out Parameters;
       Context : in Boolean;
       Name : in Atom)
@@ -681,7 +686,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_All_Separators;
+     (Self : in Set_All_Separators;
       State : in out Parameters;
       Context : in Boolean;
       Name : in Atom)
@@ -697,7 +702,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_All_Separators;
+     (Self : in Set_All_Separators;
       State : in out Parameters;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class)
@@ -710,7 +715,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Hex_Casing;
+     (Self : in Set_Hex_Casing;
       State : in out Parameters;
       Context : in Boolean;
       Name : in Atom)
@@ -722,7 +727,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Fallback;
+     (Self : in Set_Fallback;
       State : in out Parameters;
       Context : in Boolean;
       Name : in Atom)
@@ -735,7 +740,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Token;
+     (Self : in Set_Token;
       State : in out Parameters;
       Context : in Boolean;
       Name : in Atom)
@@ -747,7 +752,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Token;
+     (Self : in Set_Token;
       State : in out Parameters;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class)
@@ -775,7 +780,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Quoted_Escape;
+     (Self : in Set_Quoted_Escape;
       State : in out Parameters;
       Context : in Boolean;
       Name : in Atom)
@@ -788,7 +793,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Quoted;
+     (Self : in Set_Quoted;
       State : in out Parameters;
       Context : in Boolean;
       Name : in Atom)
@@ -800,16 +805,12 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
 
    procedure Execute
-     (Self : in out Set_Quoted_String;
+     (Self : in Set_Quoted_String;
       State : in out Parameters;
       Context : in Boolean;
       Cmd : in out Lockable.Descriptor'Class) is
    begin
-      if Self.Subinterpreter.Is_Empty then
-         Add_Quoted_Commands (Self.Subinterpreter);
-         Add_Quoted_Escape_Commands (Self.Subinterpreter);
-      end if;
-
+      pragma Assert (not Self.Subinterpreter.Is_Empty);
       Cmd.Next;
       Self.Subinterpreter.Execute (Cmd, State, Context);
    end Execute;
