@@ -28,7 +28,9 @@
 with Natools.S_Expressions.Lockable;
 
 private with Ada.Containers.Indefinite_Ordered_Maps;
+private with Natools.References;
 private with Natools.S_Expressions.Atom_Refs;
+private with Natools.Storage_Pools;
 
 generic
    type Shared_State (<>) is limited private;
@@ -115,6 +117,14 @@ package Natools.S_Expressions.Interpreters is
       Cmd : in out Lockable.Descriptor'Class);
       --  Execute a single command with arguments
 
+   type Command_Description is private;
+   type Command_Array is array (Positive range <>) of Command_Description;
+
+   function Build (Commands : Command_Array) return Interpreter;
+   function Build (Commands : Command_Array; Fallback : String)
+     return Interpreter;
+   function Item (Name : String; Cmd : Command'Class)
+     return Command_Description;
 
 private
 
@@ -127,6 +137,16 @@ private
       Commands : Command_Maps.Map;
       Max_Length : Count := 0;
       Fallback_Name : Atom_Refs.Reference;
+   end record;
+
+   package Command_Refs is new Natools.References
+     (Command'Class,
+      Storage_Pools.Access_In_Default_Pool'Storage_Pool,
+      Storage_Pools.Access_In_Default_Pool'Storage_Pool);
+
+   type Command_Description is record
+      Name : Atom_Refs.Immutable_Reference;
+      Cmd : Command_Refs.Immutable_Reference;
    end record;
 
 end Natools.S_Expressions.Interpreters;

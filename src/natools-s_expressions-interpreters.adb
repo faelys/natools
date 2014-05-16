@@ -269,4 +269,53 @@ package body Natools.S_Expressions.Interpreters is
         with "Unknown command """ & To_String (Cmd.Current_Atom) & '"';
    end Execute;
 
+
+
+   --------------------------------------
+   -- Interpreter Building Subprograms --
+   --------------------------------------
+
+   function Build (Commands : Command_Array) return Interpreter is
+      Result : Interpreter;
+   begin
+      for I in Commands'Range loop
+         Result.Add_Command
+           (Commands (I).Name.Query.Data.all,
+            Commands (I).Cmd.Query.Data.all);
+      end loop;
+
+      return Result;
+   end Build;
+
+
+   function Build (Commands : Command_Array; Fallback : String)
+     return Interpreter
+   is
+      Result : Interpreter := Build (Commands);
+   begin
+      Result.Set_Fallback (To_Atom (Fallback));
+      return Result;
+   end Build;
+
+
+   function Item (Name : String; Cmd : Command'Class)
+     return Command_Description
+   is
+      function Get_Name return Atom;
+      function Get_Command return Command'Class;
+
+      function Get_Name return Atom is
+      begin
+         return To_Atom (Name);
+      end Get_Name;
+
+      function Get_Command return Command'Class is
+      begin
+         return Cmd;
+      end Get_Command;
+   begin
+      return (Name => Atom_Refs.Create (Get_Name'Access),
+              Cmd => Command_Refs.Create (Get_Command'Access));
+   end Item;
+
 end Natools.S_Expressions.Interpreters;
