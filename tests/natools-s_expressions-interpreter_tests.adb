@@ -303,7 +303,11 @@ package body Natools.S_Expressions.Interpreter_Tests is
       Test : NT.Test := Report.Item ("Permanent fallback");
    begin
       declare
-         Inter : Test_Interpreters.Interpreter := Test_Interpreter;
+         Inter : constant Test_Interpreters.Interpreter
+           := Test_Interpreters.Build
+             ((Test_Interpreters.Item ("cmd", Recorder'(null record)),
+               Test_Interpreters.Item ("command", Recorder'(null record))),
+               Fallback => "cmd");
          Buffer : aliased Test_Tools.Memory_Stream;
          Printer : Printers.Canonical (Buffer'Access);
          Input : constant Caches.Reference := Invalid_Commands;
@@ -313,7 +317,6 @@ package body Natools.S_Expressions.Interpreter_Tests is
            ("7:not-cmd(14:7:not-cmd3:arg)13:not-a-command"
             & "(18:13:not-a-command())"));
 
-         Inter.Set_Fallback (To_Atom ("cmd"));
          Inter.Execute (Cursor, Printer, True);
 
          Buffer.Check_Stream (Test);
