@@ -1,0 +1,17 @@
+(Natools.Static_Hash_Maps.S_Expressions.Command_Maps
+   private
+   (Package_Command
+      (hash-package Natools.Static_Hash_Maps.S_Expressions.Command_Pkg)
+      (function To_Package_Command)
+      (nodes
+         (Private_Child private)
+         (Public_Child public)))
+   (Map_Command
+      (hash-package Natools.Static_Hash_Maps.S_Expressions.Command_Map)
+      (function To_Map_Command)
+      (nodes
+         (Hash_Package hash-package)
+         (Nodes nodes)
+         (Function_Name function)
+         (Not_Found not-found))))
+
