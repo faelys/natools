@@ -23,4 +23,6 @@
 package Natools is
    pragma Pure (Natools);
 
+   type Meaningless_Type is (Meaningless_Value);
+
 end Natools;
