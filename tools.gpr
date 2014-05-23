@@ -2,7 +2,8 @@ with "natools";
 
 project Tools is
    for Source_Dirs use ("tools");
-   for Main use ("hmac-md5", "hmac-sha1", "hmac-sha256");
+   for Main use
+     ("generate_static_hash_map", "hmac-md5", "hmac-sha1", "hmac-sha256");
 
    for Object_Dir use Natools'Object_Dir;
    for Exec_Dir use Natools'Exec_Dir;
