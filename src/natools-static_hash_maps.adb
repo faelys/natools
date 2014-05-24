@@ -138,7 +138,9 @@ package body Natools.Static_Hash_Maps is
 
 
    procedure Write_Map_Hash_Package (Map : in Map_Description) is
-      Seed : constant Natural := 2;
+      Seed : Natural := 2;
+      NK : constant Float := Float (Map.Nodes.Length);
+      NV : Natural := Natural (Map.Nodes.Length) * 2 + 1;
       Cursor : Node_Lists.Cursor := Map.Nodes.First;
    begin
       while Node_Lists.Has_Element (Cursor) loop
@@ -147,8 +149,31 @@ package body Natools.Static_Hash_Maps is
          Node_Lists.Next (Cursor);
       end loop;
 
-      GNAT.Perfect_Hash_Generators.Initialize (Seed);
-      GNAT.Perfect_Hash_Generators.Compute;
+      loop
+         begin
+            GNAT.Perfect_Hash_Generators.Initialize (Seed, Float (NV) / NK);
+            GNAT.Perfect_Hash_Generators.Compute;
+            exit;
+         exception
+            when GNAT.Perfect_Hash_Generators.Too_Many_Tries =>
+               null;
+         end;
+
+         Seed := Seed * NV;
+
+         begin
+            GNAT.Perfect_Hash_Generators.Initialize (Seed, Float (NV) / NK);
+            GNAT.Perfect_Hash_Generators.Compute;
+            exit;
+         exception
+            when GNAT.Perfect_Hash_Generators.Too_Many_Tries =>
+               null;
+         end;
+
+         NV := NV + 1;
+         Seed := NV;
+      end loop;
+
       GNAT.Perfect_Hash_Generators.Produce (To_String (Map.Hash_Package_Name));
       GNAT.Perfect_Hash_Generators.Finalize;
    exception
