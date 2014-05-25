@@ -89,6 +89,10 @@ package Natools.Static_Hash_Maps is
      (Self : in out Map_Package;
       Description : in String);
 
+   procedure Set_Extra_Declarations
+     (Self : in out Map_Package;
+      Declarations : in String);
+
    procedure Set_Private_Child
      (Self : in out Map_Package;
       Private_Child : in Boolean := True);
@@ -148,6 +152,7 @@ private
    type Map_Package is record
       Name : String_Holder;
       Description : String_Holder;
+      Extra_Declarations : String_Holder;
       Priv : Boolean;
       Maps : Map_Lists.List;
    end record;

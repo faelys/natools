@@ -353,6 +353,15 @@ package body Natools.Static_Hash_Maps is
         (Spec_File, "package " & To_String (Pkg.Name) & " is");
       Ada.Text_IO.New_Line (Spec_File);
 
+      declare
+         Declarations : constant String := To_String (Pkg.Extra_Declarations);
+      begin
+         if Declarations'Length > 0 then
+            Ada.Text_IO.Put_Line (Spec_File, Declarations);
+            Ada.Text_IO.New_Line (Spec_File);
+         end if;
+      end;
+
       Current_Stage := Public_Spec;
       Map_Pos := 0;
       Pkg.Maps.Iterate (Query'Access);
@@ -502,6 +511,14 @@ package body Natools.Static_Hash_Maps is
    begin
       Self.Description := Hold (Description);
    end Set_Description;
+
+
+   procedure Set_Extra_Declarations
+     (Self : in out Map_Package;
+      Declarations : in String) is
+   begin
+      Self.Extra_Declarations := Hold (Declarations);
+   end Set_Extra_Declarations;
 
 
    procedure Set_Private_Child
