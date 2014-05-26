@@ -177,6 +177,8 @@ package body Natools.Static_Hash_Maps.S_Expressions is
             Set_Private_Child (Pkg, True);
          when Public_Child =>
             Set_Private_Child (Pkg, False);
+         when Extra_Declarations =>
+            Set_Extra_Declarations (Pkg, Sx.To_String (Name));
       end case;
    end Update_Package;
 

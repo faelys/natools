@@ -40,7 +40,8 @@ private
 
    type Package_Command is
      (Private_Child,
-      Public_Child);
+      Public_Child,
+      Extra_Declarations);
 
    type Map_Command is
      (Hash_Package,
