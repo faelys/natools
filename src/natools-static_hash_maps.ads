@@ -97,6 +97,10 @@ package Natools.Static_Hash_Maps is
      (Self : in out Map_Package;
       Private_Child : in Boolean := True);
 
+   procedure Set_Test_Child
+     (Self : in out Map_Package;
+      Test_Child : in String);
+
    procedure Add_Map (Self : in out Map_Package; Map : in Map_Description);
       --  Append a new Map to Self
 
@@ -153,6 +157,7 @@ private
       Name : String_Holder;
       Description : String_Holder;
       Extra_Declarations : String_Holder;
+      Test_Child : String_Holder;
       Priv : Boolean;
       Maps : Map_Lists.List;
    end record;

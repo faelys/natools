@@ -51,8 +51,15 @@ package body Natools.Static_Hash_Maps is
 
    procedure Write_Package
      (Pkg : in Map_Package;
-      Spec_File, Body_File : in Ada.Text_IO.File_Type);
+      Spec_File, Body_File : in Ada.Text_IO.File_Type;
+      Test : in Boolean := False);
       --  Output a complete map package
+
+   procedure Write_Test
+     (Map : in Map_Description;
+      Prefix : in String;
+      File : in Ada.Text_IO.File_Type);
+      --  Output test loop for the hash function
 
 
    ------------------------
@@ -283,10 +290,12 @@ package body Natools.Static_Hash_Maps is
 
    procedure Write_Package
      (Pkg : in Map_Package;
-      Spec_File, Body_File : in Ada.Text_IO.File_Type)
+      Spec_File, Body_File : in Ada.Text_IO.File_Type;
+      Test : in Boolean := False)
    is
       type Stage is
-        (Hash_Package, Public_Spec, Private_Spec, Body_With, Body_Contents);
+        (Hash_Package, Public_Spec, Private_Spec, Body_With, Body_Contents,
+         Test_Body);
 
       Current_Stage : Stage;
       Map_Pos : Natural := 0;
@@ -310,6 +319,9 @@ package body Natools.Static_Hash_Maps is
             when Body_Contents =>
                Ada.Text_IO.New_Line (Body_File);
                Write_Map_Body (Element, Prefix, Body_File);
+               Ada.Text_IO.New_Line (Body_File);
+            when Test_Body =>
+               Write_Test (Element, Prefix, Body_File);
                Ada.Text_IO.New_Line (Body_File);
          end case;
          Map_Pos := Map_Pos + 1;
@@ -345,6 +357,35 @@ package body Natools.Static_Hash_Maps is
          Ada.Text_IO.New_Line (Spec_File);
          Ada.Text_IO.New_Line (Body_File);
       end Write_Headers;
+
+      if Test then
+         declare
+            Name : constant String
+              := To_String (Pkg.Name)
+               & '.'
+               & To_String (Pkg.Test_Child);
+         begin
+            Ada.Text_IO.Put_Line (Spec_File, "function " & Name);
+            Ada.Text_IO.Put_Line (Spec_File, "  return Boolean;");
+
+            Current_Stage := Body_With;
+            Map_Pos := 0;
+            Pkg.Maps.Iterate (Query'Access);
+
+            Ada.Text_IO.Put_Line (Body_File, "function " & Name);
+            Ada.Text_IO.Put_Line (Body_File, "  return Boolean is");
+            Ada.Text_IO.Put_Line (Body_File, "begin");
+
+            Current_Stage := Test_Body;
+            Map_Pos := 0;
+            Pkg.Maps.Iterate (Query'Access);
+
+            Ada.Text_IO.Put_Line (Body_File, "   return True;");
+            Ada.Text_IO.Put_Line (Body_File, "end " & Name & ';');
+         end;
+
+         return;
+      end if;
 
       if Pkg.Priv then
          Ada.Text_IO.Put (Spec_File, "private ");
@@ -390,6 +431,27 @@ package body Natools.Static_Hash_Maps is
 
       Ada.Text_IO.Put_Line (Body_File, "end " & To_String (Pkg.Name) & ';');
    end Write_Package;
+
+
+   procedure Write_Test
+     (Map : in Map_Description;
+      Prefix : in String;
+      File : in Ada.Text_IO.File_Type)
+   is
+      Key_Array_Name : constant String := Prefix & "_Keys";
+   begin
+      Ada.Text_IO.Put_Line (File, "   for I in "
+        & Key_Array_Name & "'Range loop");
+      Ada.Text_IO.Put_Line (File, "      if "
+        & To_String (Map.Hash_Package_Name) & ".Hash");
+      Ada.Text_IO.Put_Line (File, "           ("
+        & Key_Array_Name & " (I).all) /= I");
+      Ada.Text_IO.Put_Line (File, "      then");
+      Ada.Text_IO.Put_Line (File, "         return False;");
+      Ada.Text_IO.Put_Line (File, "      end if;");
+      Ada.Text_IO.Put_Line (File, "   end loop;");
+   end Write_Test;
+
 
 
 
@@ -529,6 +591,14 @@ package body Natools.Static_Hash_Maps is
    end Set_Private_Child;
 
 
+   procedure Set_Test_Child
+     (Self : in out Map_Package;
+      Test_Child : in String) is
+   begin
+      Self.Test_Child := Hold (Test_Child);
+   end Set_Test_Child;
+
+
    procedure Add_Map (Self : in out Map_Package; Map : in Map_Description) is
    begin
       if To_String (Self.Name) = "" then
@@ -569,6 +639,27 @@ package body Natools.Static_Hash_Maps is
          Ada.Text_IO.Close (Spec_File);
          Ada.Text_IO.Close (Body_File);
       end;
+
+      if To_String (Self.Test_Child) /= "" then
+         declare
+            Unit_Name : constant String
+              := To_String (Self.Name) & '.' & To_String (Self.Test_Child);
+            Base_Name : constant String := File_Name (Unit_Name);
+            Spec_File, Body_File : Ada.Text_IO.File_Type;
+         begin
+            Ada.Text_IO.Create
+              (File => Spec_File,
+               Name => Ada.Directories.Compose ("", Base_Name, "ads"));
+            Ada.Text_IO.Create
+              (File => Body_File,
+               Name => Ada.Directories.Compose ("", Base_Name, "adb"));
+
+            Write_Package (Self, Spec_File, Body_File, Test => True);
+
+            Ada.Text_IO.Close (Spec_File);
+            Ada.Text_IO.Close (Body_File);
+         end;
+      end if;
    end Commit;
 
 
