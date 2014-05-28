@@ -41,6 +41,7 @@ private
    type Package_Command is
      (Private_Child,
       Public_Child,
+      Test_Function,
       Extra_Declarations);
 
    type Map_Command is

@@ -5,8 +5,10 @@
       (function To_Package_Command)
       (not-found Extra_Declarations)
       (nodes
+         (Extra_Declarations extra-declarations extra-decl)
          (Private_Child private)
-         (Public_Child public)))
+         (Public_Child public)
+         (Test_Function test-function)))
    (Map_Command
       (hash-package Natools.Static_Hash_Maps.S_Expressions.Command_Map)
       (function To_Map_Command)

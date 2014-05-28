@@ -51,6 +51,12 @@ package body Natools.Static_Hash_Maps.S_Expressions is
    procedure Update_Package
      (Pkg : in out Map_Package;
       Context : in Meaningless_Type;
+      Name : in Sx.Atom;
+      Arguments : in out Sx.Lockable.Descriptor'Class);
+
+   procedure Update_Package
+     (Pkg : in out Map_Package;
+      Context : in Meaningless_Type;
       Name : in Sx.Atom);
 
 
@@ -65,7 +71,7 @@ package body Natools.Static_Hash_Maps.S_Expressions is
      (Map_Package, String, Generate_Package);
 
    procedure Package_Interpreter is new Sx.Interpreter_Loop
-     (Map_Package, Meaningless_Type, Add_Map, Update_Package);
+     (Map_Package, Meaningless_Type, Update_Package, Update_Package);
 
    procedure Value_Interpreter is new Sx.Interpreter_Loop
      (Map_Description, String, Dispatch_Without_Argument => Add_Value);
@@ -168,6 +174,65 @@ package body Natools.Static_Hash_Maps.S_Expressions is
    procedure Update_Package
      (Pkg : in out Map_Package;
       Context : in Meaningless_Type;
+      Name : in Sx.Atom;
+      Arguments : in out Sx.Lockable.Descriptor'Class)
+   is
+      pragma Unreferenced (Context);
+      use type Sx.Events.Event;
+      use type Sx.Octet;
+      Is_Command : Boolean := False;
+   begin
+      for I in Name'Range loop
+         if Name (I) = Character'Pos ('-') then
+            Is_Command := True;
+            exit;
+         end if;
+      end loop;
+
+      if not Is_Command then
+         Add_Map (Pkg, Meaningless_Value, Name, Arguments);
+         return;
+      end if;
+
+      case Command_Maps.To_Package_Command (Sx.To_String (Name)) is
+         when Private_Child =>
+            Set_Private_Child (Pkg, True);
+         when Public_Child =>
+            Set_Private_Child (Pkg, False);
+         when Extra_Declarations =>
+            if Arguments.Current_Event = Sx.Events.Add_Atom then
+               Set_Extra_Declarations
+                 (Pkg, Sx.To_String (Arguments.Current_Atom));
+            end if;
+         when Test_Function =>
+            if Arguments.Current_Event = Sx.Events.Add_Atom then
+               declare
+                  Child_Name : constant String
+                    := Sx.To_String (Arguments.Current_Atom);
+                  Parent_Name : constant String := To_String (Pkg.Name);
+               begin
+                  if Child_Name'Length > Parent_Name'Length
+                    and then Child_Name (Child_Name'First
+                              .. Child_Name'First + Parent_Name'Length - 1)
+                       = Parent_Name
+                  then
+                     Set_Test_Child (Pkg, Child_Name
+                       (Child_Name'First + Parent_Name'Length
+                        .. Child_Name'Last));
+                  else
+                     Set_Test_Child (Pkg, Child_Name);
+                  end if;
+               end;
+            else
+               Set_Test_Child (Pkg, "");
+            end if;
+      end case;
+   end Update_Package;
+
+
+   procedure Update_Package
+     (Pkg : in out Map_Package;
+      Context : in Meaningless_Type;
       Name : in Sx.Atom)
    is
       pragma Unreferenced (Context);
@@ -179,6 +244,8 @@ package body Natools.Static_Hash_Maps.S_Expressions is
             Set_Private_Child (Pkg, False);
          when Extra_Declarations =>
             Set_Extra_Declarations (Pkg, Sx.To_String (Name));
+         when Test_Function =>
+            null;
       end case;
    end Update_Package;
 
