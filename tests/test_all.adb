@@ -34,6 +34,7 @@ with Natools.S_Expressions.Parsers.Tests;
 with Natools.S_Expressions.Printers.Tests;
 with Natools.S_Expressions.Printers.Pretty.Tests;
 with Natools.S_Expressions.Printers.Pretty.Config.Tests;
+with Natools.Static_Hash_Maps.S_Expressions.Tests;
 with Natools.String_Slice_Set_Tests;
 with Natools.String_Slice_Tests;
 with Natools.Tests.Text_IO;
@@ -121,6 +122,10 @@ begin
 
    Report.Section ("S_Expressions.Printers.Pretty.Config");
    Natools.S_Expressions.Printers.Pretty.Config.Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("Static_Hash_Maps.S_Expressions");
+   Natools.Static_Hash_Maps.S_Expressions.Tests.All_Tests (Report);
    Report.End_Section;
 
    Report.Section ("String_Slices");

@@ -1,5 +1,6 @@
 (Natools.Static_Hash_Maps.S_Expressions.Command_Maps
    private
+   (test-function Test)
    (Package_Command
       (hash-package Natools.Static_Hash_Maps.S_Expressions.Command_Pkg)
       (function To_Package_Command)
