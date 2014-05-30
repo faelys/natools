@@ -17,12 +17,21 @@
 with Ada.Calendar.Formatting;
 with Ada.Calendar.Time_Zones;
 with Ada.Characters.Handling;
+with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 with Ada.Directories;
 with Ada.Text_IO;
 
 with GNAT.Perfect_Hash_Generators;
 
 package body Natools.Static_Hash_Maps is
+
+   package String_Lists is new Ada.Containers.Indefinite_Doubly_Linked_Lists
+     (String);
+
+
+   procedure Add_Categorization
+     (Path : in String;
+      Categorization : in Package_Categorization);
 
    function File_Name (Package_Name : in String) return String;
       --  Convert a package name into a file name, the GNAT way
@@ -31,6 +40,11 @@ package body Natools.Static_Hash_Maps is
       --  Trimmed image, for suffix construction
 
    function Image (Offset : Ada.Calendar.Time_Zones.Time_Offset) return String;
+
+   procedure Put_Categorization
+     (Output : in Ada.Text_IO.File_Type;
+      Categorization : in Package_Categorization;
+      Name : in String := "");
 
    procedure Write_Map_Body
      (Map : in Map_Description;
@@ -65,6 +79,42 @@ package body Natools.Static_Hash_Maps is
    ------------------------
    -- Package Generators --
    ------------------------
+
+   procedure Add_Categorization
+     (Path : in String;
+      Categorization : in Package_Categorization)
+   is
+      File : Ada.Text_IO.File_Type;
+      Matches : Natural := 0;
+      Contents : String_Lists.List;
+   begin
+      if Categorization = Default_Categorization then
+         return;
+      end if;
+
+      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
+      while not Ada.Text_IO.End_Of_File (File) loop
+         Contents.Append (Ada.Text_IO.Get_Line (File));
+      end loop;
+      Ada.Text_IO.Close (File);
+
+      Ada.Text_IO.Open (File, Ada.Text_IO.Out_File, Path);
+      for Line of Contents loop
+         Ada.Text_IO.Put_Line (File, Line);
+
+         if Line'Length >= 8
+           and then Line (Line'First .. Line'First + 7) = "package "
+           and then Line (Line'Last - 2 .. Line'Last) = " is"
+         then
+            Matches := Matches + 1;
+            Put_Categorization (File, Categorization);
+         end if;
+      end loop;
+      Ada.Text_IO.Close (File);
+
+      pragma Assert (Matches = 1);
+   end Add_Categorization;
+
 
    function File_Name (Package_Name : in String) return String is
       Result : String := Ada.Characters.Handling.To_Lower (Package_Name);
@@ -105,6 +155,44 @@ package body Natools.Static_Hash_Maps is
          4 => Character'Val (48 + M / 10),
          5 => Character'Val (48 + M mod 10));
    end Image;
+
+
+   procedure Put_Categorization
+     (Output : in Ada.Text_IO.File_Type;
+      Categorization : in Package_Categorization;
+      Name : in String := "")
+   is
+      function Prefix return String;
+      function Suffix return String;
+
+      function Prefix return String is
+      begin
+         if Name = "" then
+            return "   pragma ";
+         else
+            return "pragma ";
+         end if;
+      end Prefix;
+
+      function Suffix return String is
+      begin
+         if Name = "" then
+            return "";
+         else
+            return " (" & Name & ')';
+         end if;
+      end Suffix;
+   begin
+      case Categorization is
+         when Pure =>
+            Ada.Text_IO.Put_Line (Output, Prefix & "Pure" & Suffix & ';');
+         when Preelaborate =>
+            Ada.Text_IO.Put_Line
+              (Output, Prefix & "Preelaborate" & Suffix & ';');
+         when Default_Categorization =>
+            null;
+      end case;
+   end Put_Categorization;
 
 
    procedure Write_Map_Body
@@ -309,6 +397,12 @@ package body Natools.Static_Hash_Maps is
          case Current_Stage is
             when Hash_Package =>
                Write_Map_Hash_Package (Element);
+               Add_Categorization
+                 (Ada.Directories.Compose
+                    ("",
+                     File_Name (To_String (Element.Hash_Package_Name)),
+                     "ads"),
+                  Pkg.Categorization);
             when Public_Spec =>
                Write_Map_Public_Spec (Element, Spec_File);
             when Private_Spec =>
@@ -367,6 +461,7 @@ package body Natools.Static_Hash_Maps is
          begin
             Ada.Text_IO.Put_Line (Spec_File, "function " & Name);
             Ada.Text_IO.Put_Line (Spec_File, "  return Boolean;");
+            Put_Categorization (Spec_File, Pkg.Categorization, Name);
 
             Current_Stage := Body_With;
             Map_Pos := 0;
@@ -392,6 +487,7 @@ package body Natools.Static_Hash_Maps is
       end if;
       Ada.Text_IO.Put_Line
         (Spec_File, "package " & To_String (Pkg.Name) & " is");
+      Put_Categorization (Spec_File, Pkg.Categorization);
       Ada.Text_IO.New_Line (Spec_File);
 
       declare
@@ -567,6 +663,14 @@ package body Natools.Static_Hash_Maps is
    end Close;
 
 
+   procedure Set_Categorization
+     (Self : in out Map_Package;
+      Categorization : in Package_Categorization) is
+   begin
+      Self.Categorization := Categorization;
+   end Set_Categorization;
+
+
    procedure Set_Description
      (Self : in out Map_Package;
       Description : in String) is
@@ -696,4 +800,3 @@ package body Natools.Static_Hash_Maps is
    end Generate_Package;
 
 end Natools.Static_Hash_Maps;
-

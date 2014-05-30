@@ -26,6 +26,8 @@ private with Ada.Containers.Doubly_Linked_Lists;
 
 package Natools.Static_Hash_Maps is
 
+   type Package_Categorization is (Pure, Preelaborate, Default_Categorization);
+
    type Map_Node is private;
 
    function Node (Key, Name : String) return Map_Node;
@@ -84,6 +86,10 @@ package Natools.Static_Hash_Maps is
       Name : in String;
       Private_Child : in Boolean := False);
       --  Reset Self and initialize it with the givan package Name
+
+   procedure Set_Categorization
+     (Self : in out Map_Package;
+      Categorization : in Package_Categorization);
 
    procedure Set_Description
      (Self : in out Map_Package;
@@ -155,6 +161,7 @@ private
 
    type Map_Package is record
       Name : String_Holder;
+      Categorization : Package_Categorization := Default_Categorization;
       Description : String_Holder;
       Extra_Declarations : String_Holder;
       Test_Child : String_Holder;
