@@ -199,6 +199,10 @@ package body Natools.Static_Hash_Maps.S_Expressions is
             Set_Private_Child (Pkg, True);
          when Public_Child =>
             Set_Private_Child (Pkg, False);
+         when Pure_Package =>
+            Set_Categorization (Pkg, Pure);
+         when Preelaborate_Package =>
+            Set_Categorization (Pkg, Preelaborate);
          when Extra_Declarations =>
             if Arguments.Current_Event = Sx.Events.Add_Atom then
                Set_Extra_Declarations
@@ -242,6 +246,10 @@ package body Natools.Static_Hash_Maps.S_Expressions is
             Set_Private_Child (Pkg, True);
          when Public_Child =>
             Set_Private_Child (Pkg, False);
+         when Pure_Package =>
+            Set_Categorization (Pkg, Pure);
+         when Preelaborate_Package =>
+            Set_Categorization (Pkg, Preelaborate);
          when Extra_Declarations =>
             Set_Extra_Declarations (Pkg, Sx.To_String (Name));
          when Test_Function =>

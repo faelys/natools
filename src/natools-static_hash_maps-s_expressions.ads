@@ -41,6 +41,8 @@ private
    type Package_Command is
      (Private_Child,
       Public_Child,
+      Pure_Package,
+      Preelaborate_Package,
       Test_Function,
       Extra_Declarations);
 
