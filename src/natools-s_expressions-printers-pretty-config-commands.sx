@@ -1,0 +1,136 @@
+(Natools.S_Expressions.Printers.Pretty.Config.Commands
+   private
+   preelaborate
+   (test-function T)
+   (extra-decl "\
+   type Main_Command is
+     (Set_Char_Encoding,
+      Set_Fallback,
+      Set_Hex_Casing,
+      Set_Indentation,
+      Set_Newline,
+      Set_Newline_Encoding,
+      Set_Quoted,
+      Set_Quoted_String,
+      Set_Space_At,
+      Set_Tab_Stop,
+      Set_Token,
+      Set_Width);
+
+   type Newline_Command is
+     (Set_Newline_Command_Encoding,
+      Set_Newline_Separator);
+
+   type Quoted_String_Command is
+     (Set_Quoted_Option,
+      Set_Quoted_Escape);
+
+   type Separator_Command is
+     (All_Separators,
+      No_Separators,
+      Invert_Separators,
+      Open_Open,
+      Open_Atom,
+      Open_Close,
+      Atom_Open,
+      Atom_Atom,
+      Atom_Close,
+      Close_Open,
+      Close_Atom,
+      Close_Close);")
+
+   (Main_Command
+      (hash-package Natools.S_Expressions.Printers.Pretty.Config.Main_Cmd)
+      (function Main)
+      (nodes
+         (Set_Char_Encoding    ascii ASCII latin-1 latin iso-8859-1 ISO-8859-1 utf-8 UTF-8 utf8 UTF8)
+         (Set_Fallback         base64 base-64 lower-hex lower-hexa hex hexa hexadecimal upper-hex upper-hexa verbatim)
+         (Set_Hex_Casing       lower lower-case upper upper-case)
+         (Set_Indentation      indent indentation no-indent no-indentation)
+         (Set_Newline          newline)
+         (Set_Newline_Encoding cr CR lf LF CRLF CR-LF crlf cr-lf lf-cr lfcr LF-CR LFCR)
+         (Set_Quoted           no-quoted no-quoted-string quoted-when-shorter quoted-string-when-shorter single-line-quoted single-line-quoted-string)
+         (Set_Quoted_String    escape quoted)
+         (Set_Space_At         space)
+         (Set_Tab_Stop         tab-stop)
+         (Set_Token            extended-token no-token standard-token token)
+         (Set_Width            width no-width)))
+   (Newline_Command
+      (hash-package Natools.S_Expressions.Printers.Pretty.Config.Newline_Cmd)
+      (function Newline)
+      (nodes
+         (Set_Newline_Command_Encoding
+            cr CR lf LF CRLF CR-LF crlf cr-lf lf-cr lfcr LF-CR LFCR)
+         (Set_Newline_Separator
+            all none not open-open open-atom open-close atom-open atom-atom atom-close close-open close-atom close-close)))
+   (Quoted_String_Command
+      (hash-package Natools.S_Expressions.Printers.Pretty.Config.Quoted_Cmd)
+      (function Quoted_String)
+      (nodes
+         (Set_Quoted_Option  never single-line when-shorter)
+         (Set_Quoted_Escape  octal hex hexa hexadecimal lower-hex lower-hexa upper-hex upper-hexa)))
+   (Separator_Command
+      (hash-package Natools.S_Expressions.Printers.Pretty.Config.Commands.SC)
+      (function Separator)
+      (nodes
+         (All_Separators     all)
+         (No_Separators      none)
+         (Invert_Separators  not)
+         (Open_Open          open-open)
+         (Open_Atom          open-atom)
+         (Open_Close         open-close)
+         (Atom_Open          atom-open)
+         (Atom_Atom          atom-atom)
+         (Atom_Close         atom-close)
+         (Close_Open         close-open)
+         (Close_Atom         close-atom)
+         (Close_Close        close-close)))
+
+   (Atom_Encoding
+      (hash-package Natools.S_Expressions.Printers.Pretty.Config.Atom_Enc)
+      (function To_Atom_Encoding)
+      (nodes
+         (Base64       base64 base-64)
+         (Hexadecimal  lower-hex lower-hexa hex hexa hexadecimal upper-hex upper-hexa)
+         (Verbatim     verbatim)))
+   (Character_Encoding
+      (hash-package Natools.S_Expressions.Printers.Pretty.Config.Commands.CE)
+      (function To_Character_Encoding)
+      (nodes
+         (ASCII  ascii ASCII)
+         (Latin  latin-1 latin iso-8859-1 ISO-8859-1)
+         (UTF_8  utf-8 UTF-8 utf8 UTF8)))
+   (Encodings.Hex_Casing
+      (hash-package Natools.S_Expressions.Printers.Pretty.Config.Hex_Casing)
+      (function To_Hex_Casing)
+      (nodes
+         (Encodings.Lower lower lower-case)
+         (Encodings.Upper upper upper-case)))
+   (Newline_Encoding
+      (hash-package Natools.S_Expressions.Printers.Pretty.Config.Newline_Enc)
+      (function To_Newline_Encoding)
+      (nodes
+         (CR     CR cr)
+         (LF     LF lf)
+         (CR_LF  CRLF CR-LF crlf cr-lf)
+         (LF_CR  LFCR LF-CR lfcr lf-cr)))
+   (Quoted_Escape_Type
+      (hash-package Natools.S_Expressions.Printers.Pretty.Config.Quoted_Esc)
+      (function To_Quoted_Escape)
+      (nodes
+         (Octal_Escape octal)
+         (Hex_Escape hex hexa hexadecimal lower-hex lower-hexa upper-hex upper-hexa)))
+   (Quoted_Option
+      (hash-package Natools.S_Expressions.Printers.Pretty.Config.Quoted_Opt)
+      (function To_Quoted_Option)
+      (nodes
+         (When_Shorter  when-shorter quoted-when-shorter quoted-string-when-shorter)
+         (Single_Line   single-line single-line-quoted single-line-quoted-string)
+         (No_Quoted     never no-quoted no-quoted-string)))
+   (Token_Option
+      (hash-package Natools.S_Expressions.Printers.Pretty.Config.Token_Opt)
+      (function To_Token_Option)
+      (nodes
+         (Extended_Token  extended-token extended)
+         (Standard_Token  standard-token token standard)
+         (No_Token        no-token no none never))))

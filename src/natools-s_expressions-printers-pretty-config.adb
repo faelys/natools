@@ -14,10 +14,13 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
+with Natools.S_Expressions.Interpreter_Loop;
+with Natools.S_Expressions.Printers.Pretty.Config.Commands;
+
 package body Natools.S_Expressions.Printers.Pretty.Config is
 
    procedure Read_Screen_Offset
-     (Expression : in out Lockable.Descriptor'Class;
+     (Expression : in Lockable.Descriptor'Class;
       Value : in out Screen_Offset;
       Has_Value : out Boolean);
       --  Decode a screen offset from a S-expression
@@ -32,13 +35,361 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
    function To_String (Value : in Entity) return String;
 
 
+   procedure Main_Execute
+     (Param : in out Parameters;
+      Context : in Meaningless_Type;
+      Name : in Atom);
+
+   procedure Main_Execute
+     (Param : in out Parameters;
+      Context : in Meaningless_Type;
+      Name : in Atom;
+      Arguments : in out Lockable.Descriptor'Class);
+
+   procedure Newline_Execute
+     (Param : in out Parameters;
+      Context : in Meaningless_Type;
+      Name : in Atom);
+
+   procedure Newline_Execute
+     (Param : in out Parameters;
+      Context : in Meaningless_Type;
+      Name : in Atom;
+      Arguments : in out Lockable.Descriptor'Class);
+
+   procedure Newline_Interpreter
+     (Expression : in out Lockable.Descriptor'Class;
+      Param : in out Parameters);
+
+   procedure Quoted_Execute
+     (Param : in out Parameters;
+      Context : in Meaningless_Type;
+      Name : in Atom);
+
+   procedure Quoted_Interpreter
+     (Expression : in out Lockable.Descriptor'Class;
+      Param : in out Parameters);
+
+   procedure Separator_Execute
+     (State : in out Entity_Separator;
+      Value : in Boolean;
+      Name : in Atom);
+
+   procedure Separator_Execute
+     (State : in out Entity_Separator;
+      Value : in Boolean;
+      Name : in Atom;
+      Arguments : in out Lockable.Descriptor'Class);
+
+   procedure Separator_Interpreter
+     (Expression : in out Lockable.Descriptor'Class;
+      State : in out Entity_Separator;
+      Context : in Boolean);
+
+
+   ------------------
+   -- Interpreters --
+   ------------------
+
+   procedure Main_Execute
+     (Param : in out Parameters;
+      Context : in Meaningless_Type;
+      Name : in Atom)
+   is
+      pragma Unreferenced (Context);
+      Command : constant String := To_String (Name);
+   begin
+      case Commands.Main (Command) is
+         when Commands.Set_Char_Encoding =>
+            Param.Char_Encoding := Commands.To_Character_Encoding (Command);
+
+         when Commands.Set_Fallback =>
+            Param.Fallback := Commands.To_Atom_Encoding (Command);
+            Update_Casing (Param.Hex_Casing, Name);
+
+         when Commands.Set_Hex_Casing =>
+            Param.Hex_Casing := Commands.To_Hex_Casing (Command);
+
+         when Commands.Set_Indentation =>
+            Param.Indentation := 0;
+
+         when Commands.Set_Newline_Encoding =>
+            Param.Newline := Commands.To_Newline_Encoding (Command);
+
+         when Commands.Set_Quoted =>
+            Param.Quoted := Commands.To_Quoted_Option (Command);
+
+         when Commands.Set_Token =>
+            Param.Token := Commands.To_Token_Option (Command);
+
+         when Commands.Set_Width =>
+            Param.Width := 0;
+
+         when Commands.Set_Newline
+           | Commands.Set_Quoted_String
+           | Commands.Set_Space_At
+           | Commands.Set_Tab_Stop
+         =>
+            --  Those commands are meaningless without argument
+            null;
+      end case;
+   end Main_Execute;
+
+
+   procedure Main_Execute
+     (Param : in out Parameters;
+      Context : in Meaningless_Type;
+      Name : in Atom;
+      Arguments : in out Lockable.Descriptor'Class)
+   is
+      pragma Unreferenced (Context);
+      Command : constant String := To_String (Name);
+   begin
+      case Commands.Main (Command) is
+         when Commands.Set_Indentation =>
+            declare
+               Has_Value : Boolean;
+               Event : Events.Event;
+            begin
+               Read_Screen_Offset (Arguments, Param.Indentation, Has_Value);
+
+               if Has_Value and then Param.Indentation /= 0 then
+                  Arguments.Next (Event);
+
+                  if Event = Events.Add_Atom then
+                     declare
+                        Unit : constant String
+                          := To_String (Arguments.Current_Atom);
+                        Last : Natural := Unit'Last;
+                     begin
+                        if Last > 0 and then Unit (Last) = 's' then
+                           Last := Last - 1;
+                        end if;
+
+                        if Unit (Unit'First .. Last) = "tab" then
+                           Param.Indent := Tabs;
+                        elsif Unit (Unit'First .. Last) = "space" then
+                           Param.Indent := Spaces;
+                        elsif Unit (Unit'First .. Last) = "tabbed-space" then
+                           Param.Indent := Tabs_And_Spaces;
+                        end if;
+                     end;
+                  end if;
+               end if;
+            end;
+
+         when Commands.Set_Newline =>
+            Newline_Interpreter (Arguments, Param);
+
+         when Commands.Set_Quoted_String =>
+            Quoted_Interpreter (Arguments, Param);
+
+         when Commands.Set_Space_At =>
+            Separator_Interpreter (Arguments, Param.Space_At, True);
+
+         when Commands.Set_Tab_Stop =>
+            declare
+               Value : Screen_Offset := 0;
+               Has_Value : Boolean;
+            begin
+               Read_Screen_Offset (Arguments, Value, Has_Value);
+
+               if Has_Value and then Value /= 0 then
+                  Param.Tab_Stop := Value;
+               end if;
+            end;
+
+         when Commands.Set_Token =>
+            begin
+               if Arguments.Current_Event = Events.Add_Atom then
+                  Param.Token := Commands.To_Token_Option
+                    (To_String (Arguments.Current_Atom));
+               end if;
+            exception
+               when Constraint_Error => null;
+            end;
+
+         when Commands.Set_Width =>
+            declare
+               Has_Value : Boolean;
+            begin
+               Read_Screen_Offset (Arguments, Param.Width, Has_Value);
+            end;
+
+         when Commands.Set_Char_Encoding
+           | Commands.Set_Fallback
+           | Commands.Set_Hex_Casing
+           | Commands.Set_Newline_Encoding
+           | Commands.Set_Quoted
+         =>
+            --  These commands don't do anything with arguments
+            null;
+      end case;
+   end Main_Execute;
+
+
+   procedure Newline_Execute
+     (Param : in out Parameters;
+      Context : in Meaningless_Type;
+      Name : in Atom)
+   is
+      pragma Unreferenced (Context);
+      Command : constant String := To_String (Name);
+   begin
+      case Commands.Newline (Command) is
+         when Commands.Set_Newline_Command_Encoding =>
+            Param.Newline := Commands.To_Newline_Encoding (Command);
+         when Commands.Set_Newline_Separator =>
+            Separator_Execute (Param.Newline_At, True, Name);
+      end case;
+   end Newline_Execute;
+
+
+   procedure Newline_Execute
+     (Param : in out Parameters;
+      Context : in Meaningless_Type;
+      Name : in Atom;
+      Arguments : in out Lockable.Descriptor'Class)
+   is
+      pragma Unreferenced (Context);
+      Command : constant String := To_String (Name);
+   begin
+      case Commands.Newline (Command) is
+         when Commands.Set_Newline_Command_Encoding =>
+            Param.Newline := Commands.To_Newline_Encoding (Command);
+         when Commands.Set_Newline_Separator =>
+            Separator_Execute (Param.Newline_At, True, Name, Arguments);
+      end case;
+   end Newline_Execute;
+
+
+   procedure Quoted_Execute
+     (Param : in out Parameters;
+      Context : in Meaningless_Type;
+      Name : in Atom)
+   is
+      pragma Unreferenced (Context);
+      Command : constant String := To_String (Name);
+   begin
+      case Commands.Quoted_String (Command) is
+         when Commands.Set_Quoted_Option =>
+            Param.Quoted := Commands.To_Quoted_Option (Command);
+         when Commands.Set_Quoted_Escape =>
+            Param.Quoted_Escape := Commands.To_Quoted_Escape (Command);
+            Update_Casing (Param.Hex_Casing, Name);
+      end case;
+   end Quoted_Execute;
+
+
+   procedure Separator_Execute
+     (State : in out Entity_Separator;
+      Value : in Boolean;
+      Name : in Atom) is
+   begin
+      case Commands.Separator (To_String (Name)) is
+         when Commands.All_Separators =>
+            State := (others => (others => Value));
+         when Commands.No_Separators =>
+            State := (others => (others => not Value));
+
+         when Commands.Invert_Separators =>
+            null;  --  Error, actually
+
+         when Commands.Open_Open =>
+            State (Opening, Opening) := Value;
+         when Commands.Open_Atom =>
+            State (Opening, Atom_Data) := Value;
+         when Commands.Open_Close =>
+            State (Opening, Closing) := Value;
+
+         when Commands.Atom_Open =>
+            State (Atom_Data, Opening) := Value;
+         when Commands.Atom_Atom =>
+            State (Atom_Data, Atom_Data) := Value;
+         when Commands.Atom_Close =>
+            State (Atom_Data, Closing) := Value;
+
+         when Commands.Close_Open =>
+            State (Closing, Opening) := Value;
+         when Commands.Close_Atom =>
+            State (Closing, Atom_Data) := Value;
+         when Commands.Close_Close =>
+            State (Closing, Closing) := Value;
+      end case;
+   end Separator_Execute;
+
+
+   procedure Separator_Execute
+     (State : in out Entity_Separator;
+      Value : in Boolean;
+      Name : in Atom;
+      Arguments : in out Lockable.Descriptor'Class) is
+   begin
+      case Commands.Separator (To_String (Name)) is
+         when Commands.Invert_Separators =>
+            Separator_Interpreter (Arguments, State, not Value);
+
+         when Commands.All_Separators
+           | Commands.No_Separators
+           | Commands.Open_Open
+           | Commands.Open_Atom
+           | Commands.Open_Close
+           | Commands.Atom_Open
+           | Commands.Atom_Atom
+           | Commands.Atom_Close
+           | Commands.Close_Open
+           | Commands.Close_Atom
+           | Commands.Close_Close
+         =>
+            Separator_Execute (State, Value, Name);
+      end case;
+   end Separator_Execute;
+
+
+
+   procedure Main_Interpreter is new Interpreter_Loop
+     (Parameters, Meaningless_Type, Main_Execute, Main_Execute);
+
+   procedure Newline_Interpreter is new Interpreter_Loop
+     (Parameters, Meaningless_Type, Newline_Execute, Newline_Execute);
+
+   procedure Quoted_Interpreter is new Interpreter_Loop
+     (Parameters, Meaningless_Type,
+      Dispatch_Without_Argument => Quoted_Execute);
+
+   procedure Interpreter is new Interpreter_Loop
+     (Entity_Separator, Boolean, Separator_Execute, Separator_Execute);
+
+
+
+   procedure Newline_Interpreter
+     (Expression : in out Lockable.Descriptor'Class;
+      Param : in out Parameters) is
+   begin
+      Newline_Interpreter (Expression, Param, Meaningless_Value);
+   end Newline_Interpreter;
+
+   procedure Quoted_Interpreter
+     (Expression : in out Lockable.Descriptor'Class;
+      Param : in out Parameters) is
+   begin
+      Quoted_Interpreter (Expression, Param, Meaningless_Value);
+   end Quoted_Interpreter;
+
+   procedure Separator_Interpreter
+     (Expression : in out Lockable.Descriptor'Class;
+      State : in out Entity_Separator;
+      Context : in Boolean)
+     renames Interpreter;
+
+
 
    ------------------------------
    -- Local Helper Subprograms --
    ------------------------------
 
    procedure Read_Screen_Offset
-     (Expression : in out Lockable.Descriptor'Class;
+     (Expression : in Lockable.Descriptor'Class;
       Value : in out Screen_Offset;
       Has_Value : out Boolean)
    is
@@ -296,523 +647,9 @@ package body Natools.S_Expressions.Printers.Pretty.Config is
 
    procedure Update
      (Param : in out Parameters;
-      Expression : in out Lockable.Descriptor'Class)
-   is
-      Interpreter : constant Interpreters.Interpreter := Config_Interpreter;
-   begin
-      Update (Interpreter, Param, Expression);
-   end Update;
-
-
-   procedure Update
-     (Interpreter : in Interpreters.Interpreter;
-      Param : in out Parameters;
       Expression : in out Lockable.Descriptor'Class) is
    begin
-      Interpreter.Execute (Expression, Param, True);
+      Main_Interpreter (Expression, Param, Meaningless_Value);
    end Update;
-
-
-
-   ------------------------------
-   -- Interpreter Constructors --
-   ------------------------------
-
-   function Config_Interpreter return Interpreters.Interpreter is
-      Quoted_SI, Newline_SI, Space_SI, Result : Interpreters.Interpreter;
-   begin
-      --  Setup subinterpreters
-      Add_Separator_Commands (Newline_SI, True, True);
-      Add_Newline_Encoding_Commands (Newline_SI);
-      Add_Quoted_Commands (Quoted_SI);
-      Add_Quoted_Escape_Commands (Quoted_SI);
-      Add_Separator_Commands (Space_SI, True, False);
-
-      --  Build final interpreter
-      Result.Add_Command (To_Atom ("escape"),
-                          Set_Quoted_String'(Subinterpreter => Quoted_SI));
-      Result.Add_Command (To_Atom ("indent"), Set_Indentation'(null record));
-      Result.Add_Command (To_Atom ("indentation"),
-                          Set_Indentation'(null record));
-      Result.Add_Command (To_Atom ("no-indent"),
-                          Set_Indentation'(null record));
-      Result.Add_Command (To_Atom ("no-indentation"),
-                          Set_Indentation'(null record));
-      Result.Add_Command (To_Atom ("newline"),
-                          Set_Newline'(Subinterpreter => Newline_SI));
-      Result.Add_Command (To_Atom ("quoted"),
-                          Set_Quoted_String'(Subinterpreter => Quoted_SI));
-      Result.Add_Command (To_Atom ("space"),
-                          Set_Space_At'(Subinterpreter => Space_SI));
-      Result.Add_Command (To_Atom ("tab-stop"), Set_Tab_Stop'(null record));
-      Result.Add_Command (To_Atom ("width"), Set_Width'(null record));
-      Result.Add_Command (To_Atom ("no-width"), Set_Width'(null record));
-
-      Result.Add_Command (To_Atom ("extended-token"),
-                          Set_Token'(Value => Extended_Token));
-      Result.Add_Command (To_Atom ("no-token"),
-                          Set_Token'(Value => No_Token));
-      Result.Add_Command (To_Atom ("standard-token"),
-                          Set_Token'(Value => Standard_Token));
-      Result.Add_Command (To_Atom ("token"),
-                          Set_Token'(Value => Standard_Token));
-
-      Result.Add_Command (To_Atom ("no-quoted"),
-                          Set_Quoted'(Value => No_Quoted));
-      Result.Add_Command (To_Atom ("no-quoted-string"),
-                          Set_Quoted'(Value => No_Quoted));
-      Result.Add_Command (To_Atom ("quoted-when-shorter"),
-                          Set_Quoted'(Value => When_Shorter));
-      Result.Add_Command (To_Atom ("quoted-string-when-shorter"),
-                          Set_Quoted'(Value => When_Shorter));
-      Result.Add_Command (To_Atom ("single-line-quoted"),
-                          Set_Quoted'(Value => Single_Line));
-      Result.Add_Command (To_Atom ("single-line-quoted-string"),
-                          Set_Quoted'(Value => Single_Line));
-
-      Result.Add_Command (To_Atom ("base64"),
-                          Set_Fallback'(Value => Base64));
-      Result.Add_Command (To_Atom ("base-64"),
-                          Set_Fallback'(Value => Base64));
-      Result.Add_Command (To_Atom ("lower-hex"),
-                          Set_Fallback'(Value => Hexadecimal));
-      Result.Add_Command (To_Atom ("lower-hexa"),
-                          Set_Fallback'(Value => Hexadecimal));
-      Result.Add_Command (To_Atom ("hex"),
-                          Set_Fallback'(Value => Hexadecimal));
-      Result.Add_Command (To_Atom ("hexa"),
-                          Set_Fallback'(Value => Hexadecimal));
-      Result.Add_Command (To_Atom ("hexadecimal"),
-                          Set_Fallback'(Value => Hexadecimal));
-      Result.Add_Command (To_Atom ("upper-hex"),
-                          Set_Fallback'(Value => Hexadecimal));
-      Result.Add_Command (To_Atom ("upper-hexa"),
-                          Set_Fallback'(Value => Hexadecimal));
-      Result.Add_Command (To_Atom ("verbatim"),
-                          Set_Fallback'(Value => Verbatim));
-
-      Add_Char_Encoding_Commands (Result);
-      Add_Hex_Casing_Commands (Result);
-      Add_Newline_Encoding_Commands (Result);
-      return Result;
-   end Config_Interpreter;
-
-
-   procedure Add_Char_Encoding_Commands
-     (Interpreter : in out Interpreters.Interpreter) is
-   begin
-      Interpreter.Add_Command (To_Atom ("utf-8"),
-                               Set_Char_Encoding'(Value => UTF_8));
-      Interpreter.Add_Command (To_Atom ("UTF-8"),
-                               Set_Char_Encoding'(Value => UTF_8));
-      Interpreter.Add_Command (To_Atom ("utf8"),
-                               Set_Char_Encoding'(Value => UTF_8));
-      Interpreter.Add_Command (To_Atom ("UTF8"),
-                               Set_Char_Encoding'(Value => UTF_8));
-      Interpreter.Add_Command (To_Atom ("ascii"),
-                               Set_Char_Encoding'(Value => ASCII));
-      Interpreter.Add_Command (To_Atom ("ASCII"),
-                               Set_Char_Encoding'(Value => ASCII));
-      Interpreter.Add_Command (To_Atom ("latin-1"),
-                               Set_Char_Encoding'(Value => Latin));
-      Interpreter.Add_Command (To_Atom ("latin"),
-                               Set_Char_Encoding'(Value => Latin));
-      Interpreter.Add_Command (To_Atom ("iso-8859-1"),
-                               Set_Char_Encoding'(Value => Latin));
-      Interpreter.Add_Command (To_Atom ("ISO-8859-1"),
-                               Set_Char_Encoding'(Value => Latin));
-   end Add_Char_Encoding_Commands;
-
-
-   procedure Add_Hex_Casing_Commands
-     (Interpreter : in out Interpreters.Interpreter) is
-   begin
-      Interpreter.Add_Command (To_Atom ("upper"),
-                               Set_Hex_Casing'(Value => Encodings.Upper));
-      Interpreter.Add_Command (To_Atom ("upper-case"),
-                               Set_Hex_Casing'(Value => Encodings.Upper));
-      Interpreter.Add_Command (To_Atom ("lower"),
-                               Set_Hex_Casing'(Value => Encodings.Lower));
-      Interpreter.Add_Command (To_Atom ("lower-case"),
-                               Set_Hex_Casing'(Value => Encodings.Lower));
-   end Add_Hex_Casing_Commands;
-
-
-   procedure Add_Quoted_Commands
-     (Interpreter : in out Interpreters.Interpreter) is
-   begin
-      Interpreter.Add_Command (To_Atom ("never"),
-                               Set_Quoted'(Value => No_Quoted));
-      Interpreter.Add_Command (To_Atom ("single-line"),
-                               Set_Quoted'(Value => Single_Line));
-      Interpreter.Add_Command (To_Atom ("when-shorter"),
-                               Set_Quoted'(Value => When_Shorter));
-   end Add_Quoted_Commands;
-
-
-   procedure Add_Quoted_Escape_Commands
-     (Interpreter : in out Interpreters.Interpreter) is
-   begin
-      Interpreter.Add_Command (To_Atom ("octal"),
-                               Set_Quoted_Escape'(Value => Octal_Escape));
-      Interpreter.Add_Command (To_Atom ("hex"),
-                               Set_Quoted_Escape'(Value => Hex_Escape));
-      Interpreter.Add_Command (To_Atom ("hexa"),
-                               Set_Quoted_Escape'(Value => Hex_Escape));
-      Interpreter.Add_Command (To_Atom ("hexadecimal"),
-                               Set_Quoted_Escape'(Value => Hex_Escape));
-      Interpreter.Add_Command (To_Atom ("lower-hex"),
-                               Set_Quoted_Escape'(Value => Hex_Escape));
-      Interpreter.Add_Command (To_Atom ("lower-hexa"),
-                               Set_Quoted_Escape'(Value => Hex_Escape));
-      Interpreter.Add_Command (To_Atom ("upper-hex"),
-                               Set_Quoted_Escape'(Value => Hex_Escape));
-      Interpreter.Add_Command (To_Atom ("upper-hexa"),
-                               Set_Quoted_Escape'(Value => Hex_Escape));
-      Add_Hex_Casing_Commands (Interpreter);
-   end Add_Quoted_Escape_Commands;
-
-
-   procedure Add_Newline_Encoding_Commands
-     (Interpreter : in out Interpreters.Interpreter) is
-   begin
-      Interpreter.Add_Command (To_Atom ("cr"),
-                               Set_Newline_Encoding'(Value => CR));
-      Interpreter.Add_Command (To_Atom ("CR"),
-                               Set_Newline_Encoding'(Value => CR));
-      Interpreter.Add_Command (To_Atom ("lf"),
-                               Set_Newline_Encoding'(Value => LF));
-      Interpreter.Add_Command (To_Atom ("LF"),
-                               Set_Newline_Encoding'(Value => LF));
-      Interpreter.Add_Command (To_Atom ("CRLF"),
-                               Set_Newline_Encoding'(Value => CR_LF));
-      Interpreter.Add_Command (To_Atom ("CR-LF"),
-                               Set_Newline_Encoding'(Value => CR_LF));
-      Interpreter.Add_Command (To_Atom ("crlf"),
-                               Set_Newline_Encoding'(Value => CR_LF));
-      Interpreter.Add_Command (To_Atom ("cr-lf"),
-                               Set_Newline_Encoding'(Value => CR_LF));
-      Interpreter.Add_Command (To_Atom ("lf-cr"),
-                               Set_Newline_Encoding'(Value => LF_CR));
-      Interpreter.Add_Command (To_Atom ("lfcr"),
-                               Set_Newline_Encoding'(Value => LF_CR));
-      Interpreter.Add_Command (To_Atom ("LF-CR"),
-                               Set_Newline_Encoding'(Value => LF_CR));
-      Interpreter.Add_Command (To_Atom ("LFCR"),
-                               Set_Newline_Encoding'(Value => LF_CR));
-   end Add_Newline_Encoding_Commands;
-
-
-   procedure Add_Separator_Commands
-     (Interpreter : in out Interpreters.Interpreter;
-      Value : in Boolean;
-      Newline : in Boolean) is
-   begin
-      for Before in Entity loop
-         for After in Entity loop
-            Interpreter.Add_Command
-              (To_Atom (Before, After),
-               Set_Separator'(Before, After, Value, Newline));
-         end loop;
-      end loop;
-
-      Interpreter.Add_Command
-        (To_Atom ("all"),
-         Set_All_Separators'(Value, Newline));
-      Interpreter.Add_Command
-        (To_Atom ("none"),
-         Set_All_Separators'(not Value, Newline));
-      Interpreter.Add_Command
-        (To_Atom ("not"),
-         Set_All_Separators'(not Value, Newline));
-   end Add_Separator_Commands;
-
-
-
-   -------------------------
-   -- Invididual Commands --
-   -------------------------
-
-   procedure Execute
-     (Self : in Set_Width;
-      State : in out Parameters;
-      Context : in Boolean;
-      Name : in Atom)
-   is
-      pragma Unreferenced (Self, Context, Name);
-   begin
-      State.Width := 0;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Width;
-      State : in out Parameters;
-      Context : in Boolean;
-      Cmd : in out Lockable.Descriptor'Class)
-   is
-      pragma Unreferenced (Self, Context);
-      Has_Value : Boolean;
-   begin
-      Cmd.Next;
-      Read_Screen_Offset (Cmd, State.Width, Has_Value);
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Tab_Stop;
-      State : in out Parameters;
-      Context : in Boolean;
-      Cmd : in out Lockable.Descriptor'Class)
-   is
-      pragma Unreferenced (Self, Context);
-      Value : Screen_Offset := 0;
-      Has_Value : Boolean;
-   begin
-      Cmd.Next;
-      Read_Screen_Offset (Cmd, Value, Has_Value);
-      if Has_Value and then Value /= 0 then
-         State.Tab_Stop := Value;
-      end if;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Indentation;
-      State : in out Parameters;
-      Context : in Boolean;
-      Name : in Atom)
-   is
-      pragma Unreferenced (Self, Context, Name);
-   begin
-      State.Indentation := 0;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Indentation;
-      State : in out Parameters;
-      Context : in Boolean;
-      Cmd : in out Lockable.Descriptor'Class)
-   is
-      pragma Unreferenced (Self, Context);
-      Has_Value : Boolean;
-      Event : Events.Event;
-   begin
-      Cmd.Next (Event);
-      Read_Screen_Offset (Cmd, State.Indentation, Has_Value);
-
-      if Has_Value and State.Indentation /= 0 then
-         Cmd.Next (Event);
-         if Event = Events.Add_Atom then
-            declare
-               Keyword : constant String := To_String (Cmd.Current_Atom);
-            begin
-               if Keyword = "tab" or Keyword = "tabs" then
-                  State.Indent := Tabs;
-               elsif Keyword = "space" or Keyword = "spaces" then
-                  State.Indent := Spaces;
-               elsif Keyword = "tabbed-space" or Keyword = "tabbed-spaces" then
-                  State.Indent := Tabs_And_Spaces;
-               end if;
-            end;
-         end if;
-      end if;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Newline;
-      State : in out Parameters;
-      Context : in Boolean;
-      Cmd : in out Lockable.Descriptor'Class) is
-   begin
-      pragma Assert (not Self.Subinterpreter.Is_Empty);
-      Cmd.Next;
-      Self.Subinterpreter.Execute (Cmd, State, Context);
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Space_At;
-      State : in out Parameters;
-      Context : in Boolean;
-      Cmd : in out Lockable.Descriptor'Class) is
-   begin
-      pragma Assert (not Self.Subinterpreter.Is_Empty);
-      Cmd.Next;
-      Self.Subinterpreter.Execute (Cmd, State, Context);
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Char_Encoding;
-      State : in out Parameters;
-      Context : in Boolean;
-      Name : in Atom)
-   is
-      pragma Unreferenced (Context, Name);
-   begin
-      State.Char_Encoding := Self.Value;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Newline_Encoding;
-      State : in out Parameters;
-      Context : in Boolean;
-      Name : in Atom)
-   is
-      pragma Unreferenced (Context, Name);
-   begin
-      State.Newline := Self.Value;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Separator;
-      State : in out Parameters;
-      Context : in Boolean;
-      Name : in Atom)
-   is
-      pragma Unreferenced (Context, Name);
-   begin
-      if Self.Newline then
-         State.Newline_At (Self.Before, Self.After) := Self.Value;
-      else
-         State.Space_At (Self.Before, Self.After) := Self.Value;
-      end if;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_All_Separators;
-      State : in out Parameters;
-      Context : in Boolean;
-      Name : in Atom)
-   is
-      pragma Unreferenced (Context, Name);
-   begin
-      if Self.Newline then
-         State.Newline_At := (others => (others => Self.Value));
-      else
-         State.Space_At := (others => (others => Self.Value));
-      end if;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_All_Separators;
-      State : in out Parameters;
-      Context : in Boolean;
-      Cmd : in out Lockable.Descriptor'Class)
-   is
-      Subinterpreter : Interpreters.Interpreter;
-   begin
-      Add_Separator_Commands (Subinterpreter, Self.Value, Self.Newline);
-      Subinterpreter.Execute (Cmd, State, Context);
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Hex_Casing;
-      State : in out Parameters;
-      Context : in Boolean;
-      Name : in Atom)
-   is
-      pragma Unreferenced (Context, Name);
-   begin
-      State.Hex_Casing := Self.Value;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Fallback;
-      State : in out Parameters;
-      Context : in Boolean;
-      Name : in Atom)
-   is
-      pragma Unreferenced (Context);
-   begin
-      State.Fallback := Self.Value;
-      Update_Casing (State.Hex_Casing, Name);
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Token;
-      State : in out Parameters;
-      Context : in Boolean;
-      Name : in Atom)
-   is
-      pragma Unreferenced (Context, Name);
-   begin
-      State.Token := Self.Value;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Token;
-      State : in out Parameters;
-      Context : in Boolean;
-      Cmd : in out Lockable.Descriptor'Class)
-   is
-      pragma Unreferenced (Self, Context);
-      Event : Events.Event;
-   begin
-      Cmd.Next (Event);
-      if Event /= Events.Add_Atom then
-         return;
-      end if;
-
-      declare
-         Token : constant String := To_String (Cmd.Current_Atom);
-      begin
-         if Token = "standard" then
-            State.Token := Standard_Token;
-         elsif Token = "extended" then
-            State.Token := Extended_Token;
-         elsif Token = "never" or Token = "none" or Token = "no" then
-            State.Token := No_Token;
-         end if;
-      end;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Quoted_Escape;
-      State : in out Parameters;
-      Context : in Boolean;
-      Name : in Atom)
-   is
-      pragma Unreferenced (Context);
-   begin
-      State.Quoted_Escape := Self.Value;
-      Update_Casing (State.Hex_Casing, Name);
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Quoted;
-      State : in out Parameters;
-      Context : in Boolean;
-      Name : in Atom)
-   is
-      pragma Unreferenced (Context, Name);
-   begin
-      State.Quoted := Self.Value;
-   end Execute;
-
-
-   procedure Execute
-     (Self : in Set_Quoted_String;
-      State : in out Parameters;
-      Context : in Boolean;
-      Cmd : in out Lockable.Descriptor'Class) is
-   begin
-      pragma Assert (not Self.Subinterpreter.Is_Empty);
-      Cmd.Next;
-      Self.Subinterpreter.Execute (Cmd, State, Context);
-   end Execute;
 
 end Natools.S_Expressions.Printers.Pretty.Config;
