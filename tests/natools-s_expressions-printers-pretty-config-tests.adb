@@ -16,6 +16,7 @@
 
 with Natools.S_Expressions.Encodings;
 with Natools.S_Expressions.Parsers;
+with Natools.S_Expressions.Printers.Pretty.Config.Commands.T;
 with Natools.S_Expressions.Test_Tools;
 
 package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
@@ -195,6 +196,7 @@ package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
 
    procedure All_Tests (Report : in out NT.Reporter'Class) is
    begin
+      Hash_Function_Test (Report);
       Read_Test (Report);
       Write_Test (Report);
    end All_Tests;
@@ -204,6 +206,17 @@ package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
    ----------------------
    -- Individual Tests --
    ----------------------
+
+   procedure Hash_Function_Test (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Interpreter hash functions");
+   begin
+      if not Commands.T then
+         Test.Fail;
+      end if;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Hash_Function_Test;
+
 
    procedure Read_Test (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item ("Read from S-expression");
@@ -246,12 +259,15 @@ package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
 
          Input.Write (To_Atom
            ("(indentation 3 spaces)width(token extended)"
+            & "LF(quoted never)"
             & "(newline (not close-close))"));
          Expected.Indentation := 3;
          Expected.Indent := Spaces;
          Expected.Width := 0;
          Expected.Token := Extended_Token;
          Expected.Newline_At (Closing, Closing) := False;
+         Expected.Newline := LF;
+         Expected.Quoted := No_Quoted;
          Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
          Update (Param, Parser);
          Check_Param (Test, Param, Expected, "In second expression:");
@@ -266,20 +282,27 @@ package body Natools.S_Expressions.Printers.Pretty.Config.Tests is
          Check_Param (Test, Param, Expected, "In third expression:");
 
          Input.Write (To_Atom
-           ("no-indentation(token never)"));
+           ("no-indentation(token never)(newline)(width 72)"));
          Expected.Indentation := 0;
          Expected.Token := No_Token;
+         Expected.Width := 72;
          Test_Tools.Next_And_Check (Test, Parser, Events.Add_Atom, 0);
          Update (Param, Parser);
          Check_Param (Test, Param, Expected, "In fourth expression:");
 
          Input.Write (To_Atom
-           ("lower-case(token standard)"));
+           ("lower-case(token standard)(width 0:)"));
          Expected.Token := Standard_Token;
          Expected.Hex_Casing := Encodings.Lower;
          Test_Tools.Next_And_Check (Test, Parser, Events.Add_Atom, 0);
          Update (Param, Parser);
          Check_Param (Test, Param, Expected, "In fifth expression:");
+
+         Input.Write (To_Atom
+           ("(token unrecognized-junk)(width 0xBAD)"));
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Update (Param, Parser);
+         Check_Param (Test, Param, Expected, "In sixth expression:");
       end;
    exception
       when Error : others => Test.Report_Exception (Error);

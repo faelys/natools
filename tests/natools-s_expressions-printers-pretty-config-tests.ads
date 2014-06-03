@@ -29,6 +29,7 @@ package Natools.S_Expressions.Printers.Pretty.Config.Tests is
 
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
+   procedure Hash_Function_Test (Report : in out NT.Reporter'Class);
    procedure Read_Test (Report : in out NT.Reporter'Class);
    procedure Write_Test (Report : in out NT.Reporter'Class);
 
