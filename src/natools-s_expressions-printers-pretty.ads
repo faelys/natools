@@ -58,8 +58,12 @@ package Natools.S_Expressions.Printers.Pretty is
 
    Canonical : constant Parameters;
 
-   type Printer (Stream : access Ada.Streams.Root_Stream_Type'Class) is
-     new Printers.Printer with private;
+   type Printer is abstract limited new Printers.Printer with private;
+
+   procedure Write_Raw
+     (Output : in out Printer;
+      Data : in Ada.Streams.Stream_Element_Array)
+     is abstract;
 
    overriding procedure Open_List (Output : in out Printer);
    overriding procedure Append_Atom
@@ -110,10 +114,13 @@ package Natools.S_Expressions.Printers.Pretty is
      (Output : in out Printer;
       Newline : in Newline_Encoding);
 
+
+   type Stream_Printer (Stream : access Ada.Streams.Root_Stream_Type'Class) is
+     limited new Printers.Printer with private;
+
 private
 
-   type Printer (Stream : access Ada.Streams.Root_Stream_Type'Class) is
-     new Printers.Printer with record
+   type Printer is abstract limited new Printers.Printer with record
       Param        : Parameters;
       Cursor       : Screen_Column := 1;
       Previous     : Entity;
@@ -136,5 +143,12 @@ private
       Char_Encoding => ASCII,  --  unused
       Fallback      => Verbatim,
       Newline       => LF);  --  unused
+
+   type Stream_Printer (Stream : access Ada.Streams.Root_Stream_Type'Class) is
+     new Printer with null record;
+
+   overriding procedure Write_Raw
+     (Output : in out Stream_Printer;
+      Data : in Ada.Streams.Stream_Element_Array);
 
 end Natools.S_Expressions.Printers.Pretty;

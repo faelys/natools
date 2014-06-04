@@ -261,6 +261,7 @@ package body Natools.S_Expressions.Printers.Pretty is
    procedure Newline (Output : in out Printer) is
       Data : Atom (0 .. 1);
       Length : Count;
+      Writer : Printer'Class renames Printer'Class (Output);
    begin
       case Output.Param.Newline is
          when CR =>
@@ -278,19 +279,18 @@ package body Natools.S_Expressions.Printers.Pretty is
             Data (1) := Encodings.CR;
             Length := 2;
       end case;
-      Output.Stream.Write (Data (0 .. Length - 1));
+      Writer.Write_Raw (Data (0 .. Length - 1));
 
       if Output.Indent_Level > 0 and Output.Param.Indentation > 0 then
          case Output.Param.Indent is
             when Spaces =>
                Output.Cursor := Output.Param.Indentation * Output.Indent_Level
                                 + 1;
-               Output.Stream.Write ((1 .. Count (Output.Cursor) - 1
-                                     => Encodings.Space));
+               Writer.Write_Raw
+                 ((1 .. Count (Output.Cursor) - 1 => Encodings.Space));
             when Tabs =>
                Output.Cursor := Output.Param.Indentation * Output.Indent_Level;
-               Output.Stream.Write ((1 .. Count (Output.Cursor)
-                                     => Encodings.HT));
+               Writer.Write_Raw ((1 .. Count (Output.Cursor) => Encodings.HT));
                Output.Cursor := Output.Cursor * Output.Param.Tab_Stop;
             when Tabs_And_Spaces =>
                Output.Cursor := Output.Param.Indentation * Output.Indent_Level
@@ -303,8 +303,8 @@ package body Natools.S_Expressions.Printers.Pretty is
                     := (Count (Output.Cursor) - 1)
                         mod Count (Output.Param.Tab_Stop);
                begin
-                  Output.Stream.Write ((1 .. Tab_Count => Encodings.HT));
-                  Output.Stream.Write ((1 .. Space_Count => Encodings.Space));
+                  Writer.Write_Raw ((1 .. Tab_Count => Encodings.HT));
+                  Writer.Write_Raw ((1 .. Space_Count => Encodings.Space));
                end;
          end case;
       else
@@ -473,13 +473,14 @@ package body Natools.S_Expressions.Printers.Pretty is
       Available : Screen_Offset;
       I : Offset := Data'First;
       Chunk_Size : Count;
+      Writer : Printer'Class renames Printer'Class (Output);
    begin
       if Output.Param.Width = 0 then
-         Output.Stream.Write ((0 => Encodings.Base64_Atom_Begin));
-         Output.Stream.Write (Encodings.Encode_Base64 (Data));
-         Output.Stream.Write ((0 => Encodings.Base64_Atom_End));
+         Writer.Write_Raw ((0 => Encodings.Base64_Atom_Begin));
+         Writer.Write_Raw (Encodings.Encode_Base64 (Data));
+         Writer.Write_Raw ((0 => Encodings.Base64_Atom_End));
       else
-         Output.Stream.Write ((0 => Encodings.Base64_Atom_Begin));
+         Writer.Write_Raw ((0 => Encodings.Base64_Atom_Begin));
          Output.Cursor := Output.Cursor + 1;
 
          loop
@@ -487,20 +488,20 @@ package body Natools.S_Expressions.Printers.Pretty is
             Chunk_Size := Count'Max (1, Count (Available) / 4) * 3;
 
             if Available mod 4 /= 0 and then I in Data'Range then
-               Output.Stream.Write
-                 ((1 .. Count (Available mod 4) => Encodings.Space));
+               Writer.Write_Raw
+                 (((1 .. Count (Available mod 4) => Encodings.Space)));
                Output.Cursor := Output.Cursor + (Available mod 4);
             end if;
 
             if I + Chunk_Size - 1 in Data'Range then
-               Output.Stream.Write (Encodings.Encode_Base64
-                                      (Data (I .. I + Chunk_Size - 1)));
+               Writer.Write_Raw
+                 (Encodings.Encode_Base64 (Data (I .. I + Chunk_Size - 1)));
                Newline (Output);
                I := I + Chunk_Size;
             else
-               Output.Stream.Write (Encodings.Encode_Base64
-                                      (Data (I .. Data'Last)));
-               Output.Stream.Write ((0 => Encodings.Base64_Atom_End));
+               Writer.Write_Raw
+                 (Encodings.Encode_Base64 (Data (I .. Data'Last)));
+               Writer.Write_Raw ((0 => Encodings.Base64_Atom_End));
                Output.Cursor := Output.Cursor
                  + Screen_Offset (Data'Last - I + 2) / 3 * 4 + 1;
                exit;
@@ -514,14 +515,15 @@ package body Natools.S_Expressions.Printers.Pretty is
       Available : Screen_Offset;
       I : Offset := Data'First;
       Chunk_Size : Count;
+      Writer : Printer'Class renames Printer'Class (Output);
    begin
       if Output.Param.Width = 0 then
-         Output.Stream.Write ((0 => Encodings.Hex_Atom_Begin));
-         Output.Stream.Write (Encodings.Encode_Hex (Data,
-                                                    Output.Param.Hex_Casing));
-         Output.Stream.Write ((0 => Encodings.Hex_Atom_End));
+         Writer.Write_Raw ((0 => Encodings.Hex_Atom_Begin));
+         Writer.Write_Raw
+           (Encodings.Encode_Hex (Data, Output.Param.Hex_Casing));
+         Writer.Write_Raw ((0 => Encodings.Hex_Atom_End));
       else
-         Output.Stream.Write ((0 => Encodings.Hex_Atom_Begin));
+         Writer.Write_Raw ((0 => Encodings.Hex_Atom_Begin));
          Output.Cursor := Output.Cursor + 1;
 
          loop
@@ -529,21 +531,23 @@ package body Natools.S_Expressions.Printers.Pretty is
             Chunk_Size := Count'Max (1, Count (Available) / 2);
 
             if Available mod 2 = 1 and then I in Data'Range then
-               Output.Stream.Write ((0 => Encodings.Space));
+               Writer.Write_Raw ((0 => Encodings.Space));
                Output.Cursor := Output.Cursor + 1;
             end if;
 
             if I + Chunk_Size - 1 in Data'Range then
-               Output.Stream.Write (Encodings.Encode_Hex
-                                      (Data (I .. I + Chunk_Size - 1),
-                                       Output.Param.Hex_Casing));
+               Writer.Write_Raw
+                 (Encodings.Encode_Hex
+                    (Data (I .. I + Chunk_Size - 1),
+                     Output.Param.Hex_Casing));
                Newline (Output);
                I := I + Chunk_Size;
             else
-               Output.Stream.Write (Encodings.Encode_Hex
-                                      (Data (I .. Data'Last),
-                                       Output.Param.Hex_Casing));
-               Output.Stream.Write ((0 => Encodings.Hex_Atom_End));
+               Writer.Write_Raw
+                 (Encodings.Encode_Hex
+                    (Data (I .. Data'Last),
+                     Output.Param.Hex_Casing));
+               Writer.Write_Raw ((0 => Encodings.Hex_Atom_End));
                Output.Cursor := Output.Cursor
                  + Screen_Offset (Data'Last - I + 1) * 2 + 1;
                exit;
@@ -755,7 +759,7 @@ package body Natools.S_Expressions.Printers.Pretty is
          pragma Assert (O = Result'Last);
          Result (O) := Encodings.Quoted_Atom_End;
 
-         Output.Stream.Write (Result);
+         Write_Raw (Printer'Class (Output), Result);
       end;
    end Write_Quoted;
 
@@ -770,8 +774,8 @@ package body Natools.S_Expressions.Printers.Pretty is
       end loop;
       Prefix (Prefix'Last) := Encodings.Verbatim_Begin;
 
-      Output.Stream.Write (Prefix);
-      Output.Stream.Write (Data);
+      Write_Raw (Printer'Class (Output), Prefix);
+      Write_Raw (Printer'Class (Output), Data);
       Output.Cursor := Output.Cursor + Screen_Offset (Prefix'Length)
         + Screen_Offset (Data'Length);
    end Write_Verbatim;
@@ -796,14 +800,14 @@ package body Natools.S_Expressions.Printers.Pretty is
          if Output.Param.Newline_At (Output.Previous, Opening) then
             Newline (Output);
          elsif Output.Param.Space_At (Output.Previous, Opening) then
-            Output.Stream.Write ((0 => Encodings.Space));
+            Write_Raw (Printer'Class (Output), (0 => Encodings.Space));
             Output.Cursor := Output.Cursor + 1;
          end if;
       else
          Output.First := False;
       end if;
 
-      Output.Stream.Write ((0 => Encodings.List_Begin));
+      Write_Raw (Printer'Class (Output), (0 => Encodings.List_Begin));
       Output.Cursor := Output.Cursor + 1;
       Output.Indent_Level := Output.Indent_Level + 1;
       Output.Previous := Opening;
@@ -855,10 +859,10 @@ package body Natools.S_Expressions.Printers.Pretty is
             then
                Newline (Output);
             elsif Output.Need_Blank then
-               Output.Stream.Write ((0 => Encodings.Space));
+               Write_Raw (Printer'Class (Output), (0 => Encodings.Space));
                Output.Cursor := Output.Cursor + 1;
             end if;
-            Output.Stream.Write (Data);
+            Write_Raw (Printer'Class (Output), Data);
             Output.Cursor := Output.Cursor + Width;
             Output.Need_Blank := True;
             return;
@@ -874,7 +878,7 @@ package body Natools.S_Expressions.Printers.Pretty is
          begin
             if Fit_In_Line (Output, Blank_Width + Width) then
                if Output.Need_Blank then
-                  Output.Stream.Write ((0 => Encodings.Space));
+                  Write_Raw (Printer'Class (Output), (0 => Encodings.Space));
                   Output.Cursor := Output.Cursor + 1;
                end if;
                Write_Quoted (Output, Data, True);
@@ -917,7 +921,7 @@ package body Natools.S_Expressions.Printers.Pretty is
            and then Multi_Line_Quoted_Size (Output, Data) <= Size
          then
             if Output.Need_Blank then
-               Output.Stream.Write ((0 => Encodings.Space));
+               Write_Raw (Printer'Class (Output), (0 => Encodings.Space));
                Output.Cursor := Output.Cursor + 1;
             end if;
             Write_Quoted (Output, Data, False);
@@ -925,19 +929,13 @@ package body Natools.S_Expressions.Printers.Pretty is
             return;
          end if;
 
---       if Output.Param.Quoted = When_Shorter then
---          String'Write (Output.Stream,
---            "{" & Count'Image (Size) & "|"
---            & Count'Image (Multi_Line_Quoted_Size (Output, Data)) & "}");
---       end if;
-
          if not At_Origin
            and then
            not Fit_In_Line (Output, Blank_Width + Screen_Offset (Size))
          then
             Newline (Output);
          elsif Output.Need_Blank then
-            Output.Stream.Write ((0 => Encodings.Space));
+            Write_Raw (Printer'Class (Output), (0 => Encodings.Space));
             Output.Cursor := Output.Cursor + 1;
          end if;
 
@@ -970,14 +968,14 @@ package body Natools.S_Expressions.Printers.Pretty is
          if Output.Param.Newline_At (Output.Previous, Closing) then
             Newline (Output);
          elsif Output.Param.Space_At (Output.Previous, Closing) then
-            Output.Stream.Write ((0 => Encodings.Space));
+            Write_Raw (Printer'Class (Output), (0 => Encodings.Space));
             Output.Cursor := Output.Cursor + 1;
          end if;
       else
          Output.First := False;
       end if;
 
-      Output.Stream.Write ((0 => Encodings.List_End));
+      Write_Raw (Printer'Class (Output), (0 => Encodings.List_End));
       Output.Cursor := Output.Cursor + 1;
       Output.Previous := Closing;
       Output.Need_Blank := False;
@@ -1103,5 +1101,13 @@ package body Natools.S_Expressions.Printers.Pretty is
    begin
       Output.Param.Newline := Newline;
    end Set_Newline;
+
+
+   overriding procedure Write_Raw
+     (Output : in out Stream_Printer;
+      Data : in Ada.Streams.Stream_Element_Array) is
+   begin
+      Output.Stream.Write (Data);
+   end Write_Raw;
 
 end Natools.S_Expressions.Printers.Pretty;

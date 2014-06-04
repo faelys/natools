@@ -45,7 +45,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
       declare
          Input, Output : aliased Test_Tools.Memory_Stream;
          Parser : Parsers.Stream_Parser (Input'Access);
-         Pretty_Printer : Printer (Output'Access);
+         Pretty_Printer : Stream_Printer (Output'Access);
       begin
          Input.Set_Data (Expected);
          Output.Set_Expected (Expected);
@@ -139,7 +139,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    begin
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Output.Set_Expected (To_Atom ("(" & Latin_1.LF
             & "   #303132" & Latin_1.LF
@@ -158,7 +158,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Output.Set_Expected (To_Atom ("(" & Latin_1.LF
             & "   |  YWJj" & Latin_1.LF
@@ -184,7 +184,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    begin
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         P : Printer (Output'Access);
+         P : Stream_Printer (Output'Access);
       begin
          Output.Set_Expected (To_Atom ("(7:command(6:subarg)3:arg)3:end"));
          P.Set_Parameters (Canonical);
@@ -261,9 +261,9 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    procedure Newline_Formats (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item ("Newline formats");
 
-      procedure Print (Pr : in out Printer);
+      procedure Print (Pr : in out Stream_Printer);
 
-      procedure Print (Pr : in out Printer) is
+      procedure Print (Pr : in out Stream_Printer) is
       begin
          Pr.Open_List;
          Pr.Append_Atom (To_Atom ("begin"));
@@ -291,7 +291,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Pr.Set_Parameters (Param);
          Output.Set_Expected (To_Atom
@@ -308,7 +308,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Pr.Set_Parameters (Param);
          Output.Set_Expected (To_Atom
@@ -324,7 +324,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Pr.Set_Parameters (Param);
          Output.Set_Expected (To_Atom
@@ -340,7 +340,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Pr.Set_Parameters (Param);
          Output.Set_Expected (To_Atom
@@ -389,7 +389,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    begin
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Pr.Set_Parameters (Initial);
 
@@ -464,7 +464,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    begin
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          --  Check that the first quoted string encoding is exactly as long as
          --  fallback (hexadecimal) encoding, by trying with one less char.
@@ -480,7 +480,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Output.Set_Expected (To_Atom
            ("""Special: \b\t\n\v\f\r\\\""\x00"
@@ -500,7 +500,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Output.Set_Expected (To_Atom
            ("""Special: \b\t\n\v\f\r\\\""\x00"
@@ -535,7 +535,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Output.Set_Expected (To_Atom ("""Special: \b\t\n\v\f\r\\\""\000")
             & Source (18 .. 62)
@@ -553,7 +553,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Output.Set_Expected (To_Atom ("""Special: \b\t\n\v\f\r\\\""\000"
                                  & '\' & Latin_1.CR & Latin_1.LF)
@@ -575,9 +575,9 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
 
    procedure Separators (Report : in out NT.Reporter'Class) is
-      procedure Test_Exp (Pr : in out Printer);
+      procedure Test_Exp (Pr : in out Stream_Printer);
 
-      procedure Test_Exp (Pr : in out Printer) is
+      procedure Test_Exp (Pr : in out Stream_Printer) is
       begin
          Pr.Append_Atom (To_Atom ("begin"));
          Pr.Open_List;
@@ -596,7 +596,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    begin
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Output.Set_Expected (To_Atom ("5:begin(()(4:head4:tail))3:end"));
          Pr.Set_Parameters (Param);
@@ -608,7 +608,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Output.Set_Expected
            (To_Atom ("5:begin ( ( ) ( 4:head 4:tail ) ) 3:end"));
@@ -622,7 +622,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Output.Set_Expected (To_Atom ("5:begin" & Latin_1.LF
            & '(' & Latin_1.LF
@@ -649,7 +649,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    begin
       declare
          Output : aliased Test_Tools.Memory_Stream;
-         Pr : Printer (Output'Access);
+         Pr : Stream_Printer (Output'Access);
       begin
          Output.Set_Expected (To_Atom
            ("(begin(token ""quoted\n""token token #4865780A#token "
