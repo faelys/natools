@@ -74,4 +74,10 @@ package body Natools.S_Expressions.File_Writers is
       Stream_IO.Open (Self.Holder.File, Stream_IO.Append_File, Name, Form);
    end Open;
 
+
+   function Name (Self : Writer) return String is
+   begin
+      return Stream_IO.Name (Self.Holder.File);
+   end Name;
+
 end Natools.S_Expressions.File_Writers;

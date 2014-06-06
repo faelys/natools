@@ -42,6 +42,9 @@ package Natools.S_Expressions.File_Writers is
       Form : in String := "");
       --  Reinitialize Self using Stream_IO.Create or Stream_IO.Open
 
+   function Name (Self : Writer) return String;
+      --  Return the underlying file name
+
 private
 
    type Autoclose is new Ada.Finalization.Limited_Controlled with record
