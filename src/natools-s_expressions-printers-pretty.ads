@@ -41,22 +41,24 @@ package Natools.S_Expressions.Printers.Pretty is
    subtype Screen_Column is Screen_Offset range 1 .. Screen_Offset'Last;
 
    type Parameters is record
-      Width         : Screen_Offset;
-      Newline_At    : Entity_Separator;
-      Space_At      : Entity_Separator;
-      Tab_Stop      : Screen_Column;
-      Indentation   : Screen_Offset;
-      Indent        : Indent_Type;
-      Quoted        : Quoted_Option;
-      Token         : Token_Option;
-      Hex_Casing    : Encodings.Hex_Casing;
-      Quoted_Escape : Quoted_Escape_Type;
-      Char_Encoding : Character_Encoding;
-      Fallback      : Atom_Encoding;
-      Newline       : Newline_Encoding;
+      Width         : Screen_Offset        := 0;
+      Newline_At    : Entity_Separator     := (others => (others => False));
+      Space_At      : Entity_Separator     := (others => (others => False));
+      Tab_Stop      : Screen_Column        := 8;                --  *
+      Indentation   : Screen_Offset        := 0;
+      Indent        : Indent_Type          := Spaces;           --  *
+      Quoted        : Quoted_Option        := No_Quoted;
+      Token         : Token_Option         := No_Token;
+      Hex_Casing    : Encodings.Hex_Casing := Encodings.Upper;  --  *
+      Quoted_Escape : Quoted_Escape_Type   := Hex_Escape;       --  *
+      Char_Encoding : Character_Encoding   := ASCII;            --  *
+      Fallback      : Atom_Encoding        := Verbatim;
+      Newline       : Newline_Encoding     := LF;               --  *
    end record;
+      --  Default values yield canonical encoding, though fields marked with
+      --  an asterisk (*) can have any value and still be canonical.
 
-   Canonical : constant Parameters;
+   Canonical : constant Parameters := (others => <>);
 
    type Printer is abstract limited new Printers.Printer with private;
 
@@ -128,21 +130,6 @@ private
       Indent_Level : Screen_Offset := 0;
       Need_Blank   : Boolean := False;
    end record;
-
-   Canonical : constant Parameters :=
-     (Width         => 0,
-      Newline_At    => (others => (others => False)),
-      Space_At      => (others => (others => False)),
-      Tab_Stop      => 8,  --  unused
-      Indentation   => 0,
-      Indent        => Spaces,  --  unused
-      Quoted        => No_Quoted,
-      Token         => No_Token,
-      Hex_Casing    => Encodings.Upper,  --  unused
-      Quoted_Escape => Octal_Escape,  --  unused
-      Char_Encoding => ASCII,  --  unused
-      Fallback      => Verbatim,
-      Newline       => LF);  --  unused
 
    type Stream_Printer (Stream : access Ada.Streams.Root_Stream_Type'Class) is
      new Printer with null record;
