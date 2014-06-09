@@ -54,6 +54,7 @@ package body Natools.S_Expressions.File_Readers is
    procedure Rewind (Object : in out S_Reader) is
    begin
       Stream_IO.Set_Index (Object.Holder.File, 1);
+      Object.Reset;
       Object.Next;
    end Rewind;
 
