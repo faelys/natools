@@ -39,9 +39,6 @@ package body Natools.S_Expressions.Printers.Pretty is
       return Boolean;
       --  Check whether Data contains a newline at Position
 
-   procedure Newline (Output : in out Printer);
-      --  Output a newline and indentation
-
    procedure Quoted_Lengths
      (Data        : in Atom;
       Encoding    : in Character_Encoding;

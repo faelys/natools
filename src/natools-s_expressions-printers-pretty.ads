@@ -73,6 +73,9 @@ package Natools.S_Expressions.Printers.Pretty is
       Data : in Atom);
    overriding procedure Close_List (Output : in out Printer);
 
+   procedure Newline (Output : in out Printer);
+      --  Open a new indented line in the output
+
    procedure Set_Parameters (Output : in out Printer; Param : in Parameters);
    function Get_Parameters (Output : Printer) return Parameters;
 
