@@ -21,6 +21,7 @@
 with Ada.Command_Line;
 with Ada.Text_IO;
 with Natools.Chunked_Strings.Tests;
+with Natools.Cron.Tests;
 with Natools.Getopt_Long_Tests;
 with Natools.HMAC_Tests;
 with Natools.Reference_Tests;
@@ -71,6 +72,10 @@ begin
 
    Report.Section ("Chunked_String with single allocation unit");
    Single_Chunked_Strings_Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("Cron");
+   Natools.Cron.Tests.All_Tests (Report);
    Report.End_Section;
 
    Report.Section ("Getopt_Long");
