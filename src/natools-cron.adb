@@ -23,219 +23,187 @@ package body Natools.Cron is
    function "<" (Left, Right : Periodic_Time) return Boolean is
       use type Ada.Calendar.Time;
    begin
-      return Left.Origin < Right.Origin
-        or else (Left.Origin = Right.Origin
-           and then Left.Period < Right.Period);
+      return
+        Left.Origin < Right.Origin
+        or else
+        (Left.Origin = Right.Origin and then Left.Period < Right.Period);
    end "<";
 
+   function "<" (Left, Right : Key_Type) return Boolean is
+   begin
+      return Left.Schedule < Right.Schedule;
+   end "<";
 
+   function Actual_Time (Item : in Periodic_Time) return Periodic_Time is
+      use type Ada.Calendar.Time;
+      Now    : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+      Future : Periodic_Time := Item;
+   begin
+      while Future.Origin < Now loop
+         Future.Origin := Future.Origin + Future.Period;
+      end loop;
+      return Future;
+   end Actual_Time;
 
    ----------------------
    -- Public Interface --
    ----------------------
 
-   function Create
-     (Time : in Periodic_Time;
-      Callback : in Cron.Callback'Class)
-     return Cron_Entry is
+   procedure Insert (Job      : in     Cron_Entry;
+                     Schedule : in     Periodic_Time;
+                     ID       :    out Entry_IDs) is
    begin
-      return Result : Cron_Entry do
-         Result.Set (Time, Callback);
-      end return;
-   end Create;
+      Database.Insert (Job      => Job,
+                       Schedule => Schedule,
+                       ID       => ID);
+   end Insert;
 
-
-   function Create
-     (Period : in Duration;
-      Callback : in Cron.Callback'Class)
-     return Cron_Entry is
+   procedure Reset (ID       : in     Entry_IDs;
+                    Schedule : in     Periodic_Time) is
    begin
-      return Result : Cron_Entry do
-         Result.Set (Period, Callback);
-      end return;
-   end Create;
-
-
-   procedure Set
-     (Self : in out Cron_Entry;
-      Time : in Periodic_Time;
-      Callback : in Cron.Callback'Class)
-   is
-      function Create return Cron.Callback'Class;
-
-      function Create return Cron.Callback'Class is
-      begin
-         return Callback;
-      end Create;
-   begin
-      Self.Reset;
-      Self.Callback.Replace (Create'Access);
-      Database.Insert (Time, Self.Callback);
-   end Set;
-
-
-   procedure Set
-     (Self : in out Cron_Entry;
-      Period : in Duration;
-      Callback : in Cron.Callback'Class) is
-   begin
-      Set (Self, (Ada.Calendar.Clock, Period), Callback);
-   end Set;
-
-
-   overriding procedure Finalize (Object : in out Cron_Entry) is
-   begin
-      if not Object.Callback.Is_Empty then
-         Object.Reset;
-      end if;
-   end Finalize;
-
-
-   procedure Reset (Self : in out Cron_Entry) is
-   begin
-      if not Self.Callback.Is_Empty then
-         Database.Remove (Self.Callback);
-         Self.Callback.Reset;
-      end if;
+      Database.Reset (Schedule => Schedule,
+                      ID       => ID);
    end Reset;
 
-
+   procedure Delete (ID : in     Entry_IDs) is
+   begin
+      Database.Delete (ID => ID);
+   end Delete;
 
    ------------------------
    -- Protected Database --
    ------------------------
 
    protected body Database is
-      procedure Insert
-        (Time : in Periodic_Time;
-         Callback : in Callback_Refs.Reference)
+      procedure Insert (Job      : in     Cron_Entry'Class;
+                        Schedule : in     Periodic_Time;
+                        ID       :    out Entry_IDs)
       is
-         use type Ada.Calendar.Time;
-
-         Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
-         Actual_Time : Periodic_Time := Time;
+         Next_Run : constant Periodic_Time := Actual_Time (Schedule);
       begin
-         while Actual_Time.Origin < Now loop
-            Actual_Time.Origin := Actual_Time.Origin + Actual_Time.Period;
-         end loop;
+         First_Changed :=
+           First_Changed
+           or else
+           Map.Is_Empty
+           or else
+           Next_Run < Map.First_Key.Schedule;
 
-         if Map.Is_Empty then
-            if Global_Worker /= null and then Global_Worker.all'Terminated then
-               Unchecked_Free (Global_Worker);
-            end if;
+         Map.Insert (Key      => (Schedule => Next_Run,
+                                  ID       => Next_ID),
+                     New_Item => Job);
 
-            if Global_Worker = null then
-               Global_Worker := new Worker;
-            end if;
-         else
-            if Actual_Time < Map.First_Key then
-               First_Changed := True;
-            end if;
-         end if;
-
-         Map.Insert (Actual_Time, Callback);
+         Next_ID := Next_ID + 1;
       end Insert;
 
-
-      procedure Remove (Callback : in Callback_Refs.Reference) is
-         use type Callback_Refs.Reference;
-
-         Cursor : Entry_Maps.Cursor := Map.First;
+      procedure Delete (ID : in     Entry_IDs)
+      is
+         use Entry_Maps;
+         Cursor   : Entry_Maps.Cursor := Map.First;
          Is_First : Boolean := True;
       begin
-         while Entry_Maps.Has_Element (Cursor) loop
-            if Entry_Maps.Element (Cursor) = Callback then
+         while Cursor /= No_Element loop
+            if Entry_Maps.Key (Cursor).ID = ID then
                Map.Delete (Cursor);
-
-               if Is_First then
-                  First_Changed := True;
-               end if;
-
+               First_Changed := First_Changed or Is_First;
                exit;
             end if;
 
             Entry_Maps.Next (Cursor);
             Is_First := False;
          end loop;
-      end Remove;
+      end Delete;
 
-
-      procedure Update (Callback : in Callback_Refs.Reference) is
-         use type Callback_Refs.Reference;
-         Cursor : Entry_Maps.Cursor := Map.First;
+      procedure Reset (ID       : in     Entry_IDs;
+                       Schedule : in     Periodic_Time) is
+         use Entry_Maps;
+         Cursor   : Entry_Maps.Cursor := Map.First;
+         Is_First : Boolean := True;
       begin
-         Search :
-         while Entry_Maps.Has_Element (Cursor) loop
-            if Entry_Maps.Element (Cursor) = Callback then
-               declare
-                  Old_Time : constant Periodic_Time := Entry_Maps.Key (Cursor);
-               begin
-                  Map.Delete (Cursor);
-                  Insert (Old_Time, Callback);
-               end;
-
-               exit Search;
-            end if;
-
+         Locate_Job :
+         loop
+            exit Locate_Job when Cursor = No_Element;
+            exit Locate_Job when Entry_Maps.Key (Cursor).ID = ID;
             Entry_Maps.Next (Cursor);
-         end loop Search;
-      end Update;
+            Is_First := False;
+         end loop Locate_Job;
 
+         Update_Job :
+         declare
+            Job      : constant Cron_Entry'Class := Element (Cursor);
+            Next_Run : constant Periodic_Time := Actual_Time (Schedule);
+         begin
+            Map.Delete (Cursor);
 
-      procedure Get_First
-        (Time : out Periodic_Time;
-         Callback : out Callback_Refs.Reference)
-      is
-         Cursor : constant Entry_Maps.Cursor := Map.First;
+            First_Changed :=
+              First_Changed
+              or else
+              Is_First
+              or else
+              Map.Is_Empty
+              or else
+              Next_Run < Map.First_Key.Schedule;
+
+            Map.Insert (Key      => (ID       => ID,
+                                     Schedule => Next_Run),
+                        New_Item => Job);
+         end Update_Job;
+      end Reset;
+
+      function Get_Next_Event return Ada.Calendar.Time is
+         use Ada.Calendar;
       begin
-         if Entry_Maps.Has_Element (Cursor) then
-            Time := Entry_Maps.Key (Cursor);
-            Callback := Entry_Maps.Element (Cursor);
-         else
-            Callback := Callback_Refs.Null_Reference;
-         end if;
+         return Map.First_Key.Schedule.Origin;
+      exception
+         when Constraint_Error =>
+            return Time_Of (Year  => Year_Number'Last,
+                            Month => Month_Number'Last,
+                            Day   => Day_Number'Last);
+      end Get_Next_Event;
 
-         First_Changed := False;
-      end Get_First;
+      procedure Run_Next_Event is
+         use type Ada.Calendar.Time;
+         use Entry_Maps;
+         Key : Key_Type         := Map.First_Key;
+         Job : Cron_Entry'Class := Map.First_Element;
+      begin
+         Job.Run;
 
+         Key.Schedule.Origin := Key.Schedule.Origin + Key.Schedule.Period;
+
+         Map.Delete_First;
+         Map.Insert (Key      => Key,
+                     New_Item => Job);
+      end Run_Next_Event;
 
       entry Update_Notification when First_Changed is
       begin
-         null;
+         First_Changed := False;
       end Update_Notification;
 
    end Database;
-
-
 
    -----------------
    -- Worker Task --
    -----------------
 
    task body Worker is
-      Time : Periodic_Time;
-      Callback : Callback_Refs.Reference;
-      Waiting : Boolean;
+      Time : Ada.Calendar.Time;
    begin
       Main :
       loop
-         Waiting := True;
-
          Wait_Loop :
-         while Waiting loop
-            Database.Get_First (Time, Callback);
-            exit Main when Callback.Is_Empty;
+         loop
+            Time := Database.Get_Next_Event;
 
             select
                Database.Update_Notification;
             or
-               delay until Time.Origin;
-               Waiting := False;
+               delay until Time;
+               exit Wait_Loop;
             end select;
          end loop Wait_Loop;
 
-         Callback.Update.Data.Run;
-         Database.Update (Callback);
+         Database.Run_Next_Event;
       end loop Main;
    end Worker;
 

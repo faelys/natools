@@ -25,115 +25,81 @@
 
 with Ada.Calendar;
 
-private with Ada.Containers.Ordered_Maps;
-private with Ada.Finalization;
-private with Ada.Unchecked_Deallocation;
-private with Natools.References;
-private with Natools.Storage_Pools;
+private with Ada.Containers.Indefinite_Ordered_Maps;
 
 package Natools.Cron is
 
-   type Callback is interface;
+   type Entry_IDs is private;
 
-   procedure Run (Object : in out Callback) is abstract;
+   type Periodic_Time is
+      record
+         Origin : Ada.Calendar.Time;
+         Period : Duration;
+      end record;
 
+   type Cron_Entry is abstract tagged null record;
 
-   type Periodic_Time is record
-      Origin : Ada.Calendar.Time;
-      Period : Duration;
-   end record;
+   procedure Run (Job : in out Cron_Entry) is abstract;
 
+   procedure Insert (Job      : in     Cron_Entry;
+                     Schedule : in     Periodic_Time;
+                     ID       :    out Entry_IDs);
 
-   type Cron_Entry is tagged limited private;
+   procedure Reset (ID       : in     Entry_IDs;
+                    Schedule : in     Periodic_Time);
 
-   function Create
-     (Time : in Periodic_Time;
-      Callback : in Cron.Callback'Class)
-     return Cron_Entry;
-      --  Create a new entry with the given parameters
-
-   function Create
-     (Period : in Duration;
-      Callback : in Cron.Callback'Class)
-     return Cron_Entry;
-      --  Create a new entry starting within a period from now
-
-   procedure Set
-     (Self : in out Cron_Entry;
-      Time : in Periodic_Time;
-      Callback : in Cron.Callback'Class);
-      --  Reset an entry with the given parameters
-
-   procedure Set
-     (Self : in out Cron_Entry;
-      Period : in Duration;
-      Callback : in Cron.Callback'Class);
-      --  Reset entry with the given parameters, starting one period from now
-
-   procedure Reset (Self : in out Cron_Entry);
-      --  Clear internal state and remove associated entry from database.
-      --  Note that if the callback procedure is currently running, it will
-      --  continue until it returns, so the callback object may outlive
-      --  the call to Reset, plan concurrency accordingly.
+   procedure Delete (ID : in     Entry_IDs);
 
 private
 
-   package Callback_Refs is new References
-     (Callback'Class,
-      Storage_Pools.Access_In_Default_Pool'Storage_Pool,
-      Storage_Pools.Access_In_Default_Pool'Storage_Pool);
+   type Entry_IDs is new Positive;
 
+   type Key_Type is
+      record
+         Schedule : Periodic_Time;
+         ID       : Entry_IDs;
+      end record;
 
-   type Cron_Entry is new Ada.Finalization.Limited_Controlled with record
-      Callback : Callback_Refs.Reference;
-   end record;
+   function "<" (Left, Right : in Periodic_Time) return Boolean;
+   function "<" (Left, Right : in Key_Type) return Boolean;
 
-   overriding procedure Finalize (Object : in out Cron_Entry);
+   function Actual_Time (Item : in Periodic_Time) return Periodic_Time;
 
+   overriding
+   function "=" (Left, Right : in Key_Type) return Boolean is abstract;
 
-   function "<" (Left, Right : Periodic_Time) return Boolean;
-      --  Comparison function for ordered map
-
-   package Entry_Maps is new Ada.Containers.Ordered_Maps
-     (Periodic_Time, Callback_Refs.Reference, "<", Callback_Refs."=");
-
+   package Entry_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+                               (Key_Type     => Key_Type,
+                                Element_Type => Cron_Entry'Class);
 
    protected Database is
-      procedure Insert
-        (Time : in Periodic_Time;
-         Callback : in Callback_Refs.Reference);
-         --  Insert Callback into the database, adjusting Time.Origin
-         --  to be in the future.
+      procedure Insert (Job      : in     Cron_Entry'Class;
+                        Schedule : in     Periodic_Time;
+                        ID       :    out Entry_IDs);
+      --  Insert Job into the database, adjusting Schedule.Origin to
+      --  be in the future.
 
-      procedure Remove (Callback : in Callback_Refs.Reference);
-         --  Remove Callback from the database
+      procedure Delete (ID : in     Entry_IDs);
+      --  Remove job ID from the database.
 
-      procedure Update (Callback : in Callback_Refs.Reference);
-         --  Update Time.Origin associated with Callback so that
-         --  it is in the future.
+      procedure Reset (ID       : in     Entry_IDs;
+                       Schedule : in     Periodic_Time);
 
-      procedure Get_First
-        (Time : out Periodic_Time;
-         Callback : out Callback_Refs.Reference);
-         --  Return the next active callback, or an empty reference when
-         --  the database is empty (to signal task termination).
+      function Get_Next_Event return Ada.Calendar.Time;
+      --  Return the time of the next scheduled event.
+
+      procedure Run_Next_Event;
+      --  Run the next active job and move it to its next execution slot.
 
       entry Update_Notification;
-         --  Block as long as the next active item does not change
+      --  Block as long as the next active item does not change
 
    private
-      Map : Entry_Maps.Map;
+      Map           : Entry_Maps.Map;
       First_Changed : Boolean := False;
+      Next_ID       : Entry_IDs := 1;
    end Database;
 
-   task type Worker is
-   end Worker;
-
-   type Worker_Access is access Worker;
-
-   procedure Unchecked_Free is new Ada.Unchecked_Deallocation
-     (Worker, Worker_Access);
-
-   Global_Worker : Worker_Access := null;
+   task Worker;
 
 end Natools.Cron;
