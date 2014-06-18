@@ -14,7 +14,26 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
+------------------------------------------------------------------------------
+-- IMPLEMENTATION NOTE:                                                     --
+-- In case of synchronized callbacks (same Origin and Period), there is a   --
+-- collision on the internal map key. Since it is not expected to happen    --
+-- often, a simple but not-so-efficient solution is used:                   --
+-- When a collision is encountered, the callback is replaced by an          --
+-- Event_List callback seeded with the existing callback and the new one.   --
+-- When removing a callback, if it's not found directly, and second linear  --
+-- is performed, looking for Event_List objects and removing it from them.  --
+------------------------------------------------------------------------------
+
 package body Natools.Cron is
+
+   function Create_Event_List
+     (Ref_1, Ref_2 : Callback_Refs.Reference)
+      return Callback_Refs.Reference;
+      --  Create an Event_List object containing Ref_1 and Ref_2,
+      --  and return a reference to it.
+
+
 
    ------------------------
    -- Helper Subprograms --
@@ -27,6 +46,24 @@ package body Natools.Cron is
         or else (Left.Origin = Right.Origin
            and then Left.Period < Right.Period);
    end "<";
+
+
+   function Create_Event_List
+     (Ref_1, Ref_2 : Callback_Refs.Reference)
+      return Callback_Refs.Reference
+   is
+      function Create return Callback'Class;
+
+      function Create return Callback'Class is
+         Result : Event_List;
+      begin
+         Result.Append (Ref_1);
+         Result.Append (Ref_2);
+         return Result;
+      end Create;
+   begin
+      return Callback_Refs.Create (Create'Access);
+   end Create_Event_List;
 
 
 
@@ -133,7 +170,27 @@ package body Natools.Cron is
             end if;
          end if;
 
-         Map.Insert (Actual_Time, Callback);
+         declare
+            Position : Entry_Maps.Cursor;
+            Inserted : Boolean;
+            Previous : Callback_Refs.Reference;
+         begin
+            Map.Insert (Actual_Time, Callback, Position, Inserted);
+
+            if not Inserted then
+               Previous := Entry_Maps.Element (Position);
+
+               if Previous.Update.Data.all in Event_List then
+                  Append
+                    (Event_List (Previous.Update.Data.all),
+                     Callback);
+               else
+                  Map.Replace_Element
+                    (Position,
+                     Create_Event_List (Previous, Callback));
+               end if;
+            end if;
+         end;
       end Insert;
 
 
@@ -151,7 +208,37 @@ package body Natools.Cron is
                   First_Changed := True;
                end if;
 
-               exit;
+               return;
+            end if;
+
+            Entry_Maps.Next (Cursor);
+            Is_First := False;
+         end loop;
+
+         Is_First := True;
+         Cursor := Map.First;
+         while Entry_Maps.Has_Element (Cursor) loop
+            if Entry_Maps.Element (Cursor).Update.Data.all in Event_List then
+               declare
+                  Mutator : constant Callback_Refs.Mutator
+                    := Entry_Maps.Element (Cursor).Update;
+                  List : Event_List renames Event_List (Mutator.Data.all);
+                  Removed : Boolean;
+               begin
+                  List.Remove (Callback, Removed);
+
+                  if Removed then
+                     if List.Is_Empty then
+                        Map.Delete (Cursor);
+
+                        if Is_First then
+                           First_Changed := True;
+                        end if;
+                     end if;
+
+                     return;
+                  end if;
+               end;
             end if;
 
             Entry_Maps.Next (Cursor);
@@ -238,5 +325,54 @@ package body Natools.Cron is
          Database.Update (Callback);
       end loop Main;
    end Worker;
+
+
+
+   ----------------
+   -- Event List --
+   ----------------
+
+   overriding procedure Run (Self : in out Event_List) is
+   begin
+      for Ref of Self.List loop
+         Ref.Update.Data.Run;
+      end loop;
+   end Run;
+
+
+   procedure Append
+     (Self : in out Event_List;
+      Ref : in Callback_Refs.Reference) is
+   begin
+      Self.List.Append (Ref);
+   end Append;
+
+
+   procedure Remove
+     (Self : in out Event_List;
+      Ref : in Callback_Refs.Reference;
+      Removed : out Boolean)
+   is
+      use type Callback_Refs.Reference;
+      Cursor : Event_Lists.Cursor := Self.List.First;
+   begin
+      Removed := False;
+
+      while Event_Lists.Has_Element (Cursor) loop
+         if Event_Lists.Element (Cursor) = Ref then
+            Self.List.Delete (Cursor);
+            Removed := True;
+            return;
+         end if;
+
+         Event_Lists.Next (Cursor);
+      end loop;
+   end Remove;
+
+
+   function Is_Empty (Self : Event_List) return Boolean is
+   begin
+      return Self.List.Is_Empty;
+   end Is_Empty;
 
 end Natools.Cron;

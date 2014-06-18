@@ -25,6 +25,7 @@
 
 with Ada.Calendar;
 
+private with Ada.Containers.Doubly_Linked_Lists;
 private with Ada.Containers.Ordered_Maps;
 private with Ada.Finalization;
 private with Ada.Unchecked_Deallocation;
@@ -135,5 +136,30 @@ private
      (Worker, Worker_Access);
 
    Global_Worker : Worker_Access := null;
+
+
+   package Event_Lists is new Ada.Containers.Doubly_Linked_Lists
+     (Callback_Refs.Reference, Callback_Refs."=");
+
+   type Event_List is new Callback with record
+      List : Event_Lists.List;
+   end record;
+
+   overriding procedure Run (Self : in out Event_List);
+      --  Sequentially run the contained events
+
+   procedure Append
+     (Self : in out Event_List;
+      Ref : in Callback_Refs.Reference);
+      --  Append Ref at the end of Self.List
+
+   procedure Remove
+     (Self : in out Event_List;
+      Ref : in Callback_Refs.Reference;
+      Removed : out Boolean);
+      --  Remove Ref from Self.List, through a linear search
+
+   function Is_Empty (Self : Event_List) return Boolean;
+      --  Return whether Self contains any element
 
 end Natools.Cron;
