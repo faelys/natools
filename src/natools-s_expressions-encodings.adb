@@ -370,9 +370,8 @@ package body Natools.S_Expressions.Encodings is
          elsif Result (I) = Slash then
             Result (I) := Digit_63;
          elsif Result (I) = Base64_Filler then
-            for J in I + 1 .. Result'Last loop
-               pragma Assert (Result (J) = Base64_Filler);
-            end loop;
+            pragma Assert (Result (I + 1 .. Result'Last)
+              = (I + 1 .. Result'Last => Base64_Filler));
             Last := I - 1;
             exit;
          end if;
