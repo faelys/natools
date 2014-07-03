@@ -15,6 +15,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Command_Line;
+with Ada.Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
@@ -24,6 +25,8 @@ with Natools.Getopt_Long;
 with Natools.S_Expressions;
 with Natools.S_Expressions.Encodings;
 with Natools.S_Expressions.File_Readers;
+
+with HMAC.Pinentry;
 
 procedure HMAC.Main is
 
@@ -45,6 +48,7 @@ procedure HMAC.Main is
         (Base64_Output,
          Key_File,
          Lower_Hex_Output,
+         Pinentry,
          Raw_Output,
          Upper_Hex_Output);
    end Options;
@@ -92,6 +96,19 @@ procedure HMAC.Main is
             Handler.Has_Key := True;
          when Options.Lower_Hex_Output =>
             Handler.Output := Lower_Hex_Output'Access;
+         when Options.Pinentry =>
+            begin
+               Handler.Key := Ada.Strings.Unbounded.To_Unbounded_String
+                 (Pinentry.Get_Key (Argument));
+               Handler.Has_Key := True;
+            exception
+               when Ex : others =>
+                  Ada.Text_IO.Put_Line (Ada.Text_IO.Current_Error,
+                     "Unable to get PIN from """ & Argument & '"');
+                  Ada.Text_IO.Put_Line (Ada.Text_IO.Current_Error,
+                     "exception " & Ada.Exceptions.Exception_Name (Ex)
+                     & ": " & Ada.Exceptions.Exception_Message (Ex));
+            end;
          when Options.Raw_Output =>
             Handler.Output := Raw_Output'Access;
          when Options.Upper_Hex_Output =>
@@ -156,12 +173,27 @@ begin
    Opt_Config.Add_Option
      ("upper-hex", 'H', Getopt.No_Argument, Options.Upper_Hex_Output);
 
+   if Pinentry.Is_Available then
+      Opt_Config.Add_Option
+        ("pinentry", 'p', Getopt.Required_Argument, Options.Pinentry);
+   end if;
+
    Opt_Config.Process (Handler);
 
    if not Handler.Has_Key then
-      Ada.Text_IO.Put_Line ("Usage: "
+      Ada.Text_IO.Put_Line ("Usage:");
+      Ada.Text_IO.Put_Line ("   "
         & Ada.Command_Line.Command_Name
-        & "[-h | -H | -b | -r] key [message]");
+        & " [-h | -H | -b | -r] key [message]");
+      Ada.Text_IO.Put_Line ("   "
+        & Ada.Command_Line.Command_Name
+        & " [-h | -H | -b | -r] -f path/to/key/file [message]");
+
+      if Pinentry.Is_Available then
+         Ada.Text_IO.Put_Line ("   "
+           & Ada.Command_Line.Command_Name
+           & " [-h | -H | -b | -r] -p path/to/bin/pinentry [message]");
+      end if;
 
    elsif not Handler.Done then
       declare

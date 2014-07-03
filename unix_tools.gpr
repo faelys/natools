@@ -1,0 +1,22 @@
+with "natools";
+with "florist";
+
+project Unix_Tools is
+   for Source_Dirs use ("tools");
+   for Main use ("hmac-md5.ads", "hmac-sha1.ads", "hmac-sha256");
+
+   for Object_Dir use Natools'Object_Dir;
+   for Exec_Dir use Natools'Exec_Dir;
+
+   package Compiler is
+      for Default_Switches use Natools.Compiler'Default_Switches;
+   end Compiler;
+
+   package Linker is
+      for Default_Switches use Natools.Linker'Default_Switches;
+   end Linker;
+
+   package Naming is
+      for Body ("HMAC.Pinentry") use "hmac-pinentry__posix.adb";
+   end Naming;
+end Unix_Tools;
