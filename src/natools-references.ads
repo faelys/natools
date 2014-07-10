@@ -38,6 +38,9 @@ package Natools.References is
    type Mutator (Data : not null access Held_Data) is
      limited private;
 
+   type Data_Access is access Held_Data;
+   for Data_Access'Storage_Pool use Data_Pool;
+
 
    type Immutable_Reference is new Ada.Finalization.Controlled with private;
 
@@ -49,6 +52,16 @@ package Natools.References is
    procedure Replace
      (Ref : in out Immutable_Reference;
       Constructor : not null access function return Held_Data);
+      --  Replace the object held in Ref with a newly created object
+
+   function Create
+     (Constructor : not null access function return Data_Access)
+      return Immutable_Reference;
+      --  Create a new held object and return a reference to it
+
+   procedure Replace
+     (Ref : in out Immutable_Reference;
+      Constructor : not null access function return Data_Access);
       --  Replace the object held in Ref with a newly created object
 
    procedure Reset (Ref : in out Immutable_Reference);
@@ -91,9 +104,6 @@ private
 
    type Counter_Access is access Counter;
    for Counter_Access'Storage_Pool use Counter_Pool;
-
-   type Data_Access is access Held_Data;
-   for Data_Access'Storage_Pool use Data_Pool;
 
    type Immutable_Reference is new Ada.Finalization.Controlled with record
       Count : Counter_Access := null;

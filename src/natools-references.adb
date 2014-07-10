@@ -75,6 +75,26 @@ package body Natools.References is
    end Replace;
 
 
+   function Create
+     (Constructor : not null access function return Data_Access)
+      return Immutable_Reference is
+   begin
+      return (Ada.Finalization.Controlled with
+         Data => Constructor.all,
+         Count => new Counter'(1));
+   end Create;
+
+
+   procedure Replace
+     (Ref : in out Immutable_Reference;
+      Constructor : not null access function return Data_Access) is
+   begin
+      Finalize (Ref);
+      Ref.Data := Constructor.all;
+      Ref.Count := new Counter'(1);
+   end Replace;
+
+
    procedure Reset (Ref : in out Immutable_Reference) is
    begin
       Finalize (Ref);
