@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2014, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -75,23 +75,28 @@ package body Natools.References is
    end Replace;
 
 
-   function Create
-     (Constructor : not null access function return Data_Access)
-      return Immutable_Reference is
+   function Create (Data : in Data_Access) return Immutable_Reference is
    begin
-      return (Ada.Finalization.Controlled with
-         Data => Constructor.all,
-         Count => new Counter'(1));
+      if Data = null then
+         return Null_Immutable_Reference;
+      else
+         return (Ada.Finalization.Controlled with
+            Data => Data,
+            Count => new Counter'(1));
+      end if;
    end Create;
 
 
    procedure Replace
      (Ref : in out Immutable_Reference;
-      Constructor : not null access function return Data_Access) is
+      Data : in Data_Access) is
    begin
       Finalize (Ref);
-      Ref.Data := Constructor.all;
-      Ref.Count := new Counter'(1);
+
+      if Data /= null then
+         Ref.Data := Data;
+         Ref.Count := new Counter'(1);
+      end if;
    end Replace;
 
 

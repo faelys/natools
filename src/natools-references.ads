@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2014, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -54,15 +54,15 @@ package Natools.References is
       Constructor : not null access function return Held_Data);
       --  Replace the object held in Ref with a newly created object
 
-   function Create
-     (Constructor : not null access function return Data_Access)
-      return Immutable_Reference;
-      --  Create a new held object and return a reference to it
+   function Create (Data : in Data_Access) return Immutable_Reference;
+      --  Create a new reference from Data.
+      --  From this point the referred object is owned by this
+      --  package and must NOT be freed or changed or accessed.
 
-   procedure Replace
-     (Ref : in out Immutable_Reference;
-      Constructor : not null access function return Data_Access);
-      --  Replace the object held in Ref with a newly created object
+   procedure Replace (Ref : in out Immutable_Reference; Data : in Data_Access);
+      --  Integrate Data into Ref.
+      --  From this point the referred object is owned by this
+      --  package and must NOT be freed or changed or accessed.
 
    procedure Reset (Ref : in out Immutable_Reference);
       --  Empty Ref
