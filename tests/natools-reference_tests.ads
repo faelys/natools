@@ -47,6 +47,7 @@ private
    end record;
 
    function Factory return Counter;
+   overriding procedure Initialize (Object : in out Counter);
    overriding procedure Finalize (Object : in out Counter);
 
    Pool : GNAT.Debug_Pools.Debug_Pool;

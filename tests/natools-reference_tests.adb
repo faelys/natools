@@ -58,6 +58,13 @@ package body Natools.Reference_Tests is
    end Factory;
 
 
+   overriding procedure Initialize (Object : in out Counter) is
+   begin
+      Instance_Count := Instance_Count + 1;
+      Object.Instance_Number := Instance_Count;
+   end Initialize;
+
+
    overriding procedure Finalize (Object : in out Counter) is
       pragma Unreferenced (Object);
    begin
@@ -232,7 +239,8 @@ package body Natools.Reference_Tests is
          procedure Check (Count_0, Count_1, Count_2, Delta_I : in Integer);
 
          Ref_0 : Refs.Reference := Refs.Create (Factory'Access);
-         Ref_1, Ref_2 : Refs.Reference;
+         Ref_1 : Refs.Reference := Refs.Create (Refs.Data_Access'(null));
+         Ref_2 : Refs.Reference;
 
          procedure Check (Count_0, Count_1, Count_2, Delta_I : in Integer) is
          begin
@@ -248,7 +256,7 @@ package body Natools.Reference_Tests is
          Check (1, 0, 0, 1);
 
          if Continue then
-            Ref_1 := Refs.Create (Factory'Access);
+            Ref_1 := Refs.Create (new Counter);
          end if;
 
          Check (1, 1, 0, 2);
@@ -266,7 +274,7 @@ package body Natools.Reference_Tests is
          Check (3, 3, 3, 1);
 
          if Continue then
-            Ref_2.Replace (Factory'Access);
+            Ref_2.Replace (new Counter);
          end if;
 
          Check (2, 2, 1, 2);
