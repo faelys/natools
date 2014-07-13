@@ -114,6 +114,19 @@ package body Natools.S_Expressions.File_Readers is
    end Read;
 
 
+   function Read (Object : Atom_Reader) return Atom_Refs.Reference is
+      Length : constant Count := Object.Length;
+      Result : constant Atom_Refs.Reference
+        := Atom_Refs.Create (new Atom (1 .. Length));
+      Last : Count;
+   begin
+      Stream_IO.Set_Index (Object.File, 1);
+      Stream_IO.Read (Object.File, Result.Update.Data.all, Last);
+      pragma Assert (Last = Length);
+      return Result;
+   end Read;
+
+
    procedure Read
      (Object : in Atom_Reader;
       Data : out Atom;

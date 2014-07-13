@@ -21,6 +21,7 @@
 ------------------------------------------------------------------------------
 
 with Natools.S_Expressions.Atom_Buffers;
+with Natools.S_Expressions.Atom_Refs;
 with Natools.S_Expressions.Lockable;
 
 private with Ada.Finalization;
@@ -56,6 +57,9 @@ package Natools.S_Expressions.File_Readers is
 
    function Read (Object : Atom_Reader) return Atom;
       --  Read the whole file and return it as a single atom
+
+   function Read (Object : Atom_Reader) return Atom_Refs.Reference;
+      --  Read the whole file to memory and return a reference to the data
 
    procedure Read
      (Object : in Atom_Reader;
