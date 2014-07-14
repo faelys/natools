@@ -19,6 +19,7 @@ with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
 with Natools.S_Expressions.Atom_Buffers;
+with Natools.S_Expressions.Atom_Refs;
 with Natools.S_Expressions.File_Readers;
 with Natools.S_Expressions.File_Writers;
 with Natools.S_Expressions.Test_Tools;
@@ -122,6 +123,14 @@ package body Natools.S_Expressions.File_RW_Tests is
             Reader.Read (Buffer, 100);
             Test_Tools.Test_Atom (Test, Payload, Buffer.Data);
          end Buffer_Read;
+
+         Reference_Read :
+         declare
+            Buffer : Atom_Refs.Reference;
+         begin
+            Buffer := Reader.Read;
+            Test_Tools.Test_Atom (Test, Payload, Buffer.Query.Data.all);
+         end Reference_Read;
 
          Block_Read :
          declare
