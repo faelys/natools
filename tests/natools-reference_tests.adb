@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2014, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -13,6 +13,9 @@
 -- ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF  --
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
+
+with Ada.Calendar;
+with Ada.Exceptions;
 
 with Natools.References.Tools;
 
@@ -398,6 +401,79 @@ package body Natools.Reference_Tests is
    end Test_Reference_Tests;
 
 
+   procedure Test_Task_Safety (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Task safety");
+      Success : Boolean := True;
+
+      protected Protected_Report is
+         procedure Report_Exception (Ex : Ada.Exceptions.Exception_Occurrence);
+      end Protected_Report;
+
+      protected body Protected_Report is
+         procedure Report_Exception
+           (Ex : Ada.Exceptions.Exception_Occurrence) is
+         begin
+            Test.Report_Exception (Ex, NT.Fail);
+         end Report_Exception;
+      end Protected_Report;
+
+      task type Checker is
+         entry Start (Count : in Natural; Ref : in Refs.Immutable_Reference);
+      end Checker;
+
+      task body Checker is
+         Starting_Value, Last : Natural;
+         R : Refs.Immutable_Reference;
+      begin
+         accept Start (Count : in Natural; Ref : in Refs.Immutable_Reference)
+         do
+            Last := Count;
+            R := Ref;
+         end Start;
+         Starting_Value := R.Query.Data.Instance_Number;
+         for I in 1 .. Last loop
+            declare
+               Temp : constant Refs.Immutable_Reference := R;
+            begin
+               if Temp.Query.Data.Instance_Number /= Starting_Value then
+                  Success := False;
+               end if;
+            end;
+         end loop;
+      exception
+         when Error : others =>
+            Protected_Report.Report_Exception (Error);
+      end Checker;
+
+      Start : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+   begin
+      declare
+         Base : constant Refs.Immutable_Reference
+           := Refs.Create (Factory'Access);
+      begin
+         declare
+            Checkers : array (1 .. 16) of Checker;
+         begin
+            for I in Checkers'Range loop
+               Checkers (I).Start (10 ** 6, Base);
+            end loop;
+         end;
+
+         if not Success then
+            Test.Fail ("Success somehow got to False");
+         end if;
+      end;
+
+      Test.Info ("Test run in "
+        & Duration'Image (Ada.Calendar."-" (Ada.Calendar.Clock, Start)));
+   exception
+      when Error : others =>
+         Test.Report_Exception (Error);
+         Test.Info ("Test run in "
+           & Duration'Image (Ada.Calendar."-" (Ada.Calendar.Clock, Start)));
+   end Test_Task_Safety;
+
+
 
    ---------------------
    -- Test everything --
@@ -413,4 +489,3 @@ package body Natools.Reference_Tests is
    end All_Tests;
 
 end Natools.Reference_Tests;
-

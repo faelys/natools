@@ -88,6 +88,7 @@ begin
 
    Report.Section ("References");
    Natools.Reference_Tests.All_Tests (Report);
+   Natools.Reference_Tests.Test_Task_Safety (Report);
    Report.End_Section;
 
    Report.Section ("S_Expressions.Atom_Buffers");

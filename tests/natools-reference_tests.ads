@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2014, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -17,6 +17,9 @@
 ------------------------------------------------------------------------------
 -- Natools.Reference_Tests is a test suite for Natools.References           --
 -- reference-counted object holder.                                         --
+-- Note that the task-safety test is quite long and often reports success   --
+-- on task-unsafe code when run on a single core. For these reasons, it is  --
+-- not used by All_Tests.                                                   --
 ------------------------------------------------------------------------------
 
 with Natools.Tests;
@@ -31,12 +34,15 @@ package Natools.Reference_Tests is
    package NT renames Natools.Tests;
 
    procedure All_Tests (Report : in out NT.Reporter'Class);
+      --  All tests except Test_Task_Safety (see the Note above)
 
    procedure Test_Data_Access (Report : in out NT.Reporter'Class);
    procedure Test_Double_Finalize (Report : in out NT.Reporter'Class);
    procedure Test_Instance_Counts (Report : in out NT.Reporter'Class);
    procedure Test_Reference_Counts (Report : in out NT.Reporter'Class);
    procedure Test_Reference_Tests (Report : in out NT.Reporter'Class);
+
+   procedure Test_Task_Safety (Report : in out NT.Reporter'Class);
 
 private
 
