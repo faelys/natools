@@ -2,6 +2,9 @@ project Natools is
    type Build_Type is ("Release", "Coverage");
    Mode : Build_Type := external ("MODE", "Release");
 
+   type Task_Safety is ("None");
+   Safety : Task_Safety := external ("TASK_SAFETY", "None");
+
    Prefix := "";
    Extra_Switches := ();
 
@@ -63,4 +66,14 @@ project Natools is
    package Linker is
       for Default_Switches ("Ada") use Extra_Switches;
    end Linker;
+
+   package Naming is
+      case Safety is
+         when "None" =>
+            for spec ("Natools.References")
+              use "natools-references__unsafe.ads";
+            for body ("Natools.References")
+              use "natools-references__unsafe.adb";
+      end case;
+   end Naming;
 end Natools;

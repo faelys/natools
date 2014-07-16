@@ -14,4 +14,12 @@ project Tests is
    package Linker is
       for Default_Switches use Natools.Linker'Default_Switches;
    end Linker;
+
+   package Naming is
+      case Natools.Safety is
+         when "None" =>
+            for body ("Natools.References.Tools")
+              use "natools-references-tools__unsafe.adb";
+      end case;
+   end Naming;
 end Tests;
