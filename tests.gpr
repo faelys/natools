@@ -20,6 +20,9 @@ project Tests is
          when "None" =>
             for body ("Natools.References.Tools")
               use "natools-references-tools__unsafe.adb";
+         when "Portable" =>
+            for body ("Natools.References.Tools")
+              use "natools-references-tools__protected.adb";
       end case;
    end Naming;
 end Tests;

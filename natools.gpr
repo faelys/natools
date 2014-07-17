@@ -2,7 +2,7 @@ project Natools is
    type Build_Type is ("Release", "Coverage");
    Mode : Build_Type := external ("MODE", "Release");
 
-   type Task_Safety is ("None");
+   type Task_Safety is ("None", "Portable");
    Safety : Task_Safety := external ("TASK_SAFETY", "None");
 
    Prefix := "";
@@ -74,6 +74,11 @@ project Natools is
               use "natools-references__unsafe.ads";
             for body ("Natools.References")
               use "natools-references__unsafe.adb";
+         when "Portable" =>
+            for spec ("Natools.References")
+              use "natools-references__protected.ads";
+            for body ("Natools.References")
+              use "natools-references__protected.adb";
       end case;
    end Naming;
 end Natools;
