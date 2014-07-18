@@ -17,7 +17,7 @@ project Tests is
 
    package Naming is
       case Natools.Safety is
-         when "None" =>
+         when "None" | "Intel" =>
             for body ("Natools.References.Tools")
               use "natools-references-tools__unsafe.adb";
          when "Portable" =>
