@@ -43,6 +43,7 @@ package Natools.References is
 
 
    type Immutable_Reference is new Ada.Finalization.Controlled with private;
+   pragma Preelaborable_Initialization (Immutable_Reference);
 
    function Create
      (Constructor : not null access function return Held_Data)
@@ -86,6 +87,7 @@ package Natools.References is
 
 
    type Reference is new Immutable_Reference with private;
+   pragma Preelaborable_Initialization (Reference);
 
    function Update (Ref : in Reference) return Mutator;
    pragma Inline (Update);

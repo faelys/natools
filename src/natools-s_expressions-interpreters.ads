@@ -67,6 +67,7 @@ package Natools.S_Expressions.Interpreters is
 
 
    type Interpreter is new Command with private;
+   pragma Preelaborable_Initialization (Interpreter);
 
    procedure Add_Command
      (Self : in out Interpreter;
@@ -118,6 +119,8 @@ package Natools.S_Expressions.Interpreters is
       --  Execute a single command with arguments
 
    type Command_Description is private;
+   pragma Preelaborable_Initialization (Command_Description);
+
    type Command_Array is array (Positive range <>) of Command_Description;
 
    function Build (Commands : Command_Array) return Interpreter;

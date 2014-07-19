@@ -29,6 +29,7 @@ package Natools.Accumulators.String_Accumulator_Linked_Lists is
      (Build : not null access function (Depth : Positive)
                               return String_Accumulator'Class)
       is new String_Accumulator_Stack with private;
+   pragma Preelaborable_Initialization (String_Accumulator_Linked_List);
 
    procedure Append (To   : in out String_Accumulator_Linked_List;
                      Text : String);

@@ -67,6 +67,7 @@ package Natools.String_Slices is
    ----------------
 
    type Slice is tagged private;
+   pragma Preelaborable_Initialization (Slice);
 
    Null_Slice : constant Slice;
 

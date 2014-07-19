@@ -29,7 +29,9 @@ package Natools.S_Expressions.Lockable is
    pragma Pure (Lockable);
 
    type Lock_Stack is private;
+   pragma Preelaborable_Initialization (Lock_Stack);
    type Lock_State is private;
+   pragma Preelaborable_Initialization (Lock_State);
 
    procedure Push_Level
      (Stack : in out Lock_Stack;
@@ -73,6 +75,7 @@ package Natools.S_Expressions.Lockable is
 
    type Wrapper (Backend : access S_Expressions.Descriptor'Class)
      is new Descriptor with private;
+   pragma Preelaborable_Initialization (Wrapper);
       --  Wrapper layer on top of a non-lockable object, albeit with the
       --  performance penalty of an extra layer.
 

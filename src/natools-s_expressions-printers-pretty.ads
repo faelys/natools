@@ -61,6 +61,7 @@ package Natools.S_Expressions.Printers.Pretty is
    Canonical : constant Parameters := (others => <>);
 
    type Printer is abstract limited new Printers.Printer with private;
+   pragma Preelaborable_Initialization (Printer);
 
    procedure Write_Raw
      (Output : in out Printer;

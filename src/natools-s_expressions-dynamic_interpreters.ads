@@ -65,6 +65,7 @@ package Natools.S_Expressions.Dynamic_Interpreters is
 
 
    type Interpreter is new Command with private;
+   pragma Preelaborable_Initialization (Interpreter);
 
    procedure Add_Command
      (Self : in out Interpreter;

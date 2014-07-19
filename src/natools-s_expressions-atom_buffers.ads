@@ -28,6 +28,7 @@ package Natools.S_Expressions.Atom_Buffers is
    pragma Preelaborate (Atom_Buffers);
 
    type Atom_Buffer is tagged private;
+   pragma Preelaborable_Initialization (Atom_Buffer);
 
    procedure Preallocate (Buffer : in out Atom_Buffer; Length : in Count);
       --  Preallocate enough memory to append Length octets without

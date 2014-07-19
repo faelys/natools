@@ -46,6 +46,7 @@ package Natools.Cron is
 
 
    type Cron_Entry is tagged limited private;
+   pragma Preelaborable_Initialization (Cron_Entry);
 
    function Create
      (Time : in Periodic_Time;

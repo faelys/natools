@@ -33,6 +33,7 @@ package Natools.S_Expressions.Parsers is
    pragma Preelaborate (Natools.S_Expressions.Parsers);
 
    type Parser is abstract limited new Lockable.Descriptor with private;
+   pragma Preelaborable_Initialization (Parser);
 
    procedure Read_More
      (Self : in out Parser;
@@ -72,6 +73,7 @@ package Natools.S_Expressions.Parsers is
 
    type Stream_Parser (Input : access Ada.Streams.Root_Stream_Type'Class) is
      limited new Lockable.Descriptor with private;
+   pragma Preelaborable_Initialization (Stream_Parser);
 
 private
 

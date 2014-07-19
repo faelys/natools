@@ -44,6 +44,7 @@ package Natools.S_Expressions.Generic_Caches is
    pragma Preelaborate (Generic_Caches);
 
    type Reference is new Printers.Printer with private;
+   pragma Preelaborable_Initialization (Reference);
 
    overriding procedure Open_List (Output : in out Reference);
    overriding procedure Append_Atom
@@ -55,6 +56,7 @@ package Natools.S_Expressions.Generic_Caches is
 
 
    type Cursor is new Lockable.Descriptor with private;
+   pragma Preelaborable_Initialization (Cursor);
 
    overriding function Current_Event (Object : in Cursor) return Events.Event;
    overriding function Current_Atom (Object : in Cursor) return Atom;
@@ -142,7 +144,7 @@ private
 
 
    type Cursor is new Lockable.Descriptor with record
-      Exp : Trees.Reference := Trees.Null_Reference;
+      Exp : Trees.Reference;
       Position : Node_Access := null;
       Opening : Boolean := False;
       Stack : Lockable.Lock_Stack;

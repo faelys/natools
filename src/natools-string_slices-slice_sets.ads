@@ -32,6 +32,7 @@ package Natools.String_Slices.Slice_Sets is
    pragma Preelaborate (Slice_Sets);
 
    type Slice_Set is tagged private;
+   pragma Preelaborable_Initialization (Slice_Set);
 
 
    ----------------------------
