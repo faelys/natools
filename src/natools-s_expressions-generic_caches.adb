@@ -407,22 +407,15 @@ package body Natools.S_Expressions.Generic_Caches is
       State := Lockable.Null_State;
       Object.Locked := False;
 
-      if Finish then
-         declare
-            Event : Events.Event := Object.Current_Event;
-         begin
-            loop
-               case Event is
-                  when Events.Add_Atom | Events.Open_List =>
-                     null;
-                  when Events.Close_List =>
-                     exit when Object.Absolute_Level < Previous_Level;
-                  when Events.Error | Events.End_Of_Input =>
-                     exit;
-               end case;
-               Object.Next (Event);
-            end loop;
-         end;
+      if Finish and Object.Position /= null then
+         if Object.Position.Kind = List_Node and then Object.Opening then
+            Object.Opening := False;
+         end if;
+         pragma Assert (not Object.Opening);
+
+         for I in 1 .. Object.Absolute_Level - Previous_Level + 1 loop
+            Object.Position := Object.Position.Parent;
+         end loop;
       end if;
 
       Object.Locked
