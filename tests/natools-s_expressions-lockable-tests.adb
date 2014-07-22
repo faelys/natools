@@ -27,6 +27,7 @@ package body Natools.S_Expressions.Lockable.Tests is
    begin
       return To_Atom ("(begin(command1 arg1.1 arg1.2)"
         & "(command2 (subcmd2.1 arg2.1.1) (subcmd2.3) arg2.4)"
+        & "(command3 (subcmd3.1 ((subcmd3.1.1 arg3.1.1.1)) arg3.1.2))"
         & "end)5:extra");
    end Test_Expression;
 
@@ -110,6 +111,18 @@ package body Natools.S_Expressions.Lockable.Tests is
          end if;
       end;
 
+      Object.Unlock (Level_1);
+
+      Test_Tools.Next_And_Check (Test, Object, Events.Open_List, Base + 1);
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("command3"), Base + 1,
+        "Before third lock:");
+      Object.Lock (Level_1);
+      Test_Tools.Test_Atom_Accessors (Test, Object, To_Atom ("command3"), 0,
+        "After third lock:");
+      Test_Tools.Next_And_Check (Test, Object, Events.Open_List, 1);
+      Test_Tools.Next_And_Check (Test, Object, To_Atom ("subcmd3.1"), 1);
+      Test_Tools.Next_And_Check (Test, Object, Events.Open_List, 2);
+      Test_Tools.Next_And_Check (Test, Object, Events.Open_List, 3);
       Object.Unlock (Level_1);
 
       Test_Tools.Next_And_Check (Test, Object, To_Atom ("end"), Base);
