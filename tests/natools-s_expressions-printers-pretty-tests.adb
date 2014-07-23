@@ -76,6 +76,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
       Newline_Formats (Report);
       Token_Separation (Report);
       Parameter_Mutators (Report);
+      Expression_Width (Report);
    end All_Tests;
 
 
@@ -203,6 +204,63 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Basic_Printing;
+
+
+   procedure Expression_Width (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("S-expression width");
+      Param : constant Parameters
+        := (Width => 6,
+            Newline_At => (others => (others => True)),
+            Space_At => (others => (others => False)),
+            Tab_Stop => 8,
+            Indentation => 0,
+            Indent => Tabs_And_Spaces,
+            Quoted => Single_Line,
+            Token => No_Token,
+            Hex_Casing => Encodings.Upper,
+            Quoted_Escape => Hex_Escape,
+            Char_Encoding => UTF_8,
+            Fallback => Verbatim,
+            Newline => LF);
+   begin
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         P, Q : Stream_Printer (Output'Access);
+         Template : constant Atom (1 .. 6) := To_Atom ("é-123");
+      begin
+         Output.Set_Expected (To_Atom
+            ("""\xC3""" & Latin_1.LF
+           & """é""" & Latin_1.LF
+           & """é-""" & Latin_1.LF
+           & """é-1""" & Latin_1.LF
+           & """é-12""" & Latin_1.LF
+           & "6:é-123" & Latin_1.LF
+           & '"' & Character'Val (16#C3#) & '"' & Latin_1.LF
+           & """é""" & Latin_1.LF
+           & """é-""" & Latin_1.LF
+           & """é-1""" & Latin_1.LF
+           & "5:é-12" & Latin_1.LF
+           & "6:é-123"));
+
+         P.Set_Parameters (Param);
+         Q.Set_Parameters (Param);
+         Q.Set_Char_Encoding (Latin);
+
+         for I in Template'Range loop
+            P.Append_Atom (Template (Template'First .. I));
+         end loop;
+
+         P.Newline;
+
+         for I in Template'Range loop
+            Q.Append_Atom (Template (Template'First .. I));
+         end loop;
+
+         Output.Check_Stream (Test);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Expression_Width;
 
 
    procedure Indentation (Report : in out NT.Reporter'Class) is
