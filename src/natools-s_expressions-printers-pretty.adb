@@ -102,7 +102,7 @@ package body Natools.S_Expressions.Printers.Pretty is
       return Boolean is
    begin
       return Output.Param.Width = 0
-        or Output.Param.Width >= Output.Cursor + Width;
+        or Output.Param.Width >= Output.Cursor - 1 + Width;
    end Fit_In_Line;
 
 
