@@ -566,6 +566,7 @@ package body Natools.S_Expressions.Printers.Pretty is
 
       Size : Count;
       Last_Non_NL : Offset := Data'Last;
+      Expected_Cursor : Screen_Offset := Output.Cursor;
 
       procedure Escape
         (Value : in Octet;
@@ -589,18 +590,14 @@ package body Natools.S_Expressions.Printers.Pretty is
          end case;
       end Escape;
    begin
-      declare
-         Discarded_Cursor : Screen_Offset := Output.Cursor;
-      begin
-         Quoted_Lengths
-           (Data,
-            Output.Param.Char_Encoding,
-            Output.Param.Width,
-            Output.Param.Newline,
-            Single_Line,
-            Size,
-            Discarded_Cursor);
-      end;
+      Quoted_Lengths
+        (Data,
+         Output.Param.Char_Encoding,
+         Output.Param.Width,
+         Output.Param.Newline,
+         Single_Line,
+         Size,
+         Expected_Cursor);
 
       while Last_Non_NL in Data'Range
         and then (Data (Last_Non_NL) = Encodings.CR
@@ -758,6 +755,8 @@ package body Natools.S_Expressions.Printers.Pretty is
 
          Write_Raw (Printer'Class (Output), Result);
       end;
+
+      pragma Assert (Output.Cursor = Expected_Cursor);
    end Write_Quoted;
 
 
