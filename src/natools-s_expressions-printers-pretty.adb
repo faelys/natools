@@ -752,6 +752,7 @@ package body Natools.S_Expressions.Printers.Pretty is
 
          pragma Assert (O = Result'Last);
          Result (O) := Encodings.Quoted_Atom_End;
+         Output.Cursor := Output.Cursor + 1;
 
          Write_Raw (Printer'Class (Output), Result);
       end;
