@@ -357,6 +357,7 @@ package body Natools.S_Expressions.Printers.Pretty is
                      when CR_LF | LF_CR =>
                         Output_Delta := 2;
                         Input_Delta := 2;
+                        Width_Adjust := Width_Adjust - 1;
                   end case;
                end if;
             when 0 .. 7 | 14 .. 31 =>
@@ -650,6 +651,7 @@ package body Natools.S_Expressions.Printers.Pretty is
                         Input_Delta := 2;
                         Result (O + 1) := Data (I + 1);
                         Output_Delta := 2;
+                        Width_Adjust := Width_Adjust - 1;
                      end if;
                   end if;
                when 11 =>
@@ -677,6 +679,7 @@ package body Natools.S_Expressions.Printers.Pretty is
                         Input_Delta := 2;
                         Result (O + 1) := Data (I + 1);
                         Output_Delta := 2;
+                        Width_Adjust := Width_Adjust - 1;
                      end if;
                   end if;
                when Encodings.Quoted_Atom_End | Encodings.Escape =>
