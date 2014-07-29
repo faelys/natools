@@ -37,6 +37,7 @@ package Natools.S_Expressions.Printers.Pretty.Tests is
    procedure Parameter_Mutators (Report : in out NT.Reporter'Class);
    procedure Quoted_String_Escapes (Report : in out NT.Reporter'Class);
    procedure Separators (Report : in out NT.Reporter'Class);
+   procedure Tabulation_Width (Report : in out NT.Reporter'Class);
    procedure Token_Separation (Report : in out NT.Reporter'Class);
 
 end Natools.S_Expressions.Printers.Pretty.Tests;

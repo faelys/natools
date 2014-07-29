@@ -77,6 +77,7 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
       Token_Separation (Report);
       Parameter_Mutators (Report);
       Expression_Width (Report);
+      Tabulation_Width (Report);
    end All_Tests;
 
 
@@ -699,6 +700,85 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Separators;
+
+
+   procedure Tabulation_Width (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Width of tabulations");
+
+      procedure Fill (P : in out Stream_Printer; Times : in Natural);
+
+      X : constant Atom := To_Atom ("x");
+
+      procedure Fill (P : in out Stream_Printer; Times : in Natural) is
+      begin
+         for I in 1 .. Times loop
+            P.Append_Atom (X);
+         end loop;
+      end Fill;
+
+      Tab : constant Character := Latin_1.HT;
+      NL : constant Character := Latin_1.LF;
+      Param : constant Parameters
+        := (Width => 20,
+            Newline_At => (others => (others => False)),
+            Space_At =>
+              (Atom_Data => (Opening => True, others => False),
+               others => (others => False)),
+            Tab_Stop => 5,
+            Indentation => 3,
+            Indent => Tabs_And_Spaces,
+            Quoted => Single_Line,
+            Token => Standard_Token,
+            Hex_Casing => Encodings.Upper,
+            Quoted_Escape => Hex_Escape,
+            Char_Encoding => UTF_8,
+            Fallback => Verbatim,
+            Newline => LF);
+   begin
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         P : Stream_Printer (Output'Access);
+      begin
+         Output.Set_Expected (To_Atom                  --  1234-6789-1234-6789-
+            ("(first-level x x x x" & NL               --  (first-level x x x x
+           & "   x (second-level x" & NL               --  ...x (second-level x
+           & Tab & " x x x x x x x" & NL               --  >----.x x x x x x x
+           & Tab & " x x (third x x" & NL              --  >----.x x (third x x
+           & Tab & "    x (fourth x" & NL              --  >----....x (fourth x
+           & Tab & Tab & "  x x (x x" & NL             --  >---->----..x x (x x
+           & Tab & Tab & Tab & "x)x x" & NL            --  >---->---->----x)x x
+           & Tab & Tab & "  x))x x x" & NL             --  >---->----..x))x x x
+           & Tab & " x))"));                           --  >----.x))
+
+         P.Set_Parameters (Param);
+
+         P.Open_List;
+         P.Append_Atom (To_Atom ("first-level"));
+         Fill (P, 5);
+         P.Open_List;
+         P.Append_Atom (To_Atom ("second-level"));
+         Fill (P, 10);
+         P.Open_List;
+         P.Append_Atom (To_Atom ("third"));
+         Fill (P, 3);
+         P.Open_List;
+         P.Append_Atom (To_Atom ("fourth"));
+         Fill (P, 3);
+         P.Open_List;
+         Fill (P, 3);
+         P.Close_List;
+         Fill (P, 3);
+         P.Close_List;
+         P.Close_List;
+         Fill (P, 4);
+         P.Close_List;
+         P.Close_List;
+
+         Output.Check_Stream (Test);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Tabulation_Width;
 
 
    procedure Token_Separation (Report : in out NT.Reporter'Class) is
