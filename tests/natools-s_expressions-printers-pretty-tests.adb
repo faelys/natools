@@ -776,6 +776,33 @@ package body Natools.S_Expressions.Printers.Pretty.Tests is
 
          Output.Check_Stream (Test);
       end;
+
+      declare
+         Output : aliased Test_Tools.Memory_Stream;
+         P : Stream_Printer (Output'Access);
+      begin
+         Output.Set_Expected (To_Atom                  --  1234-6789-1234-6789-
+            ("(first-level x x x x" & NL               --  (first-level x x x x
+           & Tab & "x x x x x x x x" & NL              --  >----x x x x x x x x
+           & Tab & "x x (second x x" & NL              --  >----x x (second x x
+           & Tab & Tab & "x x x x x" & NL              --  >---->----x x x x x
+           & Tab & Tab & "x x))"));                    --  >---->----x x))
+
+         P.Set_Parameters (Param);
+         P.Set_Indent (Tabs);
+         P.Set_Indentation (1);
+
+         P.Open_List;
+         P.Append_Atom (To_Atom ("first-level"));
+         Fill (P, 14);
+         P.Open_List;
+         P.Append_Atom (To_Atom ("second"));
+         Fill (P, 9);
+         P.Close_List;
+         P.Close_List;
+
+         Output.Check_Stream (Test);
+      end;
    exception
       when Error : others => Test.Report_Exception (Error);
    end Tabulation_Width;
