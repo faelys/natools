@@ -288,7 +288,7 @@ package body Natools.S_Expressions.Printers.Pretty is
             when Tabs =>
                Output.Cursor := Output.Param.Indentation * Output.Indent_Level;
                Writer.Write_Raw ((1 .. Count (Output.Cursor) => Encodings.HT));
-               Output.Cursor := Output.Cursor * Output.Param.Tab_Stop;
+               Output.Cursor := Output.Cursor * Output.Param.Tab_Stop + 1;
             when Tabs_And_Spaces =>
                Output.Cursor := Output.Param.Indentation * Output.Indent_Level
                                 + 1;
