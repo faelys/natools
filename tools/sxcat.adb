@@ -385,6 +385,7 @@ procedure Sxcat is
                   Ada.Text_IO.Put_Line
                     (Ada.Text_IO.Current_Error,
                      "Invalid newline encoding """ & Argument & '"');
+                  Handler.Action := Options.Error;
             end;
 
          when Options.No_Quoted =>
