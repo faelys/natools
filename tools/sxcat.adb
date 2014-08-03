@@ -516,7 +516,7 @@ procedure Sxcat is
          Parse (Image (I), Before, Valid);
 
          if Valid then
-            Parse (Image (I), After, Valid);
+            Parse (Image (I + 1), After, Valid);
 
             if Valid then
                Result (Before, After) := True;
