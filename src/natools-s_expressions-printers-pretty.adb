@@ -914,6 +914,7 @@ package body Natools.S_Expressions.Printers.Pretty is
                      Size := Size + 1;
                      I := I * 10;
                   end loop;
+                  Size := Size + Data'Length;
                end;
          end case;
 
