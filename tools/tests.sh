@@ -208,7 +208,7 @@ if test -x ${BIN_DIR}/sxcat; then
 	fi
 
 	${BIN_DIR}/sxcat --ext-token --indent 3st --hex-atom --escape-hex \
-	    --no-quoted --no-token --newline ')d,)(,oo,d(' --space 'dd' \
+	    --no-quoted --no-token --newline ')d,)(,oo,x(' --space 'dd' \
 	    --width 80 --nl cr-lf --unix --lower --dump >"${TMP_DEST}"
 
 	if ! ${BIN_DIR}/sxcat --config "${TMP_DEST}" --dump \

@@ -498,7 +498,7 @@ procedure Sxcat is
             when ')' | 'c' | 'C' =>
                Entity := SE.Printers.Pretty.Closing;
                Valid := True;
-            when 'a' | 'A' | 'd' | 'D' =>
+            when 'a' | 'A' | 'd' | 'D' | 'x' | 'X' =>
                Entity := SE.Printers.Pretty.Atom_Data;
                Valid := True;
             when others =>
