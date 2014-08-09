@@ -123,6 +123,12 @@ package body Natools.S_Expressions.Atom_Buffers is
    end Length;
 
 
+   function Capacity (Buffer : Atom_Buffer) return Count is
+   begin
+      return Buffer.Available;
+   end Capacity;
+
+
    function Data (Buffer : Atom_Buffer) return Atom is
    begin
       if Buffer.Ref.Is_Empty then

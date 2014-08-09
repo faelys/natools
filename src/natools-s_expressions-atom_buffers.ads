@@ -45,6 +45,7 @@ package Natools.S_Expressions.Atom_Buffers is
       --  Invert the order of bytes (first becomes last, etc)
 
    function Length (Buffer : Atom_Buffer) return Count;
+   function Capacity (Buffer : Atom_Buffer) return Count;
    function Data (Buffer : Atom_Buffer) return Atom;
    procedure Query
      (Buffer : in Atom_Buffer;
