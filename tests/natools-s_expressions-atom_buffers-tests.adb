@@ -363,10 +363,10 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
                return;
             end if;
 
-            if Buffer.Raw_Query.Data.all'Length /= Buffer.Available then
+            if Buffer.Raw_Query.Data.all'Length /= Buffer.Capacity then
                Report.Item (Name, NT.Fail);
                Report.Info ("Available length inconsistency, recorded"
-                 & Count'Image (Buffer.Available) & ", actual"
+                 & Count'Image (Buffer.Capacity) & ", actual"
                  & Count'Image (Buffer.Raw_Query.Data.all'Length));
                return;
             end if;
@@ -387,7 +387,7 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
          Buffer.Hard_Reset;
 
          if Buffer.Length /= 0
-           or else Buffer.Available /= 0
+           or else Buffer.Capacity /= 0
            or else not Buffer.Ref.Is_Empty
          then
             Report.Item (Name, NT.Fail);
