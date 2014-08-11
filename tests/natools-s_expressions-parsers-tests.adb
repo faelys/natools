@@ -254,8 +254,8 @@ package body Natools.S_Expressions.Parsers.Tests is
          if Parser.Internal /= Empty.Internal
            or else Parser.Next_Event /= Empty.Next_Event
            or else Parser.Latest /= Empty.Latest
-           or else Parser.Pending /= Empty.Pending
-           or else Parser.Buffer /= Empty.Buffer
+           or else Parser.Pending.Capacity /= 0
+           or else Parser.Buffer.Capacity /= 0
            or else Parser.Level /= Empty.Level
            or else Parser.Lock_Stack /= Empty.Lock_Stack
            or else Parser.Locked /= Empty.Locked
