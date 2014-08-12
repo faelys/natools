@@ -27,7 +27,7 @@ with Natools.S_Expressions.Atom_Refs;
 package Natools.S_Expressions.Atom_Buffers is
    pragma Preelaborate (Atom_Buffers);
 
-   type Atom_Buffer is tagged private;
+   type Atom_Buffer is tagged limited private;
    pragma Preelaborable_Initialization (Atom_Buffer);
 
    procedure Preallocate (Buffer : in out Atom_Buffer; Length : in Count);
@@ -71,7 +71,7 @@ package Natools.S_Expressions.Atom_Buffers is
 
 private
 
-   type Atom_Buffer is tagged record
+   type Atom_Buffer is tagged limited record
       Ref : Atom_Refs.Reference;
       Available, Used : Count := 0;
    end record;
