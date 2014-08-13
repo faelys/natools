@@ -120,6 +120,17 @@ package Natools.Tests is
    procedure Skip (Object : in out Test; Text : in String := "");
       --  Set the result state and append Text info in a single call
 
+   generic
+      type Result (<>) is limited private;
+      with function "=" (Left, Right : Result) return Boolean is <>;
+      with function Image (Object : Result) return String is <>;
+      Multiline : Boolean := True;
+   procedure Generic_Check
+     (Object : in out Test;
+      Expected : in Result;
+      Found : in Result;
+      Label : in String := "");
+
 private
 
    package Info_Lists is new Ada.Containers.Indefinite_Doubly_Linked_Lists

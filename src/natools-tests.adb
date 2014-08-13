@@ -132,4 +132,27 @@ package body Natools.Tests is
       end if;
    end Finalize;
 
+
+   procedure Generic_Check
+     (Object : in out Test;
+      Expected : in Result;
+      Found : in Result;
+      Label : in String := "") is
+   begin
+      if Expected /= Found then
+         if Multiline then
+            Fail (Object, Label);
+            Info (Object, "Expected: " & Image (Expected));
+            Info (Object, "Found:    " & Image (Found));
+         elsif Label /= "" then
+            Fail (Object, Label
+              & ": expected " & Image (Expected)
+              & ", found " & Image (Found));
+         else
+            Fail (Object, "Expected " & Image (Expected)
+              & ", found " & Image (Found));
+         end if;
+      end if;
+   end Generic_Check;
+
 end Natools.Tests;
