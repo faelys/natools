@@ -42,12 +42,6 @@ private
    function Get (S : Bounded_String) return String;
    procedure Reset (S : in out Bounded_String);
 
-   procedure Check
-     (Test : in out NT.Test;
-      Found : in Bounded_String;
-      Expected : in String;
-      Context : in String := "");
-
 
    type Test_Callback (Backend : access Bounded_String) is new Callback with
    record

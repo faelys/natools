@@ -58,23 +58,15 @@ package body Natools.Cron.Tests is
    end Reset;
 
 
-   procedure Check
-     (Test : in out NT.Test;
-      Found : in Bounded_String;
-      Expected : in String;
-      Context : in String := "") is
-   begin
-      if Get (Found) /= Expected then
-         if Context /= "" then
-            Test.Fail (Context
-              & ": found """ & Get (Found) & """, expected """
-              & Expected & '"');
-         else
-            Test.Fail ("Found """ & Get (Found) & """, expected """
-              & Expected & '"');
-         end if;
-      end if;
-   end Check;
+
+   -----------------
+   -- Test Helper --
+   -----------------
+
+   function Quote (Data : String) return String
+     is ('"' & Data & '"');
+
+   procedure Check is new NT.Generic_Check (String, "=", Quote, False);
 
 
 
@@ -152,7 +144,7 @@ package body Natools.Cron.Tests is
       --  Fast: set at 6.5, reset at 8.0,
       --        run at 6.7, 6.9, 7.1, 7.3, 7.5, 7.7, 7.9
 
-      Check (Test, Log, ".1.1.1.|..sff.fffff.s.");
+      Check (Test, Get (Log), ".1.1.1.|..sff.fffff.s.");
    exception
       when Error : others => Test.Report_Exception (Error);
    end Basic_Usage;
@@ -174,9 +166,9 @@ package body Natools.Cron.Tests is
          delay Total / 4;
       end;
 
-      Check (Test, Log, "(", "Before wait");
+      Check (Test, Get (Log), "(", "Before wait");
       delay Total / 2;
-      Check (Test, Log, "()", "After wait");
+      Check (Test, Get (Log), "()", "After wait");
    exception
       when Error : others => Test.Report_Exception (Error);
    end Delete_While_Busy;
@@ -214,7 +206,7 @@ package body Natools.Cron.Tests is
       --  Run:           <----L---->S  <----L---->S  <----L---->
 
       delay Total / 8;
-      Check (Test, Log, "().().()");
+      Check (Test, Get (Log), "().().()");
    exception
       when Error : others => Test.Report_Exception (Error);
    end Insert_While_Busy;
@@ -241,7 +233,7 @@ package body Natools.Cron.Tests is
          delay Total - Tick / 2;
       end;
 
-      Check (Test, Log, "12312123");
+      Check (Test, Get (Log), "12312123");
    exception
       when Error : others => Test.Report_Exception (Error);
    end Time_Collision;
