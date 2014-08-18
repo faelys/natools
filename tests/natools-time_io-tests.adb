@@ -18,20 +18,38 @@ with Ada.Calendar.Arithmetic;
 with Ada.Calendar.Formatting;
 with Ada.Calendar.Time_Zones;
 with Natools.Time_IO.Human;
+with Natools.Time_IO.RFC_3339;
 
 package body Natools.Time_IO.Tests is
 
    use type Ada.Calendar.Time;
    use type Ada.Calendar.Time_Zones.Time_Offset;
 
+   type Extended_Time is record
+      Time : Ada.Calendar.Time;
+      Offset : Ada.Calendar.Time_Zones.Time_Offset;
+   end record;
+
 
    ------------------------------
    -- Local Helper Subprograms --
    ------------------------------
 
+   function Explicit_Sign (Image : String) return String
+     is (if Image'Length > 0 and then Image (Image'First) = ' '
+         then '+' & Image (Image'First + 1 .. Image'Last)
+         else Image);
+
+   function Image (Time : Extended_Time) return String
+     is ('[' & Ada.Calendar.Formatting.Image (Time.Time) & "] "
+      & Explicit_Sign
+         (Ada.Calendar.Time_Zones.Time_Offset'Image (Time.Offset)));
+
    function Quote (Original : String) return String
      is ('"' & Original & '"');
 
+
+   procedure Check is new NT.Generic_Check (Extended_Time);
 
    procedure Check is new NT.Generic_Check (String, "=", Quote);
 
@@ -45,6 +63,8 @@ package body Natools.Time_IO.Tests is
    begin
       Human_Duration (Report);
       Human_Time_Difference (Report);
+      Read_From_RFC_3339 (Report);
+      Write_As_RFC_3339 (Report);
    end All_Tests;
 
 
@@ -155,5 +175,111 @@ package body Natools.Time_IO.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Human_Time_Difference;
+
+
+   procedure Read_From_RFC_3339 (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("RFC-3339 -> Ada.Calendar.Time");
+      Now : constant Extended_Time
+        := (Ada.Calendar.Clock, Ada.Calendar.Time_Zones.UTC_Time_Offset);
+
+      function Value (Img : String) return Extended_Time;
+
+      function Value (Img : String) return Extended_Time is
+         Result : Extended_Time;
+      begin
+         RFC_3339.Value (Img, Result.Time, Result.Offset);
+         return Result;
+      end Value;
+   begin
+      Check (Test,
+         (Ada.Calendar.Formatting.Time_Of
+           (1985, 04, 12, 23, 20, 50, 0.52, False, 0), 0),
+         Value ("1985-04-12T23:20:50.52Z"),
+         "[1] UTC time with subseconds:");
+
+      Check (Test,
+         (Ada.Calendar.Formatting.Time_Of
+           (1996, 12, 19, 16, 39, 57, 0.0, False, -8 * 60), -8 * 60),
+         Value ("1996-12-19T16:39:57-08:00"),
+         "[2] Time with negative offset:");
+
+      Check (Test,
+         (Ada.Calendar.Formatting.Time_Of
+           (1990, 12, 31, 23, 59, 59, 0.0, True, 0), 0),
+         Value ("1990-12-31T23:59:60Z"),
+         "[3] UTC leap second:");
+
+      Check (Test,
+         (Ada.Calendar.Formatting.Time_Of
+           (1990, 12, 31, 15, 59, 59, 0.0, True, -8 * 60), -8 * 60),
+         Value ("1990-12-31T15:59:60-08:00"),
+         "[4] Leap second with time offset:");
+
+      Check (Test,
+         (Ada.Calendar.Formatting.Time_Of
+           (1937, 01, 01, 12, 0, 27, 0.87, False, 20), 20),
+         Value ("1937-01-01T12:00:27.87+00:20"),
+         "[5] Noon in the Netherlands:");
+
+      Check (Test, Now,
+         Value (RFC_3339.Image (Now.Time, Subsecond_Digits => 9)),
+         "[6] Round trip with current time:");
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Read_From_RFC_3339;
+
+
+   procedure Write_As_RFC_3339 (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Ada.Calendar.Time -> RFC-3339");
+   begin
+      Check (Test,
+         "1985-04-12T23:20:50.52Z",
+         RFC_3339.Image
+           (Ada.Calendar.Formatting.Time_Of
+              (1985, 04, 12, 23, 20, 50, 0.52, False, 0),
+            0, 2),
+         "[1] UTC time with subseconds:");
+
+      Check (Test,
+         "1996-12-19T16:39:57-08:00",
+         RFC_3339.Image
+           (Ada.Calendar.Formatting.Time_Of
+              (1996, 12, 19, 16, 39, 57, 0.0, False, -8 * 60),
+            -8 * 60, 0),
+         "[2] Time with negative offset:");
+
+      Check (Test,
+         "1990-12-31T23:59:60Z",
+         RFC_3339.Image
+           (Ada.Calendar.Formatting.Time_Of
+              (1990, 12, 31, 23, 59, 59, 0.0, True, 0),
+            0, 0),
+         "[3] UTC leap second:");
+
+      Check (Test,
+         "1990-12-31T15:59:60-08:00",
+         RFC_3339.Image
+           (Ada.Calendar.Formatting.Time_Of
+              (1990, 12, 31, 15, 59, 59, 0.0, True, -8 * 60),
+            -8 * 60, 0),
+         "[4] Leap second with time offset:");
+
+      Check (Test,
+         "1937-01-01T12:00:27.87+00:20",
+         RFC_3339.Image
+           (Ada.Calendar.Formatting.Time_Of
+              (1937, 01, 01, 12, 0, 27, 0.87, False, 20),
+            20, 2),
+         "[5] Noon in the Netherlands:");
+
+      Check (Test,
+         "2014-12-25T23:00:00+01:00",
+         RFC_3339.Image
+           (RFC_3339.Value ("2014-12-25T23:00:00+01:00"),
+            60, 0),
+         "[6] Round trip");
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Write_As_RFC_3339;
 
 end Natools.Time_IO.Tests;

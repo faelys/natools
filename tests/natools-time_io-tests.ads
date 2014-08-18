@@ -29,5 +29,7 @@ package Natools.Time_IO.Tests is
 
    procedure Human_Duration (Report : in out NT.Reporter'Class);
    procedure Human_Time_Difference (Report : in out NT.Reporter'Class);
+   procedure Read_From_RFC_3339 (Report : in out NT.Reporter'Class);
+   procedure Write_As_RFC_3339 (Report : in out NT.Reporter'Class);
 
 end Natools.Time_IO.Tests;
