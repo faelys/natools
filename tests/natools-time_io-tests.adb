@@ -40,6 +40,8 @@ package body Natools.Time_IO.Tests is
          then '+' & Image (Image'First + 1 .. Image'Last)
          else Image);
 
+   function Has_Leap_Second_Support return Boolean;
+
    function Image (Time : Extended_Time) return String
      is ('[' & Ada.Calendar.Formatting.Image (Time.Time) & "] "
       & Explicit_Sign
@@ -52,6 +54,53 @@ package body Natools.Time_IO.Tests is
    procedure Check is new NT.Generic_Check (Extended_Time);
 
    procedure Check is new NT.Generic_Check (String, "=", Quote);
+
+
+   function Has_Leap_Second_Support return Boolean is
+      Leap_Second_Time : Ada.Calendar.Time;
+      Year : Ada.Calendar.Year_Number;
+      Month : Ada.Calendar.Month_Number;
+      Day : Ada.Calendar.Day_Number;
+      Hour : Ada.Calendar.Formatting.Hour_Number;
+      Minute : Ada.Calendar.Formatting.Minute_Number;
+      Second : Ada.Calendar.Formatting.Second_Number;
+      Sub_Second : Ada.Calendar.Formatting.Second_Duration;
+      Is_Leap_Second : Boolean;
+   begin
+      begin
+         Leap_Second_Time := Ada.Calendar.Formatting.Time_Of
+           (1990, 12, 31, 23, 59, 59, 0.25, True, 0);
+      exception
+         when Ada.Calendar.Time_Error =>
+            --  Leap second are explicitly not supported
+            return False;
+      end;
+
+      Ada.Calendar.Formatting.Split
+        (Leap_Second_Time,
+         Year, Month, Day,
+         Hour, Minute, Second, Sub_Second,
+         Is_Leap_Second,
+         Time_Zone => 0);
+
+      --  Check that Time_Of/Split at least work on the normal part
+
+      pragma Assert (Year = 1990);
+      pragma Assert (Month = 12);
+      pragma Assert (Day = 31);
+      pragma Assert (Hour = 23);
+      pragma Assert (Minute = 59);
+      pragma Assert (Second = 59);
+      pragma Assert (Sub_Second = 0.25);
+
+      --  According to the standard, Is_Leap_Second should be True at this
+      --  point, because Time_Error should have been raised if leap second is
+      --  not supported.
+      --  However some implementations mistakenly drop silently Leap_Second,
+      --  so actual support is determined here by check Is_Leap_Second.
+
+      return Is_Leap_Second;
+   end Has_Leap_Second_Support;
 
 
 
@@ -203,17 +252,19 @@ package body Natools.Time_IO.Tests is
          Value ("1996-12-19T16:39:57-08:00"),
          "[2] Time with negative offset:");
 
-      Check (Test,
-         (Ada.Calendar.Formatting.Time_Of
-           (1990, 12, 31, 23, 59, 59, 0.0, True, 0), 0),
-         Value ("1990-12-31T23:59:60Z"),
-         "[3] UTC leap second:");
+      if Has_Leap_Second_Support then
+         Check (Test,
+            (Ada.Calendar.Formatting.Time_Of
+              (1990, 12, 31, 23, 59, 59, 0.0, True, 0), 0),
+            Value ("1990-12-31T23:59:60Z"),
+            "[3] UTC leap second:");
 
-      Check (Test,
-         (Ada.Calendar.Formatting.Time_Of
-           (1990, 12, 31, 15, 59, 59, 0.0, True, -8 * 60), -8 * 60),
-         Value ("1990-12-31T15:59:60-08:00"),
-         "[4] Leap second with time offset:");
+         Check (Test,
+            (Ada.Calendar.Formatting.Time_Of
+              (1990, 12, 31, 15, 59, 59, 0.0, True, -8 * 60), -8 * 60),
+            Value ("1990-12-31T15:59:60-08:00"),
+            "[4] Leap second with time offset:");
+      end if;
 
       Check (Test,
          (Ada.Calendar.Formatting.Time_Of
@@ -248,21 +299,23 @@ package body Natools.Time_IO.Tests is
             -8 * 60, 0),
          "[2] Time with negative offset:");
 
-      Check (Test,
-         "1990-12-31T23:59:60Z",
-         RFC_3339.Image
-           (Ada.Calendar.Formatting.Time_Of
-              (1990, 12, 31, 23, 59, 59, 0.0, True, 0),
-            0, 0),
-         "[3] UTC leap second:");
+      if Has_Leap_Second_Support then
+         Check (Test,
+            "1990-12-31T23:59:60Z",
+            RFC_3339.Image
+              (Ada.Calendar.Formatting.Time_Of
+                 (1990, 12, 31, 23, 59, 59, 0.0, True, 0),
+               0, 0),
+            "[3] UTC leap second:");
 
-      Check (Test,
-         "1990-12-31T15:59:60-08:00",
-         RFC_3339.Image
-           (Ada.Calendar.Formatting.Time_Of
-              (1990, 12, 31, 15, 59, 59, 0.0, True, -8 * 60),
-            -8 * 60, 0),
-         "[4] Leap second with time offset:");
+         Check (Test,
+            "1990-12-31T15:59:60-08:00",
+            RFC_3339.Image
+              (Ada.Calendar.Formatting.Time_Of
+                 (1990, 12, 31, 15, 59, 59, 0.0, True, -8 * 60),
+               -8 * 60, 0),
+            "[4] Leap second with time offset:");
+      end if;
 
       Check (Test,
          "1937-01-01T12:00:27.87+00:20",
