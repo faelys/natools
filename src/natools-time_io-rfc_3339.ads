@@ -34,7 +34,8 @@ package Natools.Time_IO.RFC_3339 is
 
    function Image
      (Date : Ada.Calendar.Time;
-      Subsecond_Digits : Natural := 0)
+      Subsecond_Digits : Natural := 0;
+      Force_Leap_Second : Boolean := False)
      return String
      with Post => Is_Valid (Image'Result);
       --  Return the RFC-3339 representation of Date in current time zone
@@ -42,7 +43,8 @@ package Natools.Time_IO.RFC_3339 is
    function Image
      (Date : Ada.Calendar.Time;
       Time_Zone : Ada.Calendar.Time_Zones.Time_Offset;
-      Subsecond_Digits : Natural := 0)
+      Subsecond_Digits : Natural := 0;
+      Force_Leap_Second : Boolean := False)
      return String
      with Post => Is_Valid (Image'Result);
       --  Return the RFC-3339 representation of Date in Time_Zone
@@ -55,6 +57,14 @@ package Natools.Time_IO.RFC_3339 is
      (Image : in String;
       Date : out Ada.Calendar.Time;
       Time_Zone : out Ada.Calendar.Time_Zones.Time_Offset)
+     with Pre => Is_Valid (Image) or else raise Constraint_Error;
+      --  Return the time associated with the given RFC-3339 representation
+
+   procedure Value
+     (Image : in String;
+      Date : out Ada.Calendar.Time;
+      Time_Zone : out Ada.Calendar.Time_Zones.Time_Offset;
+      Leap_Second : out Boolean)
      with Pre => Is_Valid (Image) or else raise Constraint_Error;
       --  Return the time associated with the given RFC-3339 representation
 

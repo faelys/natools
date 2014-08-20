@@ -83,20 +83,23 @@ package body Natools.Time_IO.RFC_3339 is
 
    function Image
      (Date : Ada.Calendar.Time;
-      Subsecond_Digits : Natural := 0)
+      Subsecond_Digits : Natural := 0;
+      Force_Leap_Second : Boolean := False)
      return String is
    begin
       return Image
         (Date,
          Ada.Calendar.Time_Zones.UTC_Time_Offset (Date),
-         Subsecond_Digits);
+         Subsecond_Digits,
+         Force_Leap_Second);
    end Image;
 
 
    function Image
      (Date : Ada.Calendar.Time;
       Time_Zone : Ada.Calendar.Time_Zones.Time_Offset;
-      Subsecond_Digits : Natural := 0)
+      Subsecond_Digits : Natural := 0;
+      Force_Leap_Second : Boolean := False)
      return String
    is
       function Subsecond_Image
@@ -180,7 +183,7 @@ package body Natools.Time_IO.RFC_3339 is
          Leap_Second,
          Time_Zone);
 
-      if Leap_Second then
+      if Leap_Second or Force_Leap_Second then
          pragma Assert (Second = 59);
          Used_Second := 60;
       else
@@ -231,6 +234,18 @@ package body Natools.Time_IO.RFC_3339 is
       Date : out Ada.Calendar.Time;
       Time_Zone : out Ada.Calendar.Time_Zones.Time_Offset)
    is
+      Discarded : Boolean;
+   begin
+      Value (Image, Date, Time_Zone, Discarded);
+   end Value;
+
+
+   procedure Value
+     (Image : in String;
+      Date : out Ada.Calendar.Time;
+      Time_Zone : out Ada.Calendar.Time_Zones.Time_Offset;
+      Leap_Second : out Boolean)
+   is
       Year : Ada.Calendar.Year_Number;
       Month : Ada.Calendar.Month_Number;
       Day : Ada.Calendar.Day_Number;
@@ -238,7 +253,6 @@ package body Natools.Time_IO.RFC_3339 is
       Minute : Ada.Calendar.Formatting.Minute_Number;
       Second : Ada.Calendar.Formatting.Second_Number;
       Subsecond : Ada.Calendar.Formatting.Second_Duration := 0.0;
-      Leap_Second : Boolean;
    begin
       Year := Natural'Value (Image (Image'First .. Image'First + 3));
       Month := Natural'Value (Image (Image'First + 5 .. Image'First + 6));
@@ -255,6 +269,7 @@ package body Natools.Time_IO.RFC_3339 is
             Leap_Second := True;
             Second := 59;
          else
+            Leap_Second := False;
             Second := Number;
          end if;
       end;
@@ -290,10 +305,23 @@ package body Natools.Time_IO.RFC_3339 is
          end case;
       end if;
 
+      if Leap_Second then
+         begin
+            Date := Ada.Calendar.Formatting.Time_Of
+              (Year, Month, Day,
+               Hour, Minute, Second,
+               Subsecond, True, Time_Zone);
+            return;
+         exception
+            when Ada.Calendar.Time_Error =>
+               null;
+         end;
+      end if;
+
       Date := Ada.Calendar.Formatting.Time_Of
         (Year, Month, Day,
          Hour, Minute, Second,
-         Subsecond, Leap_Second, Time_Zone);
+         Subsecond, False, Time_Zone);
    end Value;
 
 end Natools.Time_IO.RFC_3339;
