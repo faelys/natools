@@ -231,12 +231,25 @@ package body Natools.Time_IO.Tests is
       Now : constant Extended_Time
         := (Ada.Calendar.Clock, Ada.Calendar.Time_Zones.UTC_Time_Offset);
 
-      function Value (Img : String) return Extended_Time;
+      function Value
+        (Img : String;
+         Expected_Leap : Boolean := False)
+        return Extended_Time;
 
-      function Value (Img : String) return Extended_Time is
+      function Value
+        (Img : String;
+         Expected_Leap : Boolean := False)
+        return Extended_Time
+      is
          Result : Extended_Time;
+         Leap : Boolean;
       begin
-         RFC_3339.Value (Img, Result.Time, Result.Offset);
+         RFC_3339.Value (Img, Result.Time, Result.Offset, Leap);
+         if Leap /= Expected_Leap then
+            Test.Fail ("Unexpected leap second flag at "
+              & Boolean'Image (Leap)
+              & " for """ & Img & '"');
+         end if;
          return Result;
       end Value;
    begin
@@ -263,6 +276,18 @@ package body Natools.Time_IO.Tests is
             (Ada.Calendar.Formatting.Time_Of
               (1990, 12, 31, 15, 59, 59, 0.0, True, -8 * 60), -8 * 60),
             Value ("1990-12-31T15:59:60-08:00"),
+            "[4] Leap second with time offset:");
+      else
+         Check (Test,
+            (Ada.Calendar.Formatting.Time_Of
+              (1990, 12, 31, 23, 59, 59, 0.0, False, 0), 0),
+            Value ("1990-12-31T23:59:60Z", True),
+            "[3] UTC leap second:");
+
+         Check (Test,
+            (Ada.Calendar.Formatting.Time_Of
+              (1990, 12, 31, 15, 59, 59, 0.0, False, -8 * 60), -8 * 60),
+            Value ("1990-12-31T15:59:60-08:00", True),
             "[4] Leap second with time offset:");
       end if;
 
@@ -316,6 +341,22 @@ package body Natools.Time_IO.Tests is
                -8 * 60, 0),
             "[4] Leap second with time offset:");
       end if;
+
+      Check (Test,
+         "1990-12-31T23:59:60Z",
+         RFC_3339.Image
+           (Ada.Calendar.Formatting.Time_Of
+              (1990, 12, 31, 23, 59, 59, 0.0, False, 0),
+            0, 0, True),
+         "[3b] UTC leap second with workaround:");
+
+      Check (Test,
+         "1990-12-31T15:59:60-08:00",
+         RFC_3339.Image
+           (Ada.Calendar.Formatting.Time_Of
+              (1990, 12, 31, 15, 59, 59, 0.0, False, -8 * 60),
+            -8 * 60, 0, True),
+         "[4b] Leap second with time offset and workaround:");
 
       Check (Test,
          "1937-01-01T12:00:27.87+00:20",
