@@ -300,6 +300,16 @@ package body Natools.Time_IO.Tests is
       Check (Test, Now,
          Value (RFC_3339.Image (Now.Time, Subsecond_Digits => 9)),
          "[6] Round trip with current time:");
+
+      declare
+         Time : Extended_Time;
+      begin
+         RFC_3339.Value ("1990-11-31T23:59:60Z", Time.Time, Time.Offset);
+         Test.Fail ("No exception on 1990-11-31, found " & Image (Time));
+      exception
+         when Ada.Calendar.Time_Error =>
+            null;
+      end;
    exception
       when Error : others => Test.Report_Exception (Error);
    end Read_From_RFC_3339;
