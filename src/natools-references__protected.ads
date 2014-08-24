@@ -72,6 +72,11 @@ package Natools.References is
    function Is_Empty (Ref : Immutable_Reference) return Boolean;
       --  Check whether Ref refers to an actual object
 
+   function Is_Last (Ref : Immutable_Reference) return Boolean;
+      --  Check whether Ref is the last reference to its object.
+      --  WARNING: This is inherently not task-safe if Ref can be
+      --  concurrently accessed.
+
    function "=" (Left, Right : Immutable_Reference) return Boolean;
       --  Check whether Left and Right refer to the same object
 

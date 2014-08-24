@@ -116,6 +116,12 @@ package body Natools.References is
    end Is_Empty;
 
 
+   function Is_Last (Ref : Immutable_Reference) return Boolean is
+   begin
+      return Ref.Count.all = 1;
+   end Is_Last;
+
+
    function "=" (Left, Right : Immutable_Reference) return Boolean is
    begin
       return Left.Data = Right.Data;
