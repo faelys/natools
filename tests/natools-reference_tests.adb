@@ -148,6 +148,15 @@ package body Natools.Reference_Tests is
            & " instead of"
            & Natural'Image (Expected_Count));
          Continue := False;
+
+      elsif not Ref.Is_Empty and then Ref.Is_Last /= (Actual_Count = 1) then
+         NT.Item (Report, Name, NT.Fail);
+         NT.Info (Report,
+           "Unexpected result of Is_Last ("
+           & Boolean'Image (Ref.Is_Last)
+           & ") while counter is"
+           & Natural'Image (Actual_Count));
+         Continue := False;
       end if;
    end Check_Ref;
 
