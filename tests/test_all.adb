@@ -25,6 +25,7 @@ with Natools.Cron.Tests;
 with Natools.Getopt_Long_Tests;
 with Natools.HMAC_Tests;
 with Natools.Reference_Tests;
+with Natools.Reference_Tests.Pools;
 with Natools.S_Expressions.Atom_Buffers.Tests;
 with Natools.S_Expressions.Cache_Tests;
 with Natools.S_Expressions.Dynamic_Interpreter_Tests;
@@ -90,6 +91,10 @@ begin
    Report.Section ("References");
    Natools.Reference_Tests.All_Tests (Report);
    Natools.Reference_Tests.Test_Task_Safety (Report);
+   Report.End_Section;
+
+   Report.Section ("References.Pools");
+   Natools.Reference_Tests.Pools.All_Tests (Report);
    Report.End_Section;
 
    Report.Section ("S_Expressions.Atom_Buffers");
