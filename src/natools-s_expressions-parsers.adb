@@ -93,7 +93,7 @@ package body Natools.S_Expressions.Parsers is
          raise Program_Error;
       end if;
 
-      Self.Buffer.Read (Data, Length);
+      Self.Buffer.Peek (Data, Length);
    end Read_Atom;
 
 

@@ -220,12 +220,12 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
             Retrieved : Atom (10 .. 310);
             Length : Count;
          begin
-            Buffer.Read (Retrieved, Length);
+            Buffer.Peek (Retrieved, Length);
             if Length /= Data'Length
               or else Retrieved (10 .. Length + 9) /= Data
             then
                Report.Item (Name, NT.Fail);
-               Report.Info ("Read into an existing buffer");
+               Report.Info ("Peek into an existing buffer");
                Report.Info ("Length returned" & Count'Image (Length)
                  & ", expected" & Count'Image (Data'Length));
                Test_Tools.Dump_Atom
@@ -239,10 +239,10 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
             Retrieved : Atom (20 .. 50);
             Length : Count;
          begin
-            Buffer.Read (Retrieved, Length);
+            Buffer.Peek (Retrieved, Length);
             if Length /= Data'Length or else Retrieved /= Data (0 .. 30) then
                Report.Item (Name, NT.Fail);
-               Report.Info ("Read into a buffer too small");
+               Report.Info ("Peek into a buffer too small");
                Report.Info ("Length returned" & Count'Image (Length)
                  & ", expected" & Count'Image (Data'Length));
                Test_Tools.Dump_Atom (Report, Retrieved, "Found");
@@ -300,10 +300,10 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
             Retrieved : Atom (1 .. 10);
             Length : Count;
          begin
-            Buffer.Read (Retrieved, Length);
+            Buffer.Peek (Retrieved, Length);
             if Length /= 0 then
                Report.Item (Name, NT.Fail);
-               Report.Info ("Read into an existing buffer");
+               Report.Info ("Peek into an existing buffer");
                Report.Info ("Length returned" & Count'Image (Length)
                  & ", expected 0");
                return;

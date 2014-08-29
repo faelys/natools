@@ -173,7 +173,7 @@ package body Natools.S_Expressions.Atom_Buffers is
    end Query;
 
 
-   procedure Read
+   procedure Peek
      (Buffer : in Atom_Buffer;
       Data : out Atom;
       Length : out Count)
@@ -189,7 +189,7 @@ package body Natools.S_Expressions.Atom_Buffers is
          Data (Data'First .. Data'First + Transmit - 1)
            := Buffer.Ref.Query.Data.all (1 .. Transmit);
       end if;
-   end Read;
+   end Peek;
 
 
    function Element (Buffer : Atom_Buffer; Position : Count) return Octet is

@@ -50,7 +50,7 @@ package Natools.S_Expressions.Atom_Buffers is
    procedure Query
      (Buffer : in Atom_Buffer;
       Process : not null access procedure (Data : in Atom));
-   procedure Read
+   procedure Peek
      (Buffer : in Atom_Buffer;
       Data : out Atom;
       Length : out Count);
