@@ -27,8 +27,16 @@ with Natools.S_Expressions.Atom_Refs;
 package Natools.S_Expressions.Atom_Buffers is
    pragma Preelaborate (Atom_Buffers);
 
-   type Atom_Buffer is tagged limited private;
+   type Atom_Buffer is new Ada.Streams.Root_Stream_Type with private;
    pragma Preelaborable_Initialization (Atom_Buffer);
+
+   overriding procedure Write
+     (Buffer : in out Atom_Buffer;
+      Item : in Ada.Streams.Stream_Element_Array);
+   overriding procedure Read
+     (Buffer : in out Atom_Buffer;
+      Item : out Ada.Streams.Stream_Element_Array;
+      Last : out Ada.Streams.Stream_Element_Offset);
 
    procedure Preallocate (Buffer : in out Atom_Buffer; Length : in Count);
       --  Preallocate enough memory to append Length octets without
@@ -71,7 +79,7 @@ package Natools.S_Expressions.Atom_Buffers is
 
 private
 
-   type Atom_Buffer is tagged limited record
+   type Atom_Buffer is new Ada.Streams.Root_Stream_Type with record
       Ref : Atom_Refs.Reference;
       Available, Used : Count := 0;
    end record;

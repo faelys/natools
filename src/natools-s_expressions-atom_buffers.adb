@@ -218,4 +218,28 @@ package body Natools.S_Expressions.Atom_Buffers is
       Buffer.Used := 0;
    end Soft_Reset;
 
+
+   overriding procedure Write
+     (Buffer : in out Atom_Buffer;
+      Item : in Ada.Streams.Stream_Element_Array)
+     renames Append;
+
+
+   overriding procedure Read
+     (Buffer : in out Atom_Buffer;
+      Item : out Ada.Streams.Stream_Element_Array;
+      Last : out Ada.Streams.Stream_Element_Offset) is
+   begin
+      if Item'Length < Buffer.Used then
+         Last := Item'Last;
+         Item := Buffer.Ref.Query.Data.all (1 .. Item'Length);
+         Buffer.Used := Buffer.Used - Item'Length;
+      else
+         Last := Item'First + Buffer.Used - 1;
+         Item (Item'First .. Last)
+           := Buffer.Ref.Query.Data.all (1 .. Buffer.Used);
+         Buffer.Used := 0;
+      end if;
+   end Read;
+
 end Natools.S_Expressions.Atom_Buffers;
