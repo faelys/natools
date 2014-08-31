@@ -33,6 +33,7 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
       Test_Reverse_Append (Report);
       Test_Invert (Report);
       Test_Empty_Append (Report);
+      Test_Stream_Interface (Report);
    end All_Tests;
 
 
@@ -463,5 +464,28 @@ package body Natools.S_Expressions.Atom_Buffers.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Test_Empty_Append;
+
+
+   procedure Test_Stream_Interface (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Stream interface");
+   begin
+      declare
+         Buffer : Atom_Buffer;
+         Part_1 : constant Atom := To_Atom ("0123456789");
+         Part_2 : constant Atom := To_Atom ("ABCDEF");
+         Data : Atom (1 .. 10);
+         Last : Offset;
+      begin
+         Buffer.Write (Part_1 & Part_2);
+         Buffer.Read (Data, Last);
+         Test_Tools.Test_Atom (Test, Part_1, Data);
+         Test_Tools.Test_Atom (Test, Part_2, Buffer.Data);
+         Buffer.Read (Data, Last);
+         Test_Tools.Test_Atom (Test, Part_2, Data (Data'First .. Last));
+         Test_Tools.Test_Atom (Test, Null_Atom, Buffer.Data);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Test_Stream_Interface;
 
 end Natools.S_Expressions.Atom_Buffers.Tests;
