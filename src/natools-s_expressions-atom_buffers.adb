@@ -231,9 +231,15 @@ package body Natools.S_Expressions.Atom_Buffers is
       Last : out Ada.Streams.Stream_Element_Offset) is
    begin
       if Item'Length < Buffer.Used then
-         Last := Item'Last;
-         Item := Buffer.Ref.Query.Data.all (1 .. Item'Length);
-         Buffer.Used := Buffer.Used - Item'Length;
+         declare
+            Mutator : constant Atom_Refs.Mutator := Buffer.Ref.Update;
+         begin
+            Last := Item'Last;
+            Item := Mutator.Data.all (1 .. Item'Length);
+            Buffer.Used := Buffer.Used - Item'Length;
+            Mutator.Data.all (1 .. Buffer.Used) := Mutator.Data.all
+              (Item'Length + 1 .. Item'Length + Buffer.Used);
+         end;
       else
          Last := Item'First + Buffer.Used - 1;
          Item (Item'First .. Last)
