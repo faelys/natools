@@ -41,6 +41,7 @@ with Natools.Static_Hash_Maps.S_Expressions.Tests;
 with Natools.String_Slice_Set_Tests;
 with Natools.String_Slice_Tests;
 with Natools.Time_IO.Tests;
+with Natools.Time_Statistics.Tests;
 with Natools.Tests.Text_IO;
 
 procedure Test_All is
@@ -155,6 +156,10 @@ begin
 
    Report.Section ("Time_IO");
    Natools.Time_IO.Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("Time_Statistics");
+   Natools.Time_Statistics.Tests.All_Tests (Report);
    Report.End_Section;
 
    Natools.Tests.Text_IO.Print_Results (Report.Total_Results);
