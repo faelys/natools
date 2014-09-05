@@ -14,20 +14,11 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- Natools.Time_Statistics.Tests provides a test suite for the statistics   --
--- facilities rooted at package Natools.Time_Statistics.                    --
-------------------------------------------------------------------------------
+with Ada.Calendar;
+with Natools.Time_Statistics.Generic_Timers;
 
-with Natools.Tests;
-
-package Natools.Time_Statistics.Tests is
-
-   package NT renames Natools.Tests;
-
-   procedure All_Tests (Report : in out NT.Reporter'Class);
-
-   procedure Summary_Accumulator (Report : in out NT.Reporter'Class);
-   procedure Coarse_Timer (Report : in out NT.Reporter'Class);
-
-end Natools.Time_Statistics.Tests;
+package Natools.Time_Statistics.Coarse_Timers
+  is new Natools.Time_Statistics.Generic_Timers
+  (Ada.Calendar.Time,
+   Ada.Calendar.Clock,
+   Ada.Calendar."-");

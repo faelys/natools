@@ -14,6 +14,8 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
+with Natools.Time_Statistics.Coarse_Timers;
+
 package body Natools.Time_Statistics.Tests is
 
    procedure Check is new NT.Generic_Check
@@ -30,6 +32,7 @@ package body Natools.Time_Statistics.Tests is
    procedure All_Tests (Report : in out NT.Reporter'Class) is
    begin
       Summary_Accumulator (Report);
+      Coarse_Timer (Report);
    end All_Tests;
 
 
@@ -37,6 +40,43 @@ package body Natools.Time_Statistics.Tests is
    -----------------------
    -- Inidividual Tests --
    -----------------------
+
+   procedure Coarse_Timer (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Coarse timer standard use");
+      Total_Length : constant Duration := 0.2;
+   begin
+      declare
+         Stats : aliased Summary;
+      begin
+         declare
+            Actual_Auto : Coarse_Timers.Auto_Timer (Stats'Access);
+            Aborted_Auto : Coarse_Timers.Auto_Timer (Stats'Access);
+            Manual : Coarse_Timers.Manual_Timer (Stats'Access);
+
+            pragma Unreferenced (Actual_Auto);
+         begin
+            Manual.Start;
+            Check (Test, 0, Stats.Sample_Count);
+
+            delay Total_Length / 2;
+
+            Aborted_Auto.Cancel;
+            Manual.Stop;
+            Check (Test, 1, Stats.Sample_Count, "Sample count");
+            Manual.Start;
+
+            delay Total_Length / 2;
+
+            Manual.Cancel;
+            Check (Test, 1, Stats.Sample_Count, "Sample count");
+         end;
+
+         Check (Test, 2, Stats.Sample_Count, "Sample count");
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Coarse_Timer;
+
 
    procedure Summary_Accumulator (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item ("Summary accumulator");
