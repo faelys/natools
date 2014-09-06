@@ -15,20 +15,15 @@
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
--- Natools.Time_Statistics.Tests provides a test suite for the statistics   --
--- facilities rooted at package Natools.Time_Statistics.                    --
+-- Natools.Time_Statistics.Fine_Timer_Difference provides a difference      --
+-- function between real-time moments as a Duration value.                  --
 ------------------------------------------------------------------------------
 
-with Natools.Tests;
+with Ada.Real_Time;
 
-package Natools.Time_Statistics.Tests is
-
-   package NT renames Natools.Tests;
-
-   procedure All_Tests (Report : in out NT.Reporter'Class);
-
-   procedure Summary_Accumulator (Report : in out NT.Reporter'Class);
-   procedure Coarse_Timer (Report : in out NT.Reporter'Class);
-   procedure Fine_Timer (Report : in out NT.Reporter'Class);
-
-end Natools.Time_Statistics.Tests;
+function Natools.Time_Statistics.Fine_Timer_Difference
+  (Left, Right : Ada.Real_Time.Time)
+  return Duration is
+begin
+   return Ada.Real_Time.To_Duration (Ada.Real_Time."-" (Left, Right));
+end Natools.Time_Statistics.Fine_Timer_Difference;
