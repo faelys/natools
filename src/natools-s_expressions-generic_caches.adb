@@ -422,4 +422,10 @@ package body Natools.S_Expressions.Generic_Caches is
         := Object.Absolute_Level < Lockable.Current_Level (Object.Stack);
    end Unlock;
 
+
+   overriding function Duplicate (Object : Cursor) return Cursor is
+   begin
+      return Object;
+   end Duplicate;
+
 end Natools.S_Expressions.Generic_Caches;
