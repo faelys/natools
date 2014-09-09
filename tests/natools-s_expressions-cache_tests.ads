@@ -32,5 +32,6 @@ package Natools.S_Expressions.Cache_Tests is
    procedure Default_Instantiation (Report : in out NT.Reporter'Class);
    procedure Descriptor_Interface (Report : in out NT.Reporter'Class);
    procedure Lockable_Interface (Report : in out NT.Reporter'Class);
+   procedure Replayable_Interface (Report : in out NT.Reporter'Class);
 
 end Natools.S_Expressions.Cache_Tests;
