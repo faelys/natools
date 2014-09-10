@@ -41,7 +41,8 @@ package Natools.S_Expressions.Printers is
 
    procedure Transfer
      (Source : in out Descriptor'Class;
-      Target : in out Printer'Class);
+      Target : in out Printer'Class;
+      Check_Level : in Boolean := False);
 
    type Canonical (Stream : access Ada.Streams.Root_Stream_Type'Class) is
      new Printer with null record;

@@ -46,7 +46,8 @@ package body Natools.S_Expressions.Printers is
 
    procedure Transfer
      (Source : in out Descriptor'Class;
-      Target : in out Printer'Class)
+      Target : in out Printer'Class;
+      Check_Level : in Boolean := False)
    is
       procedure Print_Atom (Data : in Atom);
 
@@ -56,6 +57,7 @@ package body Natools.S_Expressions.Printers is
       end Print_Atom;
 
       Event : Events.Event := Source.Current_Event;
+      Starting_Level : constant Natural := Source.Current_Level;
    begin
       loop
          case Event is
@@ -64,6 +66,8 @@ package body Natools.S_Expressions.Printers is
             when Events.Open_List =>
                Target.Open_List;
             when Events.Close_List =>
+               exit when Check_Level
+                 and then Source.Current_Level < Starting_Level;
                Target.Close_List;
             when Events.Add_Atom =>
                Source.Query_Atom (Print_Atom'Access);
