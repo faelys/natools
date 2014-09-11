@@ -182,6 +182,19 @@ package body Natools.S_Expressions.Generic_Caches is
    end Duplicate;
 
 
+   function Move (Source : in out S_Expressions.Descriptor'Class)
+     return Reference
+   is
+      Result : Reference;
+   begin
+      Printers.Transfer
+        (Source => Source,
+         Target => Result,
+         Check_Level => True);
+      return Result;
+   end Move;
+
+
 
    -----------------------
    -- Printer Interface --

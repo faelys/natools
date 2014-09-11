@@ -55,6 +55,10 @@ package Natools.S_Expressions.Generic_Caches is
    function Duplicate (Cache : Reference) return Reference;
       --  Create a new copy of the S-expression held in Cache and return it
 
+   function Move (Source : in out S_Expressions.Descriptor'Class)
+     return Reference;
+      --  Build a new cache by (destructively) reading Original
+
 
    type Cursor is new Lockable.Descriptor and Replayable.Descriptor
      with private;
@@ -86,6 +90,11 @@ package Natools.S_Expressions.Generic_Caches is
 
    function First (Cache : Reference'Class) return Cursor;
       --  Create a new Cursor pointing at the beginning of Cache
+
+   function Move (Source : in out S_Expressions.Descriptor'Class) return Cursor
+     is (Move (Source).First);
+      --  Return a cursor holding a copy of Original (which is
+      --  destructively read)
 
 private
 
