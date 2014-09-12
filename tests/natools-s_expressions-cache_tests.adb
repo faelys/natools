@@ -79,6 +79,7 @@ package body Natools.S_Expressions.Cache_Tests is
       Descriptor_Interface (Report);
       Lockable_Interface (Report);
       Replayable_Interface (Report);
+      Duplication (Report);
    end All_Tests;
 
 
@@ -310,6 +311,65 @@ package body Natools.S_Expressions.Cache_Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Descriptor_Interface;
+
+
+   procedure Duplication (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Duplication of general descriptor");
+   begin
+      Full_Duplication :
+      declare
+         Input : aliased Test_Tools.Memory_Stream;
+         Parser : Parsers.Stream_Parser (Input'Access);
+      begin
+         Input.Set_Data (Lockable.Tests.Test_Expression);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+
+         declare
+            Image : Caches.Cursor := Caches.Move (Parser);
+         begin
+            Lockable.Tests.Test_Interface (Test, Image);
+         end;
+      end Full_Duplication;
+
+      Partial_Duplication :
+      declare
+         Input : aliased Test_Tools.Memory_Stream;
+         Parser : Parsers.Stream_Parser (Input'Access);
+         Copy : Caches.Cursor;
+      begin
+         Input.Set_Data (To_Atom
+           ("(first_part (command-1) (command-2 arg-1 arg-2) end)"
+            & "(second_part (command-3 arg-3) final)"));
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("first_part"), 1);
+
+         Copy := Caches.Move (Parser);
+
+         Test_Tools.Test_Atom_Accessors
+           (Test, Copy, To_Atom ("first_part"), 0);
+         Test_Tools.Next_And_Check (Test, Copy, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Copy, To_Atom ("command-1"), 1);
+         Test_Tools.Next_And_Check (Test, Copy, Events.Close_List, 0);
+         Test_Tools.Next_And_Check (Test, Copy, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Copy, To_Atom ("command-2"), 1);
+         Test_Tools.Next_And_Check (Test, Copy, To_Atom ("arg-1"), 1);
+         Test_Tools.Next_And_Check (Test, Copy, To_Atom ("arg-2"), 1);
+         Test_Tools.Next_And_Check (Test, Copy, Events.Close_List, 0);
+         Test_Tools.Next_And_Check (Test, Copy, To_Atom ("end"), 0);
+         Test_Tools.Next_And_Check (Test, Copy, Events.End_Of_Input, 0);
+
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("second_part"), 1);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 2);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("command-3"), 2);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("arg-3"), 2);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Close_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("final"), 1);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Close_List, 0);
+      end Partial_Duplication;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Duplication;
 
 
    procedure Lockable_Interface (Report : in out NT.Reporter'Class) is
