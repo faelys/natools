@@ -57,8 +57,12 @@ package body Natools.S_Expressions.Printers is
       end Print_Atom;
 
       Event : Events.Event := Source.Current_Event;
-      Starting_Level : constant Natural := Source.Current_Level;
+      Starting_Level : Natural := Source.Current_Level;
    begin
+      if Events."=" (Event, Events.Open_List) then
+         Starting_Level := Starting_Level - 1;
+      end if;
+
       loop
          case Event is
             when Events.Error | Events.End_Of_Input =>
