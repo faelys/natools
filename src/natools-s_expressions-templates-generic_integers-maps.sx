@@ -1,0 +1,46 @@
+(Natools.Static_Maps.S_Expressions.Templates.Integers
+   pure
+   (test-function T)
+   (extra-decl "\
+   type Main_Command is
+     (Error,
+      Align,
+      Align_Center,
+      Align_Left,
+      Align_Right,
+      Base,
+      Padding,
+      Padding_Left,
+      Padding_Right,
+      Sign,
+      Width,
+      Width_Max,
+      Width_Min);
+
+   type Align_Command is (Unknown_Align, Set_Left, Set_Center, Set_Right);")
+
+   (Main_Command
+      (hash-package Natools.Static_Maps.S_Expressions.Templates.Integers.MC)
+      (function Main)
+      (not-found Error)
+      (nodes
+         (Align          align)
+         (Align_Center   align-center centered)
+         (Align_Left     align-left left-align)
+         (Align_Right    align-right right-align)
+         (Base           base)
+         (Padding        padding)
+         (Padding_Left   padding-left left-padding)
+         (Padding_Right  padding-right right-padding)
+         (Sign           sign signs)
+         (Width          width)
+         (Width_Max      width-max max-width)
+         (Width_Min      width-min min-width)))
+   (Align_Command
+      (hash-package Natools.Static_Maps.S_Expressions.Templates.Integers.AC)
+      (function To_Align_Command)
+      (not-found Unknown_Align)
+      (nodes
+         (Set_Left   left)
+         (Set_Center center)
+         (Set_Right  right))))
