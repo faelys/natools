@@ -28,6 +28,7 @@ package Natools.S_Expressions.Templates.Tests is
 
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
+   procedure Test_Discrete (Report : in out NT.Reporter'Class);
    procedure Test_Integers (Report : in out NT.Reporter'Class);
 
 end Natools.S_Expressions.Templates.Tests;

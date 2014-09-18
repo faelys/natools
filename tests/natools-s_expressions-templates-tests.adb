@@ -14,9 +14,18 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
+with Natools.S_Expressions.Parsers;
+with Natools.S_Expressions.Templates.Generic_Discrete_Render;
 with Natools.S_Expressions.Templates.Tests.Integers;
+with Natools.S_Expressions.Test_Tools;
 
 package body Natools.S_Expressions.Templates.Tests is
+
+   type Day_Name is (Monday, Tuesday, Wednesday, Thursday,
+       Friday, Saturday, Sunday);
+
+   procedure Day_Render is new Generic_Discrete_Render (Day_Name);
+
 
    -------------------------
    -- Complete Test Suite --
@@ -24,6 +33,7 @@ package body Natools.S_Expressions.Templates.Tests is
 
    procedure All_Tests (Report : in out NT.Reporter'Class) is
    begin
+      Test_Discrete (Report);
       Test_Integers (Report);
    end All_Tests;
 
@@ -31,6 +41,40 @@ package body Natools.S_Expressions.Templates.Tests is
    --------------------------------------
    -- Inidividual Children Test Suites --
    --------------------------------------
+
+   procedure Test_Discrete (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Discrete templates");
+
+      procedure Render_Test
+        (Template : in String;
+         Value : in Day_Name;
+         Expected : in String);
+
+      procedure Render_Test
+        (Template : in String;
+         Value : in Day_Name;
+         Expected : in String)
+      is
+         Input : aliased Test_Tools.Memory_Stream;
+         Output : Test_Tools.Memory_Stream;
+         Parser : Parsers.Stream_Parser (Input'Access);
+      begin
+         Input.Set_Data (To_Atom (Template));
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Parser.Next;
+         Output.Set_Expected (To_Atom (Expected));
+         Day_Render (Output, Parser, Value);
+         Output.Check_Stream (Test);
+      end Render_Test;
+   begin
+      Render_Test ("(a b)", Friday, "FRIDAY");
+      Render_Test ("(a b)", Monday, "a");
+      Render_Test ("(a b)", Tuesday, "b");
+      Render_Test ("(a b (c))", Friday, "c");
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Test_Discrete;
+
 
    procedure Test_Integers (Report : in out NT.Reporter'Class) is
    begin
