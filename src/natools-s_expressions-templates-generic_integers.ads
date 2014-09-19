@@ -43,7 +43,11 @@ generic
 package Natools.S_Expressions.Templates.Generic_Integers is
    pragma Preelaborate;
 
-   type Format is private;
+   --------------------------
+   -- High-Level Interface --
+   --------------------------
+
+   type Format is tagged private;
 
    function Render (Value : T; Template : Format) return Atom;
       --  Render Value according to Template
@@ -59,7 +63,10 @@ package Natools.S_Expressions.Templates.Generic_Integers is
       Value : in T);
       --  Read a rendering format from Template and use it on Value
 
-private
+
+   ---------------------
+   -- Auxiliary Types --
+   ---------------------
 
    type Alignment is (Left_Aligned, Centered, Right_Aligned);
    type Width is range 0 .. 10000;
@@ -74,14 +81,6 @@ private
    function Create (Atom_List : in out S_Expressions.Descriptor'Class)
      return Atom_Array;
       --  Build an array consisting of consecutive atoms found in Atom_List
-
-   procedure Reverse_Render
-     (Value : in Natural_T;
-      Symbols : in Atom_Array;
-      Output : in out Atom_Buffers.Atom_Buffer;
-      Length : out Width)
-     with Pre => Symbols'Length >= 2 and Symbols'First = 0;
-      --  Create a little-endian image of Value using the given symbol table
 
 
    package Atom_Arrays is new References
@@ -98,11 +97,74 @@ private
      with Post => not Decimal'Result.Is_Empty;
       --  Return a reference to usual decimal representation
 
+
+   ---------------------
+   -- Format Mutators --
+   ---------------------
+
+   procedure Set_Align (Object : in out Format; Value : in Alignment);
+
+   procedure Set_Left_Padding
+     (Object : in out Format;
+      Symbol : in Atom_Refs.Immutable_Reference);
+   procedure Set_Left_Padding
+     (Object : in out Format;
+      Symbol : in Atom);
+
+   procedure Set_Maximum_Width (Object : in out Format; Value : in Width);
+
+   procedure Set_Minimum_Width (Object : in out Format; Value : in Width);
+
+   procedure Set_Negative_Sign
+     (Object : in out Format;
+      Sign : in Atom_Refs.Immutable_Reference);
+   procedure Set_Negative_Sign
+     (Object : in out Format;
+      Sign : in Atom);
+
+   procedure Set_Overflow_Message
+     (Object : in out Format;
+      Message : in Atom_Refs.Immutable_Reference);
+   procedure Set_Overflow_Message
+     (Object : in out Format;
+      Message : in Atom);
+
+   procedure Set_Positive_Sign
+     (Object : in out Format;
+      Sign : in Atom_Refs.Immutable_Reference);
+   procedure Set_Positive_Sign
+     (Object : in out Format;
+      Sign : in Atom);
+
+   procedure Set_Right_Padding
+     (Object : in out Format;
+      Symbol : in Atom_Refs.Immutable_Reference);
+   procedure Set_Right_Padding
+     (Object : in out Format;
+      Symbol : in Atom);
+
+   procedure Set_Symbols
+     (Object : in out Format;
+      Symbols : in Atom_Arrays.Immutable_Reference);
+   procedure Set_Symbols
+     (Object : in out Format;
+      Expression : in out S_Expressions.Descriptor'Class);
+
+
+private
+
    Base_10 : Atom_Arrays.Immutable_Reference;
       --  Cache for the often-used decimal representation
 
+   procedure Reverse_Render
+     (Value : in Natural_T;
+      Symbols : in Atom_Array;
+      Output : in out Atom_Buffers.Atom_Buffer;
+      Length : out Width)
+     with Pre => Symbols'Length >= 2 and Symbols'First = 0;
+      --  Create a little-endian image of Value using the given symbol table
 
-   type Format is record
+   type Format is tagged record
       Symbols : Atom_Arrays.Immutable_Reference;
       Positive_Sign : Atom_Refs.Immutable_Reference;
       Negative_Sign : Atom_Refs.Immutable_Reference;
@@ -115,6 +177,5 @@ private
       Maximum_Width : Width := Width'Last;
       Overflow_Message : Atom_Refs.Immutable_Reference;
    end record;
-
 
 end Natools.S_Expressions.Templates.Generic_Integers;

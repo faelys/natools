@@ -61,36 +61,27 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
                      when Commands.Unknown_Align =>
                         null;
                      when Commands.Set_Left =>
-                        State.Align := Left_Aligned;
+                        State.Set_Align (Left_Aligned);
                      when Commands.Set_Center =>
-                        State.Align := Centered;
+                        State.Set_Align (Centered);
                      when Commands.Set_Right =>
-                        State.Align := Right_Aligned;
+                        State.Set_Align (Right_Aligned);
                   end case;
                when others =>
                   null;
             end case;
 
          when Commands.Align_Center =>
-            State.Align := Centered;
+            State.Set_Align (Centered);
 
          when Commands.Align_Left =>
-            State.Align := Left_Aligned;
+            State.Set_Align (Left_Aligned);
 
          when Commands.Align_Right =>
-            State.Align := Right_Aligned;
+            State.Set_Align (Right_Aligned);
 
          when Commands.Base =>
-            declare
-               New_Base : constant Atom_Arrays.Immutable_Reference
-                 := Create (Arguments);
-            begin
-               if not New_Base.Is_Empty
-                 and then New_Base.Query.Data.all'Length >= 2
-               then
-                  State.Symbols := New_Base;
-               end if;
-            end;
+            State.Set_Symbols (Arguments);
 
          when Commands.Padding =>
             case Arguments.Current_Event is
@@ -104,7 +95,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
             Arguments.Next (Event);
             case Event is
                when Events.Add_Atom =>
-                  State.Right_Padding := Create (Arguments.Current_Atom);
+                  State.Set_Right_Padding (Arguments.Current_Atom);
                when others =>
                   null;
             end case;
@@ -112,7 +103,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
          when Commands.Padding_Left =>
             case Arguments.Current_Event is
                when Events.Add_Atom =>
-                  State.Left_Padding := Create (Arguments.Current_Atom);
+                  State.Set_Left_Padding (Arguments.Current_Atom);
                when others =>
                   null;
             end case;
@@ -120,7 +111,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
          when Commands.Padding_Right =>
             case Arguments.Current_Event is
                when Events.Add_Atom =>
-                  State.Right_Padding := Create (Arguments.Current_Atom);
+                  State.Set_Right_Padding (Arguments.Current_Atom);
                when others =>
                   null;
             end case;
@@ -128,7 +119,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
          when Commands.Sign =>
             case Arguments.Current_Event is
                when Events.Add_Atom =>
-                  State.Positive_Sign := Create (Arguments.Current_Atom);
+                  State.Set_Positive_Sign (Arguments.Current_Atom);
                when others =>
                   return;
             end case;
@@ -136,7 +127,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
             Arguments.Next (Event);
             case Event is
                when Events.Add_Atom =>
-                  State.Negative_Sign := Create (Arguments.Current_Atom);
+                  State.Set_Negative_Sign (Arguments.Current_Atom);
                when others =>
                   null;
             end case;
@@ -144,9 +135,13 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
          when Commands.Width =>
             case Arguments.Current_Event is
                when Events.Add_Atom =>
-                  State.Maximum_Width
-                    := Width'Value (To_String (Arguments.Current_Atom));
-                  State.Minimum_Width := State.Maximum_Width;
+                  declare
+                     New_Width : constant Width
+                       := Width'Value (To_String (Arguments.Current_Atom));
+                  begin
+                     State.Set_Maximum_Width (New_Width);
+                     State.Set_Minimum_Width (New_Width);
+                  end;
                when others =>
                   return;
             end case;
@@ -154,8 +149,8 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
             Arguments.Next (Event);
             case Event is
                when Events.Add_Atom =>
-                  State.Maximum_Width
-                    := Width'Value (To_String (Arguments.Current_Atom));
+                  State.Set_Maximum_Width
+                    (Width'Value (To_String (Arguments.Current_Atom)));
                when others =>
                   return;
             end case;
@@ -163,7 +158,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
             Arguments.Next (Event);
             case Event is
                when Events.Add_Atom =>
-                  State.Overflow_Message := Create (Arguments.Current_Atom);
+                  State.Set_Overflow_Message (Arguments.Current_Atom);
                when others =>
                   return;
             end case;
@@ -171,8 +166,8 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
          when Commands.Width_Max =>
             case Arguments.Current_Event is
                when Events.Add_Atom =>
-                  State.Maximum_Width
-                    := Width'Value (To_String (Arguments.Current_Atom));
+                  State.Set_Maximum_Width
+                    (Width'Value (To_String (Arguments.Current_Atom)));
                when others =>
                   return;
             end case;
@@ -180,7 +175,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
             Arguments.Next (Event);
             case Event is
                when Events.Add_Atom =>
-                  State.Overflow_Message := Create (Arguments.Current_Atom);
+                  State.Set_Overflow_Message (Arguments.Current_Atom);
                when others =>
                   return;
             end case;
@@ -188,8 +183,8 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
          when Commands.Width_Min =>
             case Arguments.Current_Event is
                when Events.Add_Atom =>
-                  State.Minimum_Width
-                    := Width'Value (To_String (Arguments.Current_Atom));
+                  State.Set_Minimum_Width
+                    (Width'Value (To_String (Arguments.Current_Atom)));
                when others =>
                   null;
             end case;
@@ -385,5 +380,134 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Parse (Parsed_Template, Template);
       Output.Write (Render (Value, Parsed_Template));
    end Render;
+
+
+
+   ---------------------
+   -- Format Mutators --
+   ---------------------
+
+   procedure Set_Align (Object : in out Format; Value : in Alignment) is
+   begin
+      Object.Align := Value;
+   end Set_Align;
+
+
+   procedure Set_Left_Padding
+     (Object : in out Format;
+      Symbol : in Atom_Refs.Immutable_Reference) is
+   begin
+      Object.Left_Padding := Symbol;
+   end Set_Left_Padding;
+
+
+   procedure Set_Left_Padding
+     (Object : in out Format;
+      Symbol : in Atom) is
+   begin
+      Set_Left_Padding (Object, Create (Symbol));
+   end Set_Left_Padding;
+
+
+   procedure Set_Maximum_Width (Object : in out Format; Value : in Width) is
+   begin
+      Object.Maximum_Width := Value;
+
+      if Object.Minimum_Width > Object.Maximum_Width then
+         Object.Minimum_Width := Value;
+      end if;
+   end Set_Maximum_Width;
+
+
+   procedure Set_Minimum_Width (Object : in out Format; Value : in Width) is
+   begin
+      Object.Minimum_Width := Value;
+
+      if Object.Minimum_Width > Object.Maximum_Width then
+         Object.Maximum_Width := Value;
+      end if;
+   end Set_Minimum_Width;
+
+
+   procedure Set_Negative_Sign
+     (Object : in out Format;
+      Sign : in Atom_Refs.Immutable_Reference) is
+   begin
+      Object.Negative_Sign := Sign;
+   end Set_Negative_Sign;
+
+
+   procedure Set_Negative_Sign
+     (Object : in out Format;
+      Sign : in Atom) is
+   begin
+      Set_Negative_Sign (Object, Create (Sign));
+   end Set_Negative_Sign;
+
+
+   procedure Set_Overflow_Message
+     (Object : in out Format;
+      Message : in Atom_Refs.Immutable_Reference) is
+   begin
+      Object.Overflow_Message := Message;
+   end Set_Overflow_Message;
+
+
+   procedure Set_Overflow_Message
+     (Object : in out Format;
+      Message : in Atom) is
+   begin
+      Set_Overflow_Message (Object, Create (Message));
+   end Set_Overflow_Message;
+
+
+   procedure Set_Positive_Sign
+     (Object : in out Format;
+      Sign : in Atom_Refs.Immutable_Reference) is
+   begin
+      Object.Positive_Sign := Sign;
+   end Set_Positive_Sign;
+
+
+   procedure Set_Positive_Sign
+     (Object : in out Format;
+      Sign : in Atom) is
+   begin
+      Set_Positive_Sign (Object, Create (Sign));
+   end Set_Positive_Sign;
+
+
+   procedure Set_Right_Padding
+     (Object : in out Format;
+      Symbol : in Atom_Refs.Immutable_Reference) is
+   begin
+      Object.Right_Padding := Symbol;
+   end Set_Right_Padding;
+
+
+   procedure Set_Right_Padding
+     (Object : in out Format;
+      Symbol : in Atom) is
+   begin
+      Set_Right_Padding (Object, Create (Symbol));
+   end Set_Right_Padding;
+
+
+   procedure Set_Symbols
+     (Object : in out Format;
+      Symbols : in Atom_Arrays.Immutable_Reference) is
+   begin
+      if not Symbols.Is_Empty and then Symbols.Query.Data.all'Length >= 2 then
+         Object.Symbols := Symbols;
+      end if;
+   end Set_Symbols;
+
+
+   procedure Set_Symbols
+     (Object : in out Format;
+      Expression : in out S_Expressions.Descriptor'Class) is
+   begin
+      Set_Symbols (Object, Create (Expression));
+   end Set_Symbols;
 
 end Natools.S_Expressions.Templates.Generic_Integers;
