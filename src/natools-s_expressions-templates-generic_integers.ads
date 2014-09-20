@@ -63,6 +63,14 @@ package Natools.S_Expressions.Templates.Generic_Integers is
       Value : in T);
       --  Read a rendering format from Template and use it on Value
 
+   procedure Render
+     (Output : in out Ada.Streams.Root_Stream_Type'Class;
+      Default_Format : in Format;
+      Template : in out Lockable.Descriptor'Class;
+      Value : in T);
+      --  Read a rendering format from Template, using defaults
+      --  from Default_Format, and use it on Value.
+
 
    ---------------------
    -- Auxiliary Types --

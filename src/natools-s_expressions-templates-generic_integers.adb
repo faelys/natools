@@ -382,6 +382,19 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    end Render;
 
 
+   procedure Render
+     (Output : in out Ada.Streams.Root_Stream_Type'Class;
+      Default_Format : in Format;
+      Template : in out Lockable.Descriptor'Class;
+      Value : in T)
+   is
+      Parsed_Template : Format := Default_Format;
+   begin
+      Parse (Parsed_Template, Template);
+      Output.Write (Render (Value, Parsed_Template));
+   end Render;
+
+
 
    ---------------------
    -- Format Mutators --
