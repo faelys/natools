@@ -26,6 +26,7 @@ package Natools.S_Expressions.Templates.Tests.Integers is
 
    procedure Alignment (Report : in out NT.Reporter'Class);
    procedure Default_Format (Report : in out NT.Reporter'Class);
+   procedure Explicit_Default_Format (Report : in out NT.Reporter'Class);
    procedure Explicit_Sign (Report : in out NT.Reporter'Class);
    procedure Hexadecimal (Report : in out NT.Reporter'Class);
    procedure Overflow (Report : in out NT.Reporter'Class);

@@ -23,6 +23,12 @@ package body Natools.S_Expressions.Templates.Tests.Integers is
 
    procedure Test_Render
      (Test : in out NT.Test;
+      Defaults : in Templates.Integers.Format;
+      Template : in String;
+      Value : in Integer;
+      Expected : in String);
+   procedure Test_Render
+     (Test : in out NT.Test;
       Template : in String;
       Value : in Integer;
       Expected : in String);
@@ -51,6 +57,25 @@ package body Natools.S_Expressions.Templates.Tests.Integers is
    end Test_Render;
 
 
+   procedure Test_Render
+     (Test : in out NT.Test;
+      Defaults : in Templates.Integers.Format;
+      Template : in String;
+      Value : in Integer;
+      Expected : in String)
+   is
+      Input : aliased Test_Tools.Memory_Stream;
+      Output : Test_Tools.Memory_Stream;
+      Parser : Parsers.Stream_Parser (Input'Access);
+   begin
+      Input.Set_Data (To_Atom (Template));
+      Parser.Next;
+      Output.Set_Expected (To_Atom (Expected));
+      Templates.Integers.Render (Output, Defaults, Parser, Value);
+      Output.Check_Stream (Test);
+   end Test_Render;
+
+
 
    -------------------------
    -- Complete Test Suite --
@@ -65,6 +90,7 @@ package body Natools.S_Expressions.Templates.Tests.Integers is
       Overflow (Report);
       Parse_Errors (Report);
       Static_Hash_Map (Report);
+      Explicit_Default_Format (Report);
    end All_Tests;
 
 
@@ -101,6 +127,24 @@ package body Natools.S_Expressions.Templates.Tests.Integers is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Default_Format;
+
+
+   procedure Explicit_Default_Format (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Client-provided default format");
+   begin
+      declare
+         Default : Templates.Integers.Format;
+      begin
+         Default.Set_Minimum_Width (2);
+         Default.Set_Left_Padding (To_Atom ("0"));
+
+         Test_Render (Test, Default, "", 5, "05");
+         Test_Render (Test, Default, "", 12, "12");
+         Test_Render (Test, Default, "(padding 1: )", 7, " 7");
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Explicit_Default_Format;
 
 
    procedure Explicit_Sign (Report : in out NT.Reporter'Class) is
