@@ -1,4 +1,4 @@
---  Generated at 2014-09-14 21:29:47 +0000 by Natools.Static_Hash_Maps
+--  Generated at 2014-09-23 18:25:16 +0000 by Natools.Static_Hash_Maps
 --  from src/natools-s_expressions-templates-generic_integers-maps.sx
 
 with Natools.Static_Maps.S_Expressions.Templates.Integers.MC;
