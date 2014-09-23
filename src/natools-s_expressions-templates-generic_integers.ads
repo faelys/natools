@@ -21,6 +21,7 @@
 --   (align "left|right|center")                                            --
 --   (base "symbol 0" "symbol 1" "symbol 2" ...)                            --
 --   (left-padding "symbol")                                                --
+--   (image (0 "symbol 0") (2 "symbol 2") ...)                              --
 --   (max-width "max width" ["overflow text"])                              --
 --   (min-width "min width")                                                --
 --   (padding "left-symbol" "right-symbol")                                 --
@@ -29,8 +30,10 @@
 --   (sign "plus sign" ["minus sign"])                                      --
 --   (width "fixed width")                                                  --
 --   (width "min width" "max width" ["overflow text"])                      --
+-- Top-level atoms are taken as the image for the next number.              --
 ------------------------------------------------------------------------------
 
+with Ada.Containers.Ordered_Maps;
 with Ada.Streams;
 with Natools.References;
 with Natools.S_Expressions.Atom_Buffers;
@@ -40,6 +43,7 @@ with Natools.Storage_Pools;
 
 generic
    type T is range <>;
+   with function "<" (Left, Right : T) return Boolean is <>;
 package Natools.S_Expressions.Templates.Generic_Integers is
    pragma Preelaborate;
 
@@ -106,11 +110,35 @@ package Natools.S_Expressions.Templates.Generic_Integers is
       --  Return a reference to usual decimal representation
 
 
+   package Atom_Maps is new Ada.Containers.Ordered_Maps
+     (T, Atom_Refs.Immutable_Reference, "<", Atom_Refs."=");
+
+   function Next_Index (Map : Atom_Maps.Map) return T
+     is (if Map.Is_Empty then T'First else Map.Last_Key + 1);
+      --  Index of the next element to insert in sequential lists
+
+
    ---------------------
    -- Format Mutators --
    ---------------------
 
    procedure Set_Align (Object : in out Format; Value : in Alignment);
+
+   procedure Append_Image
+     (Object : in out Format;
+      Image : in Atom_Refs.Immutable_Reference);
+   procedure Append_Image
+     (Object : in out Format;
+      Image : in Atom);
+   procedure Remove_Image (Object : in out Format; Value : in T);
+   procedure Set_Image
+     (Object : in out Format;
+      Value : in T;
+      Image : in Atom_Refs.Immutable_Reference);
+   procedure Set_Image
+     (Object : in out Format;
+      Value : in T;
+      Image : in Atom);
 
    procedure Set_Left_Padding
      (Object : in out Format;
@@ -184,6 +212,8 @@ private
 
       Maximum_Width : Width := Width'Last;
       Overflow_Message : Atom_Refs.Immutable_Reference;
+
+      Images : Atom_Maps.Map;
    end record;
 
 end Natools.S_Expressions.Templates.Generic_Integers;

@@ -27,6 +27,17 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
      renames Atom_Ref_Constructors.Create;
 
 
+   procedure Insert_Image
+     (State : in out Format;
+      Context : in Meaningless_Type;
+      Image : in Atom);
+
+   procedure Update_Image
+     (State : in out Format;
+      Context : in Meaningless_Type;
+      Name : in Atom;
+      Arguments : in out Lockable.Descriptor'Class);
+
    procedure Update_Format
      (State : in out Format;
       Context : in Meaningless_Type;
@@ -37,6 +48,46 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    ------------------------------
    -- Local Helper Subprograms --
    ------------------------------
+
+   procedure Insert_Image
+     (State : in out Format;
+      Context : in Meaningless_Type;
+      Image : in Atom)
+   is
+      pragma Unreferenced (Context);
+   begin
+      State.Append_Image (Image);
+   end Insert_Image;
+
+
+   procedure Update_Image
+     (State : in out Format;
+      Context : in Meaningless_Type;
+      Name : in Atom;
+      Arguments : in out Lockable.Descriptor'Class)
+   is
+      pragma Unreferenced (Context);
+      Value : T;
+   begin
+      begin
+         Value := T'Value (To_String (Name));
+      exception
+         when Constraint_Error =>
+            return;
+      end;
+
+      case Arguments.Current_Event is
+         when Events.Add_Atom =>
+            State.Set_Image (Value, Arguments.Current_Atom);
+         when others =>
+            State.Remove_Image (Value);
+      end case;
+   end Update_Image;
+
+
+   procedure Image_Interpreter is new Interpreter_Loop
+     (Format, Meaningless_Type, Update_Image, Insert_Image);
+
 
    procedure Update_Format
      (State : in out Format;
@@ -82,6 +133,9 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
 
          when Commands.Base =>
             State.Set_Symbols (Arguments);
+
+         when Commands.Images =>
+            Image_Interpreter (Arguments, State, Meaningless_Value);
 
          when Commands.Padding =>
             case Arguments.Current_Event is
@@ -193,7 +247,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
 
 
    procedure Interpreter is new Interpreter_Loop
-     (Format, Meaningless_Type, Update_Format);
+     (Format, Meaningless_Type, Update_Format, Insert_Image);
 
 
 
@@ -314,6 +368,15 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Symbols : constant Atom_Arrays.Immutable_Reference
         := (if Template.Symbols.Is_Empty then Decimal else Template.Symbols);
    begin
+      Check_Explicit_Image :
+      declare
+         Cursor : constant Atom_Maps.Cursor := Template.Images.Find (Value);
+      begin
+         if Atom_Maps.Has_Element (Cursor) then
+            return Atom_Maps.Element (Cursor).Query.Data.all;
+         end if;
+      end Check_Explicit_Image;
+
       if Value < 0 then
          Reverse_Render (-Value, Symbols.Query.Data.all, Output, Length);
          Output.Append (Safe_Atom (Template.Negative_Sign, "-"));
@@ -400,10 +463,50 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    -- Format Mutators --
    ---------------------
 
+   procedure Append_Image
+     (Object : in out Format;
+      Image : in Atom_Refs.Immutable_Reference) is
+   begin
+      Set_Image (Object, Next_Index (Object.Images), Image);
+   end Append_Image;
+
+
+   procedure Append_Image
+     (Object : in out Format;
+      Image : in Atom) is
+   begin
+      Append_Image (Object, Create (Image));
+   end Append_Image;
+
+
+   procedure Remove_Image (Object : in out Format; Value : in T) is
+   begin
+      Object.Images.Exclude (Value);
+   end Remove_Image;
+
+
    procedure Set_Align (Object : in out Format; Value : in Alignment) is
    begin
       Object.Align := Value;
    end Set_Align;
+
+
+   procedure Set_Image
+     (Object : in out Format;
+      Value : in T;
+      Image : in Atom_Refs.Immutable_Reference) is
+   begin
+      Object.Images.Include (Value, Image);
+   end Set_Image;
+
+
+   procedure Set_Image
+     (Object : in out Format;
+      Value : in T;
+      Image : in Atom) is
+   begin
+      Set_Image (Object, Value, Create (Image));
+   end Set_Image;
 
 
    procedure Set_Left_Padding
