@@ -85,6 +85,7 @@ package body Natools.S_Expressions.Templates.Tests.Integers is
    begin
       Alignment (Report);
       Default_Format (Report);
+      Explicit_Images (Report);
       Explicit_Sign (Report);
       Hexadecimal (Report);
       Overflow (Report);
@@ -145,6 +146,23 @@ package body Natools.S_Expressions.Templates.Tests.Integers is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Explicit_Default_Format;
+
+
+   procedure Explicit_Images (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Explicit images in template");
+   begin
+      Test_Render (Test, "(image (-2 two) (666 evil))", 10, "10");
+      Test_Render (Test, "(image (-2 two) (666 evil))", -2, "two");
+      Test_Render (Test, "(image (-2 two) (666 evil))", 666, "evil");
+      Test_Render (Test, "(image (-2 two) (666 evil) (-2))", -2, "-2");
+      Test_Render (Test, "(image (1 one))3:Two4:four", 1, "one");
+      Test_Render (Test, "(image (1 one))3:Two4:four", 2, "Two");
+      Test_Render (Test, "(image (1 one))3:Two4:four", 3, "four");
+      Test_Render (Test, "(image (1 one))3:Two4:four", 4, "4");
+      Test_Render (Test, "(image (invalid -))5:first", Integer'First, "first");
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Explicit_Images;
 
 
    procedure Explicit_Sign (Report : in out NT.Reporter'Class) is
