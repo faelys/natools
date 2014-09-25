@@ -110,13 +110,43 @@ package Natools.S_Expressions.Templates.Generic_Integers is
       --  Return a reference to usual decimal representation
 
 
+   type Interval is record
+      First, Last : T;
+   end record
+     with Dynamic_Predicate => not (Interval.Last < Interval.First);
+
+   function "<" (Left, Right : Interval) return Boolean
+     is (Left.Last < Right.First);
+      --  Strict non-overlap comparison
+
    package Atom_Maps is new Ada.Containers.Ordered_Maps
-     (T, Atom_Refs.Immutable_Reference, "<", Atom_Refs."=");
+     (Interval, Atom_Refs.Immutable_Reference, "<", Atom_Refs."=");
 
    function Next_Index (Map : Atom_Maps.Map) return T
-     is (if Map.Is_Empty then T'First else Map.Last_Key + 1);
+     is (if Map.Is_Empty then T'First else Map.Last_Key.Last + 1);
       --  Index of the next element to insert in sequential lists
 
+   procedure Exclude
+     (Map : in out Atom_Maps.Map;
+      Values : in Interval);
+      --  Remove the given interval from the map
+
+   procedure Include
+     (Map : in out Atom_Maps.Map;
+      Values : in Interval;
+      Image : in Atom_Refs.Immutable_Reference);
+      --  Add Image to the given interval, overwriting any existing values
+
+   procedure Parse_Single_Image
+     (Map : in out Atom_Maps.Map;
+      Expression : in out Lockable.Descriptor'Class);
+      --  Parse Expression to match `value image` or `(first last) image`,
+      --  and include it to Map.
+
+   procedure Parse
+     (Map : in out Atom_Maps.Map;
+      Expression : in out Lockable.Descriptor'Class);
+      --  Parse Expression as a list of single image expression (see above)
 
    ---------------------
    -- Format Mutators --

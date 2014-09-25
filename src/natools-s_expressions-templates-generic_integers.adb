@@ -32,12 +32,6 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Context : in Meaningless_Type;
       Image : in Atom);
 
-   procedure Update_Image
-     (State : in out Format;
-      Context : in Meaningless_Type;
-      Name : in Atom;
-      Arguments : in out Lockable.Descriptor'Class);
-
    procedure Update_Format
      (State : in out Format;
       Context : in Meaningless_Type;
@@ -58,35 +52,6 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    begin
       State.Append_Image (Image);
    end Insert_Image;
-
-
-   procedure Update_Image
-     (State : in out Format;
-      Context : in Meaningless_Type;
-      Name : in Atom;
-      Arguments : in out Lockable.Descriptor'Class)
-   is
-      pragma Unreferenced (Context);
-      Value : T;
-   begin
-      begin
-         Value := T'Value (To_String (Name));
-      exception
-         when Constraint_Error =>
-            return;
-      end;
-
-      case Arguments.Current_Event is
-         when Events.Add_Atom =>
-            State.Set_Image (Value, Arguments.Current_Atom);
-         when others =>
-            State.Remove_Image (Value);
-      end case;
-   end Update_Image;
-
-
-   procedure Image_Interpreter is new Interpreter_Loop
-     (Format, Meaningless_Type, Update_Image, Insert_Image);
 
 
    procedure Update_Format
@@ -135,7 +100,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
             State.Set_Symbols (Arguments);
 
          when Commands.Images =>
-            Image_Interpreter (Arguments, State, Meaningless_Value);
+            Parse (State.Images, Arguments);
 
          when Commands.Padding =>
             case Arguments.Current_Event is
@@ -324,6 +289,198 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
 
 
 
+   -----------------------
+   -- Dynamic Atom Maps --
+   -----------------------
+
+   procedure Exclude
+     (Map : in out Atom_Maps.Map;
+      Values : in Interval)
+   is
+      procedure Delete_And_Next
+        (Target : in out Atom_Maps.Map;
+         Cursor : in out Atom_Maps.Cursor);
+
+      procedure Delete_And_Next
+        (Target : in out Atom_Maps.Map;
+         Cursor : in out Atom_Maps.Cursor)
+      is
+         Next : constant Atom_Maps.Cursor := Atom_Maps.Next (Cursor);
+      begin
+         Target.Delete (Cursor);
+         Cursor := Next;
+      end Delete_And_Next;
+
+      Cursor : Atom_Maps.Cursor := Map.Ceiling ((Values.First, Values.First));
+   begin
+      if not Atom_Maps.Has_Element (Cursor) then
+         return;
+      end if;
+
+      pragma Assert (not (Atom_Maps.Key (Cursor).Last < Values.First));
+
+      if Atom_Maps.Key (Cursor).First < Values.First then
+         declare
+            Old_Key : constant Interval := Atom_Maps.Key (Cursor);
+            Prefix_Key : constant Interval
+              := (Old_Key.First,  T'Pred (Values.First));
+            Prefix_Image : constant Atom_Refs.Immutable_Reference
+              := Atom_Maps.Element (Cursor);
+         begin
+            Delete_And_Next (Map, Cursor);
+            Map.Insert (Prefix_Key, Prefix_Image);
+
+            if Values.Last < Old_Key.Last then
+               Map.Insert ((T'Succ (Values.Last), Old_Key.Last), Prefix_Image);
+               return;
+            end if;
+         end;
+      end if;
+
+      while Atom_Maps.Has_Element (Cursor)
+        and then not (Values.Last < Atom_Maps.Key (Cursor).Last)
+      loop
+         Delete_And_Next (Map, Cursor);
+      end loop;
+
+      if Atom_Maps.Has_Element (Cursor)
+        and then not (Values.Last < Atom_Maps.Key (Cursor).First)
+      then
+         declare
+            Old_Key : constant Interval := Atom_Maps.Key (Cursor);
+            Suffix_Key : constant Interval
+              := (T'Succ (Values.Last), Old_Key.Last);
+            Suffix_Image : constant Atom_Refs.Immutable_Reference
+              := Atom_Maps.Element (Cursor);
+         begin
+            Delete_And_Next (Map, Cursor);
+            Map.Insert (Suffix_Key, Suffix_Image);
+         end;
+      end if;
+   end Exclude;
+
+
+   procedure Include
+     (Map : in out Atom_Maps.Map;
+      Values : in Interval;
+      Image : in Atom_Refs.Immutable_Reference) is
+   begin
+      Exclude (Map, Values);
+      Map.Insert (Values, Image);
+   end Include;
+
+
+   procedure Parse
+     (Map : in out Atom_Maps.Map;
+      Expression : in out Lockable.Descriptor'Class)
+   is
+      Event : Events.Event := Expression.Current_Event;
+      Lock : Lockable.Lock_State;
+   begin
+      loop
+         case Event is
+            when Events.Add_Atom =>
+               declare
+                  Index : constant T := Next_Index (Map);
+               begin
+                  Include
+                    (Map,
+                     (Index, Index),
+                     Create (Expression.Current_Atom));
+               end;
+
+            when Events.Open_List =>
+               Expression.Lock (Lock);
+
+               begin
+                  Expression.Next;
+                  Parse_Single_Image (Map, Expression);
+               exception
+                  when others =>
+                     Expression.Unlock (Lock, False);
+                     raise;
+               end;
+
+               Expression.Unlock (Lock);
+               Event := Expression.Current_Event;
+               exit when Event in Events.Error | Events.End_Of_Input;
+
+            when Events.Close_List | Events.Error | Events.End_Of_Input =>
+               exit;
+         end case;
+
+         Expression.Next (Event);
+      end loop;
+   end Parse;
+
+
+   procedure Parse_Single_Image
+     (Map : in out Atom_Maps.Map;
+      Expression : in out Lockable.Descriptor'Class)
+   is
+      Event : Events.Event := Expression.Current_Event;
+      Lock : Lockable.Lock_State;
+      First, Last : T;
+   begin
+      case Event is
+         when Events.Add_Atom =>
+            begin
+               First := T'Value (To_String (Expression.Current_Atom));
+               Last := First;
+            exception
+               when Constraint_Error =>
+                  return;
+            end;
+
+         when Events.Open_List =>
+            Expression.Lock (Lock);
+
+            begin
+               Expression.Next (Event);
+               if Event = Events.Add_Atom then
+                  First := T'Value (To_String (Expression.Current_Atom));
+               else
+                  Expression.Unlock (Lock, False);
+                  return;
+               end if;
+
+               Expression.Next (Event);
+               if Event = Events.Add_Atom then
+                  Last := T'Value (To_String (Expression.Current_Atom));
+               else
+                  Expression.Unlock (Lock, False);
+                  return;
+               end if;
+            exception
+               when Constraint_Error =>
+                  Expression.Unlock (Lock, False);
+                  return;
+               when others =>
+                  Expression.Unlock (Lock, False);
+                  raise;
+            end;
+
+            Expression.Unlock (Lock);
+
+         when others =>
+            return;
+      end case;
+
+      if Last < First then
+         return;
+      end if;
+
+      Expression.Next (Event);
+
+      if Event = Events.Add_Atom then
+         Include (Map, (First, Last), Create (Expression.Current_Atom));
+      else
+         Exclude (Map, (First, Last));
+      end if;
+   end Parse_Single_Image;
+
+
+
    ----------------------
    -- Public Interface --
    ----------------------
@@ -370,7 +527,8 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    begin
       Check_Explicit_Image :
       declare
-         Cursor : constant Atom_Maps.Cursor := Template.Images.Find (Value);
+         Cursor : constant Atom_Maps.Cursor
+           := Template.Images.Find ((Value, Value));
       begin
          if Atom_Maps.Has_Element (Cursor) then
             return Atom_Maps.Element (Cursor).Query.Data.all;
@@ -481,7 +639,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
 
    procedure Remove_Image (Object : in out Format; Value : in T) is
    begin
-      Object.Images.Exclude (Value);
+      Exclude (Object.Images, (Value, Value));
    end Remove_Image;
 
 
@@ -496,7 +654,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Value : in T;
       Image : in Atom_Refs.Immutable_Reference) is
    begin
-      Object.Images.Include (Value, Image);
+      Include (Object.Images, (Value, Value), Image);
    end Set_Image;
 
 
