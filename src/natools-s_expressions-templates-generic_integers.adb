@@ -135,6 +135,9 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
                   null;
             end case;
 
+         when Commands.Prefix =>
+            Parse (State.Prefix, Arguments);
+
          when Commands.Sign =>
             case Arguments.Current_Event is
                when Events.Add_Atom =>
@@ -150,6 +153,9 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
                when others =>
                   null;
             end case;
+
+         when Commands.Suffix =>
+            Parse (State.Suffix, Arguments);
 
          when Commands.Width =>
             case Arguments.Current_Event is
@@ -548,11 +554,31 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
          end if;
       end if;
 
-      Output.Invert;
-
       if Has_Sign then
          Length := Length + 1;
       end if;
+
+      Add_Prefix :
+      declare
+         Cursor : constant Atom_Maps.Cursor
+           := Template.Prefix.Find ((Value, Value));
+      begin
+         if Atom_Maps.Has_Element (Cursor) then
+            Output.Append_Reverse (Atom_Maps.Element (Cursor).Query.Data.all);
+         end if;
+      end Add_Prefix;
+
+      Output.Invert;
+
+      Add_Suffix :
+      declare
+         Cursor : constant Atom_Maps.Cursor
+           := Template.Suffix.Find ((Value, Value));
+      begin
+         if Atom_Maps.Has_Element (Cursor) then
+            Output.Append (Atom_Maps.Element (Cursor).Query.Data.all);
+         end if;
+      end Add_Suffix;
 
       if Length > Template.Maximum_Width then
          return Safe_Atom (Template.Overflow_Message, "");
@@ -641,6 +667,38 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    begin
       Exclude (Object.Images, (Value, Value));
    end Remove_Image;
+
+
+   procedure Remove_Prefix
+     (Object : in out Format;
+      Value : in T) is
+   begin
+      Remove_Prefix (Object, (Value, Value));
+   end Remove_Prefix;
+
+
+   procedure Remove_Prefix
+     (Object : in out Format;
+      Values : in Interval) is
+   begin
+      Set_Prefix (Object, Values, Atom_Refs.Null_Immutable_Reference);
+   end Remove_Prefix;
+
+
+   procedure Remove_Suffix
+     (Object : in out Format;
+      Value : in T) is
+   begin
+      Remove_Suffix (Object, (Value, Value));
+   end Remove_Suffix;
+
+
+   procedure Remove_Suffix
+     (Object : in out Format;
+      Values : in Interval) is
+   begin
+      Set_Suffix (Object, Values, Atom_Refs.Null_Immutable_Reference);
+   end Remove_Suffix;
 
 
    procedure Set_Align (Object : in out Format; Value : in Alignment) is
@@ -751,6 +809,46 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    end Set_Positive_Sign;
 
 
+   procedure Set_Prefix
+     (Object : in out Format;
+      Value : in T;
+      Prefix : in Atom_Refs.Immutable_Reference) is
+   begin
+      Set_Prefix (Object, (Value, Value), Prefix);
+   end Set_Prefix;
+
+
+   procedure Set_Prefix
+     (Object : in out Format;
+      Value : in T;
+      Prefix : in Atom) is
+   begin
+      Set_Prefix (Object, Value, Create (Prefix));
+   end Set_Prefix;
+
+
+   procedure Set_Prefix
+     (Object : in out Format;
+      Values : in Interval;
+      Prefix : in Atom_Refs.Immutable_Reference) is
+   begin
+      if Prefix.Is_Empty then
+         Exclude (Object.Prefix, Values);
+      else
+         Include (Object.Prefix, Values, Prefix);
+      end if;
+   end Set_Prefix;
+
+
+   procedure Set_Prefix
+     (Object : in out Format;
+      Values : in Interval;
+      Prefix : in Atom) is
+   begin
+      Set_Prefix (Object, Values, Create (Prefix));
+   end Set_Prefix;
+
+
    procedure Set_Right_Padding
      (Object : in out Format;
       Symbol : in Atom_Refs.Immutable_Reference) is
@@ -765,6 +863,46 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    begin
       Set_Right_Padding (Object, Create (Symbol));
    end Set_Right_Padding;
+
+
+   procedure Set_Suffix
+     (Object : in out Format;
+      Value : in T;
+      Suffix : in Atom_Refs.Immutable_Reference) is
+   begin
+      Set_Suffix (Object, (Value, Value), Suffix);
+   end Set_Suffix;
+
+
+   procedure Set_Suffix
+     (Object : in out Format;
+      Value : in T;
+      Suffix : in Atom) is
+   begin
+      Set_Suffix (Object, Value, Create (Suffix));
+   end Set_Suffix;
+
+
+   procedure Set_Suffix
+     (Object : in out Format;
+      Values : in Interval;
+      Suffix : in Atom_Refs.Immutable_Reference) is
+   begin
+      if Suffix.Is_Empty then
+         Exclude (Object.Suffix, Values);
+      else
+         Include (Object.Suffix, Values, Suffix);
+      end if;
+   end Set_Suffix;
+
+
+   procedure Set_Suffix
+     (Object : in out Format;
+      Values : in Interval;
+      Suffix : in Atom) is
+   begin
+      Set_Suffix (Object, Values, Create (Suffix));
+   end Set_Suffix;
 
 
    procedure Set_Symbols

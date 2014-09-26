@@ -26,8 +26,10 @@
 --   (min-width "min width")                                                --
 --   (padding "left-symbol" "right-symbol")                                 --
 --   (padding "symbol")                                                     --
+--   (prefix (0 "prefix 0") (2 "prefix 2") ...)                             --
 --   (right-padding "symbol")                                               --
 --   (sign "plus sign" ["minus sign"])                                      --
+--   (suffix (0 "suffix 0") (2 "suffix 2") ...)                             --
 --   (width "fixed width")                                                  --
 --   (width "min width" "max width" ["overflow text"])                      --
 -- Top-level atoms are taken as the image for the next number.              --
@@ -202,12 +204,58 @@ package Natools.S_Expressions.Templates.Generic_Integers is
      (Object : in out Format;
       Sign : in Atom);
 
+   procedure Remove_Prefix
+     (Object : in out Format;
+      Value : in T);
+   procedure Set_Prefix
+     (Object : in out Format;
+      Value : in T;
+      Prefix : in Atom_Refs.Immutable_Reference);
+   procedure Set_Prefix
+     (Object : in out Format;
+      Value : in T;
+      Prefix : in Atom);
+   procedure Remove_Prefix
+     (Object : in out Format;
+      Values : in Interval);
+   procedure Set_Prefix
+     (Object : in out Format;
+      Values : in Interval;
+      Prefix : in Atom_Refs.Immutable_Reference);
+   procedure Set_Prefix
+     (Object : in out Format;
+      Values : in Interval;
+      Prefix : in Atom);
+
    procedure Set_Right_Padding
      (Object : in out Format;
       Symbol : in Atom_Refs.Immutable_Reference);
    procedure Set_Right_Padding
      (Object : in out Format;
       Symbol : in Atom);
+
+   procedure Remove_Suffix
+     (Object : in out Format;
+      Value : in T);
+   procedure Set_Suffix
+     (Object : in out Format;
+      Value : in T;
+      Suffix : in Atom_Refs.Immutable_Reference);
+   procedure Set_Suffix
+     (Object : in out Format;
+      Value : in T;
+      Suffix : in Atom);
+   procedure Remove_Suffix
+     (Object : in out Format;
+      Values : in Interval);
+   procedure Set_Suffix
+     (Object : in out Format;
+      Values : in Interval;
+      Suffix : in Atom_Refs.Immutable_Reference);
+   procedure Set_Suffix
+     (Object : in out Format;
+      Values : in Interval;
+      Suffix : in Atom);
 
    procedure Set_Symbols
      (Object : in out Format;
@@ -244,6 +292,8 @@ private
       Overflow_Message : Atom_Refs.Immutable_Reference;
 
       Images : Atom_Maps.Map;
+      Prefix : Atom_Maps.Map;
+      Suffix : Atom_Maps.Map;
    end record;
 
 end Natools.S_Expressions.Templates.Generic_Integers;

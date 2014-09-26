@@ -13,7 +13,9 @@
       Padding,
       Padding_Left,
       Padding_Right,
+      Prefix,
       Sign,
+      Suffix,
       Width,
       Width_Max,
       Width_Min);
@@ -34,7 +36,9 @@
          (Padding        padding)
          (Padding_Left   padding-left left-padding)
          (Padding_Right  padding-right right-padding)
+         (Prefix         prefix)
          (Sign           sign signs)
+         (Suffix         suffix)
          (Width          width)
          (Width_Max      width-max max-width)
          (Width_Min      width-min min-width)))

@@ -6,15 +6,15 @@ package body Natools.Static_Maps.S_Expressions.Templates.Integers.MC is
      (1, 2, 5, 6, 9);
 
    T1 : constant array (0 .. 4) of Unsigned_8 :=
-     (15, 31, 41, 38, 11);
+     (0, 40, 7, 12, 15);
 
    T2 : constant array (0 .. 4) of Unsigned_8 :=
-     (10, 33, 15, 23, 26);
+     (31, 48, 43, 13, 1);
 
-   G : constant array (0 .. 44) of Unsigned_8 :=
-     (0, 0, 0, 0, 5, 17, 14, 0, 5, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 13, 21,
-      0, 0, 0, 11, 18, 7, 0, 16, 4, 2, 9, 0, 0, 15, 0, 0, 0, 2, 3, 7, 13, 0,
-      1);
+   G : constant array (0 .. 48) of Unsigned_8 :=
+     (0, 14, 0, 0, 0, 0, 0, 18, 0, 17, 10, 5, 0, 18, 0, 0, 18, 8, 0, 16, 18,
+      0, 0, 0, 0, 15, 23, 0, 1, 4, 13, 0, 0, 0, 0, 3, 5, 17, 0, 2, 0, 14, 6,
+      0, 10, 21, 0, 0, 0);
 
    function Hash (S : String) return Natural is
       F : constant Natural := S'First - 1;
@@ -25,10 +25,10 @@ package body Natools.Static_Maps.S_Expressions.Templates.Integers.MC is
       for K in P'Range loop
          exit when L < P (K);
          J  := Character'Pos (S (P (K) + F));
-         F1 := (F1 + Natural (T1 (K)) * J) mod 45;
-         F2 := (F2 + Natural (T2 (K)) * J) mod 45;
+         F1 := (F1 + Natural (T1 (K)) * J) mod 49;
+         F2 := (F2 + Natural (T2 (K)) * J) mod 49;
       end loop;
-      return (Natural (G (F1)) + Natural (G (F2))) mod 22;
+      return (Natural (G (F1)) + Natural (G (F2))) mod 24;
    end Hash;
 
 end Natools.Static_Maps.S_Expressions.Templates.Integers.MC;
