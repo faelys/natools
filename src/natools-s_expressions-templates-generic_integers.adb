@@ -32,6 +32,12 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Context : in Meaningless_Type;
       Image : in Atom);
 
+   procedure Update_Image
+     (State : in out Format;
+      Context : in Meaningless_Type;
+      Name : in Atom;
+      Arguments : in out Lockable.Descriptor'Class);
+
    procedure Update_Format
      (State : in out Format;
       Context : in Meaningless_Type;
@@ -52,6 +58,35 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    begin
       State.Append_Image (Image);
    end Insert_Image;
+
+
+   procedure Update_Image
+     (State : in out Format;
+      Context : in Meaningless_Type;
+      Name : in Atom;
+      Arguments : in out Lockable.Descriptor'Class)
+   is
+      pragma Unreferenced (Context);
+      Value : T;
+   begin
+      begin
+         Value := T'Value (To_String (Name));
+      exception
+         when Constraint_Error =>
+            return;
+      end;
+
+      case Arguments.Current_Event is
+         when Events.Add_Atom =>
+            State.Set_Image (Value, Arguments.Current_Atom);
+         when others =>
+            State.Remove_Image (Value);
+      end case;
+   end Update_Image;
+
+
+   procedure Image_Interpreter is new Interpreter_Loop
+     (Format, Meaningless_Type, Update_Image, Insert_Image);
 
 
    procedure Update_Format
@@ -100,7 +135,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
             State.Set_Symbols (Arguments);
 
          when Commands.Images =>
-            Parse (State.Images, Arguments);
+            Image_Interpreter (Arguments, State, Meaningless_Value);
 
          when Commands.Padding =>
             case Arguments.Current_Event is
@@ -372,7 +407,10 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Image : in Atom_Refs.Immutable_Reference) is
    begin
       Exclude (Map, Values);
-      Map.Insert (Values, Image);
+
+      if not Image.Is_Empty then
+         Map.Insert (Values, Image);
+      end if;
    end Include;
 
 
@@ -386,21 +424,17 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       loop
          case Event is
             when Events.Add_Atom =>
-               declare
-                  Index : constant T := Next_Index (Map);
-               begin
-                  Include
-                    (Map,
-                     (Index, Index),
-                     Create (Expression.Current_Atom));
-               end;
+               Include
+                 (Map,
+                  (T'First, T'Last),
+                  Create (Expression.Current_Atom));
 
             when Events.Open_List =>
                Expression.Lock (Lock);
 
                begin
                   Expression.Next;
-                  Parse_Single_Image (Map, Expression);
+                  Parse_Single_Affix (Map, Expression);
                exception
                   when others =>
                      Expression.Unlock (Lock, False);
@@ -420,70 +454,95 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    end Parse;
 
 
-   procedure Parse_Single_Image
+   procedure Parse_Single_Affix
      (Map : in out Atom_Maps.Map;
       Expression : in out Lockable.Descriptor'Class)
    is
+      function Read_Interval (Exp : in out Descriptor'Class) return Interval;
+
+      function Read_Interval (Exp : in out Descriptor'Class) return Interval is
+         Event : Events.Event;
+         First, Last : T;
+      begin
+         Exp.Next (Event);
+
+         case Event is
+            when Events.Add_Atom =>
+               First := T'Value (To_String (Exp.Current_Atom));
+
+            when others =>
+               raise Constraint_Error with "Lower bound not an atom";
+         end case;
+
+         Exp.Next (Event);
+
+         case Event is
+            when Events.Add_Atom =>
+               Last := T'Value (To_String (Exp.Current_Atom));
+
+            when others =>
+               raise Constraint_Error with "Upper bound not an atom";
+         end case;
+
+         if Last < First then
+            raise Constraint_Error with "Invalid interval (Last < First)";
+         end if;
+
+         return (First, Last);
+      end Read_Interval;
+
       Event : Events.Event := Expression.Current_Event;
       Lock : Lockable.Lock_State;
-      First, Last : T;
+      Affix : Atom_Refs.Immutable_Reference;
    begin
       case Event is
          when Events.Add_Atom =>
+            declare
+               Current : constant Atom := Expression.Current_Atom;
             begin
-               First := T'Value (To_String (Expression.Current_Atom));
-               Last := First;
-            exception
-               when Constraint_Error =>
-                  return;
-            end;
-
-         when Events.Open_List =>
-            Expression.Lock (Lock);
-
-            begin
-               Expression.Next (Event);
-               if Event = Events.Add_Atom then
-                  First := T'Value (To_String (Expression.Current_Atom));
-               else
-                  Expression.Unlock (Lock, False);
-                  return;
+               if Current'Length > 0 then
+                  Affix := Create (Current);
                end if;
-
-               Expression.Next (Event);
-               if Event = Events.Add_Atom then
-                  Last := T'Value (To_String (Expression.Current_Atom));
-               else
-                  Expression.Unlock (Lock, False);
-                  return;
-               end if;
-            exception
-               when Constraint_Error =>
-                  Expression.Unlock (Lock, False);
-                  return;
-               when others =>
-                  Expression.Unlock (Lock, False);
-                  raise;
             end;
-
-            Expression.Unlock (Lock);
 
          when others =>
             return;
       end case;
 
-      if Last < First then
-         return;
-      end if;
+      loop
+         Expression.Next (Event);
 
-      Expression.Next (Event);
+         case Event is
+            when Events.Add_Atom =>
+               declare
+                  Value : T;
+               begin
+                  Value := T'Value (To_String (Expression.Current_Atom));
+                  Include (Map, (Value, Value), Affix);
+               exception
+                  when Constraint_Error => null;
+               end;
 
-      if Event = Events.Add_Atom then
-         Include (Map, (First, Last), Create (Expression.Current_Atom));
-      else
-         Exclude (Map, (First, Last));
-      end if;
-   end Parse_Single_Image;
+            when Events.Open_List =>
+               Expression.Lock (Lock);
+
+               begin
+                  Include (Map, Read_Interval (Expression), Affix);
+               exception
+                  when Constraint_Error =>
+                     null;
+                  when others =>
+                     Expression.Unlock (Lock, False);
+                     raise;
+               end;
+
+               Expression.Unlock (Lock);
+
+            when others =>
+               exit;
+         end case;
+      end loop;
+   end Parse_Single_Affix;
 
 
 
@@ -832,11 +891,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Values : in Interval;
       Prefix : in Atom_Refs.Immutable_Reference) is
    begin
-      if Prefix.Is_Empty then
-         Exclude (Object.Prefix, Values);
-      else
-         Include (Object.Prefix, Values, Prefix);
-      end if;
+      Include (Object.Prefix, Values, Prefix);
    end Set_Prefix;
 
 
@@ -888,11 +943,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Values : in Interval;
       Suffix : in Atom_Refs.Immutable_Reference) is
    begin
-      if Suffix.Is_Empty then
-         Exclude (Object.Suffix, Values);
-      else
-         Include (Object.Suffix, Values, Suffix);
-      end if;
+      Include (Object.Suffix, Values, Suffix);
    end Set_Suffix;
 
 

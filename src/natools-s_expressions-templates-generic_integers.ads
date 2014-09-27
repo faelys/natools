@@ -26,10 +26,10 @@
 --   (min-width "min width")                                                --
 --   (padding "left-symbol" "right-symbol")                                 --
 --   (padding "symbol")                                                     --
---   (prefix (0 "prefix 0") (2 "prefix 2") ...)                             --
+--   (prefix ("prefix" 0 (10 20) ...) ("prefix" 2) ...)                     --
 --   (right-padding "symbol")                                               --
 --   (sign "plus sign" ["minus sign"])                                      --
---   (suffix (0 "suffix 0") (2 "suffix 2") ...)                             --
+--   (suffix ("suffix" 0 (10 20) ...) ("suffix" 2) ...)                     --
 --   (width "fixed width")                                                  --
 --   (width "min width" "max width" ["overflow text"])                      --
 -- Top-level atoms are taken as the image for the next number.              --
@@ -137,18 +137,19 @@ package Natools.S_Expressions.Templates.Generic_Integers is
      (Map : in out Atom_Maps.Map;
       Values : in Interval;
       Image : in Atom_Refs.Immutable_Reference);
-      --  Add Image to the given interval, overwriting any existing values
+      --  Add Image to the given interval, overwriting any existing values.
+      --  If Image is empty, behave like Exclude.
 
-   procedure Parse_Single_Image
+   procedure Parse_Single_Affix
      (Map : in out Atom_Maps.Map;
       Expression : in out Lockable.Descriptor'Class);
-      --  Parse Expression to match `value image` or `(first last) image`,
-      --  and include it to Map.
+      --  Parse Expression as an affix atom, followed by single numbers (atoms)
+      --  or ranges (lists of two atoms).
 
    procedure Parse
      (Map : in out Atom_Maps.Map;
       Expression : in out Lockable.Descriptor'Class);
-      --  Parse Expression as a list of single image expression (see above)
+      --  Parse Expression as a list of single image expressions (see above)
 
    ---------------------
    -- Format Mutators --
