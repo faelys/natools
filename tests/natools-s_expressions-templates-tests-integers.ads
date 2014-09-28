@@ -32,6 +32,7 @@ package Natools.S_Expressions.Templates.Tests.Integers is
    procedure Hexadecimal (Report : in out NT.Reporter'Class);
    procedure Overflow (Report : in out NT.Reporter'Class);
    procedure Parse_Errors (Report : in out NT.Reporter'Class);
+   procedure Prefix_And_Suffix (Report : in out NT.Reporter'Class);
    procedure Static_Hash_Map (Report : in out NT.Reporter'Class);
 
 end Natools.S_Expressions.Templates.Tests.Integers;

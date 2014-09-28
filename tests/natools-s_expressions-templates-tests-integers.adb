@@ -92,6 +92,7 @@ package body Natools.S_Expressions.Templates.Tests.Integers is
       Parse_Errors (Report);
       Static_Hash_Map (Report);
       Explicit_Default_Format (Report);
+      Prefix_And_Suffix (Report);
    end All_Tests;
 
 
@@ -216,6 +217,82 @@ package body Natools.S_Expressions.Templates.Tests.Integers is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Parse_Errors;
+
+
+   procedure Prefix_And_Suffix (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Parse errors in template");
+      Ordinal : constant String
+        := "(suffix 1:? (th (0 31)) (st 1 21 31) (nd 2 22) (rd 3 23) (0: 0))";
+   begin
+      declare
+         Format : Templates.Integers.Format;
+      begin
+         Format.Set_Prefix ((0, 9), To_Atom ("a"));
+         Format.Set_Prefix ((-99, -10), To_Atom ("b"));
+         Format.Set_Prefix ((50, 99), To_Atom ("c"));
+         Format.Set_Prefix (0, To_Atom ("d"));
+         Format.Set_Prefix (-10, To_Atom ("e"));
+         Format.Set_Prefix (5, To_Atom ("f"));
+         Format.Set_Prefix ((7, 52), To_Atom ("g"));
+         Format.Set_Prefix ((-52, -49), To_Atom ("h"));
+         Format.Set_Prefix ((-100, -90), To_Atom ("i"));
+         Format.Remove_Prefix (8);
+
+         Test_Render (Test, Format, "", -196, "-196");
+         Test_Render (Test, Format, "", -101, "-101");
+         Test_Render (Test, Format, "", -100, "i-100");
+         Test_Render (Test, Format, "", -90, "i-90");
+         Test_Render (Test, Format, "", -89, "b-89");
+         Test_Render (Test, Format, "", -53, "b-53");
+         Test_Render (Test, Format, "", -52, "h-52");
+         Test_Render (Test, Format, "", -49, "h-49");
+         Test_Render (Test, Format, "", -48, "b-48");
+         Test_Render (Test, Format, "", -11, "b-11");
+         Test_Render (Test, Format, "", -10, "e-10");
+         Test_Render (Test, Format, "", -9, "-9");
+         Test_Render (Test, Format, "", -1, "-1");
+         Test_Render (Test, Format, "", 0, "d0");
+         Test_Render (Test, Format, "", 1, "a1");
+         Test_Render (Test, Format, "", 4, "a4");
+         Test_Render (Test, Format, "", 5, "f5");
+         Test_Render (Test, Format, "", 6, "a6");
+         Test_Render (Test, Format, "", 7, "g7");
+         Test_Render (Test, Format, "", 8, "8");
+         Test_Render (Test, Format, "", 9, "g9");
+         Test_Render (Test, Format, "", 52, "g52");
+         Test_Render (Test, Format, "", 53, "c53");
+         Test_Render (Test, Format, "", 99, "c99");
+         Test_Render (Test, Format, "", 100, "100");
+         Test_Render (Test, Format, "", 192, "192");
+      end;
+
+      declare
+         Format : Templates.Integers.Format;
+      begin
+         Format.Set_Suffix ((0, 10), To_Atom ("th"));
+         Format.Set_Suffix (1, To_Atom ("st"));
+         Format.Remove_Suffix (0);
+
+         Test_Render (Test, Format, "", -1, "-1");
+         Test_Render (Test, Format, "", 0, "0");
+         Test_Render (Test, Format, "", 1, "1st");
+         Test_Render (Test, Format, "", 4, "4th");
+         Test_Render (Test, Format, "", 10, "10th");
+      end;
+
+      Test_Render (Test, Ordinal, -1, "-1?");
+      Test_Render (Test, Ordinal, 0, "0");
+      Test_Render (Test, Ordinal, 1, "1st");
+      Test_Render (Test, Ordinal, 2, "2nd");
+      Test_Render (Test, Ordinal, 3, "3rd");
+      Test_Render (Test, Ordinal, 4, "4th");
+
+      Test_Render (Test, "(prefix (a) (b invalid (9 5)))", 0, "0");
+      Test_Render (Test, "(prefix (c (invalid 5) (-1 invalid)))", 0, "0");
+      Test_Render (Test, "(prefix (d ((invalid) 5) (-1)) ())", 0, "0");
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Prefix_And_Suffix;
 
 
    procedure Static_Hash_Map (Report : in out NT.Reporter'Class) is
