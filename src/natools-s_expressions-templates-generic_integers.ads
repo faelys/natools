@@ -26,10 +26,10 @@
 --   (min-width "min width")                                                --
 --   (padding "left-symbol" "right-symbol")                                 --
 --   (padding "symbol")                                                     --
---   (prefix ("prefix" 0 (10 20) ...) ("prefix" 2) ...)                     --
+--   (prefix ("prefix" 0 (10 20) ...) (("prefix" width) 2) ...)             --
 --   (right-padding "symbol")                                               --
 --   (sign "plus sign" ["minus sign"])                                      --
---   (suffix ("suffix" 0 (10 20) ...) ("suffix" 2) ...)                     --
+--   (suffix ("suffix" 0 (10 20) ...) (("suffix" width) 2) ...)             --
 --   (width "fixed width")                                                  --
 --   (width "min width" "max width" ["overflow text"])                      --
 -- Top-level atoms are taken as the image for the next number.              --
@@ -121,8 +121,13 @@ package Natools.S_Expressions.Templates.Generic_Integers is
      is (Left.Last < Right.First);
       --  Strict non-overlap comparison
 
+   type Displayed_Atom is record
+      Image : Atom_Refs.Immutable_Reference;
+      Width : Generic_Integers.Width;
+   end record;
+
    package Atom_Maps is new Ada.Containers.Ordered_Maps
-     (Interval, Atom_Refs.Immutable_Reference, "<", Atom_Refs."=");
+     (Interval, Displayed_Atom, "<");
 
    function Next_Index (Map : Atom_Maps.Map) return T
      is (if Map.Is_Empty then T'First else Map.Last_Key.Last + 1);
@@ -136,7 +141,8 @@ package Natools.S_Expressions.Templates.Generic_Integers is
    procedure Include
      (Map : in out Atom_Maps.Map;
       Values : in Interval;
-      Image : in Atom_Refs.Immutable_Reference);
+      Image : in Atom_Refs.Immutable_Reference;
+      Width : in Generic_Integers.Width);
       --  Add Image to the given interval, overwriting any existing values.
       --  If Image is empty, behave like Exclude.
 
@@ -211,22 +217,34 @@ package Natools.S_Expressions.Templates.Generic_Integers is
    procedure Set_Prefix
      (Object : in out Format;
       Value : in T;
-      Prefix : in Atom_Refs.Immutable_Reference);
+      Prefix : in Atom_Refs.Immutable_Reference;
+      Width : in Generic_Integers.Width);
    procedure Set_Prefix
      (Object : in out Format;
       Value : in T;
       Prefix : in Atom);
+   procedure Set_Prefix
+     (Object : in out Format;
+      Value : in T;
+      Prefix : in Atom;
+      Width : in Generic_Integers.Width);
    procedure Remove_Prefix
      (Object : in out Format;
       Values : in Interval);
    procedure Set_Prefix
      (Object : in out Format;
       Values : in Interval;
-      Prefix : in Atom_Refs.Immutable_Reference);
+      Prefix : in Atom_Refs.Immutable_Reference;
+      Width : in Generic_Integers.Width);
    procedure Set_Prefix
      (Object : in out Format;
       Values : in Interval;
       Prefix : in Atom);
+   procedure Set_Prefix
+     (Object : in out Format;
+      Values : in Interval;
+      Prefix : in Atom;
+      Width : in Generic_Integers.Width);
 
    procedure Set_Right_Padding
      (Object : in out Format;
@@ -241,22 +259,34 @@ package Natools.S_Expressions.Templates.Generic_Integers is
    procedure Set_Suffix
      (Object : in out Format;
       Value : in T;
-      Suffix : in Atom_Refs.Immutable_Reference);
+      Suffix : in Atom_Refs.Immutable_Reference;
+      Width : in Generic_Integers.Width);
    procedure Set_Suffix
      (Object : in out Format;
       Value : in T;
       Suffix : in Atom);
+   procedure Set_Suffix
+     (Object : in out Format;
+      Value : in T;
+      Suffix : in Atom;
+      Width : in Generic_Integers.Width);
    procedure Remove_Suffix
      (Object : in out Format;
       Values : in Interval);
    procedure Set_Suffix
      (Object : in out Format;
       Values : in Interval;
-      Suffix : in Atom_Refs.Immutable_Reference);
+      Suffix : in Atom_Refs.Immutable_Reference;
+      Width : in Generic_Integers.Width);
    procedure Set_Suffix
      (Object : in out Format;
       Values : in Interval;
       Suffix : in Atom);
+   procedure Set_Suffix
+     (Object : in out Format;
+      Values : in Interval;
+      Suffix : in Atom;
+      Width : in Generic_Integers.Width);
 
    procedure Set_Symbols
      (Object : in out Format;

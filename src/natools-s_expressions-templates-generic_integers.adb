@@ -365,7 +365,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
             Old_Key : constant Interval := Atom_Maps.Key (Cursor);
             Prefix_Key : constant Interval
               := (Old_Key.First,  T'Pred (Values.First));
-            Prefix_Image : constant Atom_Refs.Immutable_Reference
+            Prefix_Image : constant Displayed_Atom
               := Atom_Maps.Element (Cursor);
          begin
             Delete_And_Next (Map, Cursor);
@@ -391,7 +391,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
             Old_Key : constant Interval := Atom_Maps.Key (Cursor);
             Suffix_Key : constant Interval
               := (T'Succ (Values.Last), Old_Key.Last);
-            Suffix_Image : constant Atom_Refs.Immutable_Reference
+            Suffix_Image : constant Displayed_Atom
               := Atom_Maps.Element (Cursor);
          begin
             Delete_And_Next (Map, Cursor);
@@ -404,12 +404,13 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    procedure Include
      (Map : in out Atom_Maps.Map;
       Values : in Interval;
-      Image : in Atom_Refs.Immutable_Reference) is
+      Image : in Atom_Refs.Immutable_Reference;
+      Width : in Generic_Integers.Width) is
    begin
       Exclude (Map, Values);
 
       if not Image.Is_Empty then
-         Map.Insert (Values, Image);
+         Map.Insert (Values, (Image, Width));
       end if;
    end Include;
 
@@ -424,10 +425,15 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       loop
          case Event is
             when Events.Add_Atom =>
-               Include
-                 (Map,
-                  (T'First, T'Last),
-                  Create (Expression.Current_Atom));
+               declare
+                  Image : constant Atom := Expression.Current_Atom;
+               begin
+                  Include
+                    (Map,
+                     (T'First, T'Last),
+                     Create (Image),
+                     Image'Length);
+               end;
 
             when Events.Open_List =>
                Expression.Lock (Lock);
@@ -494,6 +500,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Event : Events.Event := Expression.Current_Event;
       Lock : Lockable.Lock_State;
       Affix : Atom_Refs.Immutable_Reference;
+      Affix_Width : Width := 0;
    begin
       case Event is
          when Events.Add_Atom =>
@@ -502,8 +509,39 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
             begin
                if Current'Length > 0 then
                   Affix := Create (Current);
+                  Affix_Width := Current'Length;
                end if;
             end;
+
+         when Events.Open_List =>
+            Expression.Lock (Lock);
+
+            begin
+               Expression.Next (Event);
+               if Event /= Events.Add_Atom then
+                  Expression.Unlock (Lock, False);
+                  return;
+               end if;
+
+               Affix := Create (Expression.Current_Atom);
+               Affix_Width := Affix.Query.Data.all'Length;
+
+               Expression.Next (Event);
+               if Event = Events.Add_Atom then
+                  begin
+                     Affix_Width := Width'Value
+                       (To_String (Expression.Current_Atom));
+                  exception
+                     when Constraint_Error => null;
+                  end;
+               end if;
+            exception
+               when others =>
+                  Expression.Unlock (Lock, False);
+                  raise;
+            end;
+
+            Expression.Unlock (Lock);
 
          when others =>
             return;
@@ -518,7 +556,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
                   Value : T;
                begin
                   Value := T'Value (To_String (Expression.Current_Atom));
-                  Include (Map, (Value, Value), Affix);
+                  Include (Map, (Value, Value), Affix, Affix_Width);
                exception
                   when Constraint_Error => null;
                end;
@@ -527,7 +565,9 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
                Expression.Lock (Lock);
 
                begin
-                  Include (Map, Read_Interval (Expression), Affix);
+                  Include
+                    (Map, Read_Interval (Expression),
+                     Affix, Affix_Width);
                exception
                   when Constraint_Error =>
                      null;
@@ -596,7 +636,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
            := Template.Images.Find ((Value, Value));
       begin
          if Atom_Maps.Has_Element (Cursor) then
-            return Atom_Maps.Element (Cursor).Query.Data.all;
+            return Atom_Maps.Element (Cursor).Image.Query.Data.all;
          end if;
       end Check_Explicit_Image;
 
@@ -623,7 +663,12 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
            := Template.Prefix.Find ((Value, Value));
       begin
          if Atom_Maps.Has_Element (Cursor) then
-            Output.Append_Reverse (Atom_Maps.Element (Cursor).Query.Data.all);
+            declare
+               Data : constant Displayed_Atom := Atom_Maps.Element (Cursor);
+            begin
+               Output.Append_Reverse (Data.Image.Query.Data.all);
+               Length := Length + Data.Width;
+            end;
          end if;
       end Add_Prefix;
 
@@ -635,7 +680,12 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
            := Template.Suffix.Find ((Value, Value));
       begin
          if Atom_Maps.Has_Element (Cursor) then
-            Output.Append (Atom_Maps.Element (Cursor).Query.Data.all);
+            declare
+               Data : constant Displayed_Atom := Atom_Maps.Element (Cursor);
+            begin
+               Output.Append (Data.Image.Query.Data.all);
+               Length := Length + Data.Width;
+            end;
          end if;
       end Add_Suffix;
 
@@ -740,7 +790,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
      (Object : in out Format;
       Values : in Interval) is
    begin
-      Set_Prefix (Object, Values, Atom_Refs.Null_Immutable_Reference);
+      Set_Prefix (Object, Values, Atom_Refs.Null_Immutable_Reference, 0);
    end Remove_Prefix;
 
 
@@ -756,7 +806,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
      (Object : in out Format;
       Values : in Interval) is
    begin
-      Set_Suffix (Object, Values, Atom_Refs.Null_Immutable_Reference);
+      Set_Suffix (Object, Values, Atom_Refs.Null_Immutable_Reference, 0);
    end Remove_Suffix;
 
 
@@ -771,7 +821,7 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Value : in T;
       Image : in Atom_Refs.Immutable_Reference) is
    begin
-      Include (Object.Images, (Value, Value), Image);
+      Include (Object.Images, (Value, Value), Image, 0);
    end Set_Image;
 
 
@@ -871,9 +921,10 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    procedure Set_Prefix
      (Object : in out Format;
       Value : in T;
-      Prefix : in Atom_Refs.Immutable_Reference) is
+      Prefix : in Atom_Refs.Immutable_Reference;
+      Width : in Generic_Integers.Width) is
    begin
-      Set_Prefix (Object, (Value, Value), Prefix);
+      Set_Prefix (Object, (Value, Value), Prefix, Width);
    end Set_Prefix;
 
 
@@ -882,16 +933,27 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Value : in T;
       Prefix : in Atom) is
    begin
-      Set_Prefix (Object, Value, Create (Prefix));
+      Set_Prefix (Object, Value, Prefix, Prefix'Length);
+   end Set_Prefix;
+
+
+   procedure Set_Prefix
+     (Object : in out Format;
+      Value : in T;
+      Prefix : in Atom;
+      Width : in Generic_Integers.Width) is
+   begin
+      Set_Prefix (Object, Value, Create (Prefix), Width);
    end Set_Prefix;
 
 
    procedure Set_Prefix
      (Object : in out Format;
       Values : in Interval;
-      Prefix : in Atom_Refs.Immutable_Reference) is
+      Prefix : in Atom_Refs.Immutable_Reference;
+      Width : in Generic_Integers.Width) is
    begin
-      Include (Object.Prefix, Values, Prefix);
+      Include (Object.Prefix, Values, Prefix, Width);
    end Set_Prefix;
 
 
@@ -900,7 +962,17 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Values : in Interval;
       Prefix : in Atom) is
    begin
-      Set_Prefix (Object, Values, Create (Prefix));
+      Set_Prefix (Object, Values, Prefix, Prefix'Length);
+   end Set_Prefix;
+
+
+   procedure Set_Prefix
+     (Object : in out Format;
+      Values : in Interval;
+      Prefix : in Atom;
+      Width : in Generic_Integers.Width) is
+   begin
+      Set_Prefix (Object, Values, Create (Prefix), Width);
    end Set_Prefix;
 
 
@@ -923,9 +995,10 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
    procedure Set_Suffix
      (Object : in out Format;
       Value : in T;
-      Suffix : in Atom_Refs.Immutable_Reference) is
+      Suffix : in Atom_Refs.Immutable_Reference;
+      Width : in Generic_Integers.Width) is
    begin
-      Set_Suffix (Object, (Value, Value), Suffix);
+      Set_Suffix (Object, (Value, Value), Suffix, Width);
    end Set_Suffix;
 
 
@@ -934,16 +1007,27 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Value : in T;
       Suffix : in Atom) is
    begin
-      Set_Suffix (Object, Value, Create (Suffix));
+      Set_Suffix (Object, Value, Suffix, Suffix'Length);
+   end Set_Suffix;
+
+
+   procedure Set_Suffix
+     (Object : in out Format;
+      Value : in T;
+      Suffix : in Atom;
+      Width : in Generic_Integers.Width) is
+   begin
+      Set_Suffix (Object, Value, Create (Suffix), Width);
    end Set_Suffix;
 
 
    procedure Set_Suffix
      (Object : in out Format;
       Values : in Interval;
-      Suffix : in Atom_Refs.Immutable_Reference) is
+      Suffix : in Atom_Refs.Immutable_Reference;
+      Width : in Generic_Integers.Width) is
    begin
-      Include (Object.Suffix, Values, Suffix);
+      Include (Object.Suffix, Values, Suffix, Width);
    end Set_Suffix;
 
 
@@ -952,7 +1036,17 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
       Values : in Interval;
       Suffix : in Atom) is
    begin
-      Set_Suffix (Object, Values, Create (Suffix));
+      Set_Suffix (Object, Values, Suffix, Suffix'Length);
+   end Set_Suffix;
+
+
+   procedure Set_Suffix
+     (Object : in out Format;
+      Values : in Interval;
+      Suffix : in Atom;
+      Width : in Generic_Integers.Width) is
+   begin
+      Set_Suffix (Object, Values, Create (Suffix), Width);
    end Set_Suffix;
 
 
