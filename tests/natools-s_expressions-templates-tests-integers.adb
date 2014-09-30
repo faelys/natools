@@ -290,6 +290,19 @@ package body Natools.S_Expressions.Templates.Tests.Integers is
       Test_Render (Test, "(prefix (a) (b invalid (9 5)))", 0, "0");
       Test_Render (Test, "(prefix (c (invalid 5) (-1 invalid)))", 0, "0");
       Test_Render (Test, "(prefix (d ((invalid) 5) (-1)) ())", 0, "0");
+
+      declare
+         Format : Templates.Integers.Format;
+      begin
+         Format.Set_Minimum_Width (10);
+         Format.Set_Suffix (1, To_Atom ("<sup>er</sup>"), 2);
+         Format.Set_Prefix (10, To_Atom ("dix : "));
+
+         Test_Render (Test, Format, "", 5, "         5");
+         Test_Render (Test, Format, "", 1, "       1<sup>er</sup>");
+         Test_Render (Test, Format, "(centered)", 10, " dix : 10 ");
+         Test_Render (Test, Format, "(suffix ((th 0) 7))", 7, "         7th");
+      end;
    exception
       when Error : others => Test.Report_Exception (Error);
    end Prefix_And_Suffix;
