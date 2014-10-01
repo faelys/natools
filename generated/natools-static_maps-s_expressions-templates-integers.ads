@@ -1,4 +1,4 @@
---  Generated at 2014-09-26 17:52:14 +0000 by Natools.Static_Hash_Maps
+--  Generated at 2014-10-01 17:18:35 +0000 by Natools.Static_Hash_Maps
 --  from src/natools-s_expressions-templates-generic_integers-maps.sx
 
 package Natools.Static_Maps.S_Expressions.Templates.Integers is
@@ -11,6 +11,7 @@ package Natools.Static_Maps.S_Expressions.Templates.Integers is
       Align_Left,
       Align_Right,
       Base,
+      Image_Range,
       Images,
       Padding,
       Padding_Left,
@@ -37,23 +38,24 @@ private
    Map_1_Key_5 : aliased constant String := "align-right";
    Map_1_Key_6 : aliased constant String := "right-align";
    Map_1_Key_7 : aliased constant String := "base";
-   Map_1_Key_8 : aliased constant String := "image";
-   Map_1_Key_9 : aliased constant String := "images";
-   Map_1_Key_10 : aliased constant String := "padding";
-   Map_1_Key_11 : aliased constant String := "padding-left";
-   Map_1_Key_12 : aliased constant String := "left-padding";
-   Map_1_Key_13 : aliased constant String := "padding-right";
-   Map_1_Key_14 : aliased constant String := "right-padding";
-   Map_1_Key_15 : aliased constant String := "prefix";
-   Map_1_Key_16 : aliased constant String := "sign";
-   Map_1_Key_17 : aliased constant String := "signs";
-   Map_1_Key_18 : aliased constant String := "suffix";
-   Map_1_Key_19 : aliased constant String := "width";
-   Map_1_Key_20 : aliased constant String := "width-max";
-   Map_1_Key_21 : aliased constant String := "max-width";
-   Map_1_Key_22 : aliased constant String := "width-min";
-   Map_1_Key_23 : aliased constant String := "min-width";
-   Map_1_Keys : constant array (0 .. 23) of access constant String
+   Map_1_Key_8 : aliased constant String := "image-range";
+   Map_1_Key_9 : aliased constant String := "image";
+   Map_1_Key_10 : aliased constant String := "images";
+   Map_1_Key_11 : aliased constant String := "padding";
+   Map_1_Key_12 : aliased constant String := "padding-left";
+   Map_1_Key_13 : aliased constant String := "left-padding";
+   Map_1_Key_14 : aliased constant String := "padding-right";
+   Map_1_Key_15 : aliased constant String := "right-padding";
+   Map_1_Key_16 : aliased constant String := "prefix";
+   Map_1_Key_17 : aliased constant String := "sign";
+   Map_1_Key_18 : aliased constant String := "signs";
+   Map_1_Key_19 : aliased constant String := "suffix";
+   Map_1_Key_20 : aliased constant String := "width";
+   Map_1_Key_21 : aliased constant String := "width-max";
+   Map_1_Key_22 : aliased constant String := "max-width";
+   Map_1_Key_23 : aliased constant String := "width-min";
+   Map_1_Key_24 : aliased constant String := "min-width";
+   Map_1_Keys : constant array (0 .. 24) of access constant String
      := (Map_1_Key_0'Access,
          Map_1_Key_1'Access,
          Map_1_Key_2'Access,
@@ -77,8 +79,9 @@ private
          Map_1_Key_20'Access,
          Map_1_Key_21'Access,
          Map_1_Key_22'Access,
-         Map_1_Key_23'Access);
-   Map_1_Elements : constant array (0 .. 23) of Main_Command
+         Map_1_Key_23'Access,
+         Map_1_Key_24'Access);
+   Map_1_Elements : constant array (0 .. 24) of Main_Command
      := (Align,
          Align_Center,
          Align_Center,
@@ -87,6 +90,7 @@ private
          Align_Right,
          Align_Right,
          Base,
+         Image_Range,
          Images,
          Images,
          Padding,

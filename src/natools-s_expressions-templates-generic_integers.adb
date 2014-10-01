@@ -134,6 +134,9 @@ package body Natools.S_Expressions.Templates.Generic_Integers is
          when Commands.Base =>
             State.Set_Symbols (Arguments);
 
+         when Commands.Image_Range =>
+            Parse (State.Images, Arguments);
+
          when Commands.Images =>
             Image_Interpreter (Arguments, State, Meaningless_Value);
 

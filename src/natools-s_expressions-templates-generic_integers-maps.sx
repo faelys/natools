@@ -9,6 +9,7 @@
       Align_Left,
       Align_Right,
       Base,
+      Image_Range,
       Images,
       Padding,
       Padding_Left,
@@ -32,6 +33,7 @@
          (Align_Left     align-left left-align)
          (Align_Right    align-right right-align)
          (Base           base)
+         (Image_Range    image-range)
          (Images         image images)
          (Padding        padding)
          (Padding_Left   padding-left left-padding)
