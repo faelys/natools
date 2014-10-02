@@ -161,6 +161,11 @@ package body Natools.S_Expressions.Templates.Tests.Integers is
       Test_Render (Test, "(image (1 one))3:Two4:four", 3, "four");
       Test_Render (Test, "(image (1 one))3:Two4:four", 4, "4");
       Test_Render (Test, "(image (invalid -))5:first", Integer'First, "first");
+      Test_Render (Test, "(image-range (""?"" (10 19)))", 9, "9");
+      Test_Render (Test, "(image-range (""?"" (10 19)))", 10, "?");
+      Test_Render (Test, "(image-range (""?"" (10 19)))", 15, "?");
+      Test_Render (Test, "(image-range (""?"" (10 19)))", 19, "?");
+      Test_Render (Test, "(image-range (""?"" (10 19)))", 20, "20");
    exception
       when Error : others => Test.Report_Exception (Error);
    end Explicit_Images;
