@@ -1,0 +1,35 @@
+(Natools.Static_Maps.S_Expressions.Templates.Dates
+   pure
+   (test-function T)
+   (extra-decl "\
+   type Main_Command is
+     (Error,
+      Year, Month, Day, Hour, Minute, Second,
+      Padded_Month, Padded_Day,
+      Padded_Hour, Padded_Minute, Padded_Second,
+      Day_Of_Week,
+      Big_Endian_Date, Little_Endian_Date,
+      Big_Endian_Time, Little_Endian_Time,
+      RFC_3339);")
+   (Main_Command
+      (hash-package Natools.Static_Maps.S_Expressions.Templates.Dates.Cmds)
+      (function Main)
+      (not-found Error)
+      (nodes
+         (Big_Endian_Date     YYYYMMDD big-endian-date)
+         (Big_Endian_Time     HHMMSS time big-endian-time)
+         (Day                 day)
+         (Day_Of_Week         dow day-of-week)
+         (Hour                hour)
+         (Little_Endian_Date  DDMMYYYY little-endian-date)
+         (Little_Endian_Time  SSMMHH little-endian-time)
+         (Minute              minute)
+         (Month               month)
+         (Padded_Day          0day padded-day)
+         (Padded_Hour         0hour padded-hour)
+         (Padded_Minute       0minute padded-minute)
+         (Padded_Month        0month padded-month)
+         (Padded_Second       0second padded-second)
+         (RFC_3339            rfc-3339)
+         (Second              second)
+         (Year                year))))
