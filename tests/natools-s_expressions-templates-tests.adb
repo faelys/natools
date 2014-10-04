@@ -17,6 +17,7 @@
 with Natools.S_Expressions.Parsers;
 with Natools.S_Expressions.Templates.Generic_Discrete_Render;
 with Natools.S_Expressions.Templates.Tests.Integers;
+with Natools.S_Expressions.Templates.Tests.Dates;
 with Natools.S_Expressions.Test_Tools;
 
 package body Natools.S_Expressions.Templates.Tests is
@@ -33,6 +34,7 @@ package body Natools.S_Expressions.Templates.Tests is
 
    procedure All_Tests (Report : in out NT.Reporter'Class) is
    begin
+      Test_Date (Report);
       Test_Discrete (Report);
       Test_Integers (Report);
    end All_Tests;
@@ -41,6 +43,14 @@ package body Natools.S_Expressions.Templates.Tests is
    --------------------------------------
    -- Inidividual Children Test Suites --
    --------------------------------------
+
+   procedure Test_Date (Report : in out NT.Reporter'Class) is
+   begin
+      Report.Section ("Date templates");
+      Natools.S_Expressions.Templates.Tests.Dates.All_Tests (Report);
+      Report.End_Section;
+   end Test_Date;
+
 
    procedure Test_Discrete (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item ("Discrete templates");

@@ -20,7 +20,6 @@
 ------------------------------------------------------------------------------
 
 package Natools.S_Expressions.Templates.Tests.Integers is
-   pragma Preelaborate;
 
    procedure All_Tests (Report : in out NT.Reporter'Class);
 

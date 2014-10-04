@@ -15,20 +15,18 @@
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
--- Natools.S_Expressions.Templates.Tests gathers all test suites for the    --
--- S-expression template systems.                                           --
+-- Natools.S_Expressions.Templates.Tests.Dates provides a test suite for    --
+-- date S-expression template system.                                       --
 ------------------------------------------------------------------------------
 
-with Natools.Tests;
-
-package Natools.S_Expressions.Templates.Tests is
-
-   package NT renames Natools.Tests;
+package Natools.S_Expressions.Templates.Tests.Dates is
 
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
-   procedure Test_Date (Report : in out NT.Reporter'Class);
-   procedure Test_Discrete (Report : in out NT.Reporter'Class);
-   procedure Test_Integers (Report : in out NT.Reporter'Class);
+   procedure Composite_Components (Report : in out NT.Reporter'Class);
+   procedure Padded_Components (Report : in out NT.Reporter'Class);
+   procedure RFC_3339 (Report : in out NT.Reporter'Class);
+   procedure Simple_Components (Report : in out NT.Reporter'Class);
+   procedure Static_Hash_Map (Report : in out NT.Reporter'Class);
 
-end Natools.S_Expressions.Templates.Tests;
+end Natools.S_Expressions.Templates.Tests.Dates;
