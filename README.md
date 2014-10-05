@@ -18,8 +18,10 @@ It contains the following package hierarchy:
   - `Indefinite_Holders`: simple Ada 2005 implementation of the
      Ada 2012 container
   - `References`: generic simple reference-counter implementation
+      - `Pools`: task-safe pool of referencesjj
   - `S-expressions`: library for dealing with [S-expressions][1]
       - `Atom_Buffers`: dynamic buffer for S-expression atoms
+      - `Atom_Ref_Constructors`: helper constructors for atom references
       - `Atom_Refs`: common reference-counted atoms
       - `Dynamic_Interpreters`: S-expression interpreter with mutable
         commands and callbacks
@@ -37,6 +39,13 @@ It contains the following package hierarchy:
           - `Pretty`: human-friendly S-expression pretty printer
               - `Config`: serialization and deserialization of pretty printer
                 parameters to and from S-expressions
+      - `Replayable`: interface for S-expression descriptors whose state can
+        be stored and replayed
+      - `Templates`: S-expression template renderers
+          - `Dates`: rendering of `Ada.Calendar.Time` values
+          - `Generic_Discrete_Render`: rendering of enumeration values
+          - `Generic_Integers`: rendering of integer values
+          - `Integers`: instance of `Generic_Integers` for standard integers
   - `Static_Hash_Maps`: code generator around GNAT `Perfect_Hash_Generators`
     to build a static hash map
       - `S_Expressions`: read S-expression description of static hash map
@@ -45,6 +54,15 @@ It contains the following package hierarchy:
       - `Slice_Sets`: sets of aforementionned slices
   - `Tests`: very simple test framework
       - `Text_IO`: test output using standard `Ada.Text_IO`
+  - `Time_IO`: conversions between time values and strings
+      - `Human`: human-readable fuzzy formats
+      - `RFC_3339`: time format described by
+        [RFC-3339](http://tools.ietf.org/html/rfc3339)
+  - `Time_Statistics`: accumulator for (run)time statistics
+      - `Coarse_Timers`: instance of `Generic_Timers` with
+        standard calendar time
+      - `Fine_Timers`: instance of `Generic_Timers` using realtime annex
+      - `Generic_Timers`: timer objects to provide data to accumulators
 
 
 [1]: http://people.csail.mit.edu/rivest/Sexp.txt
