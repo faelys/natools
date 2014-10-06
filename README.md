@@ -11,6 +11,8 @@ It contains the following package hierarchy:
         accumulator stack using a reference accumulator
   - `Chunked_Strings`: an implementation of unbounded strings backed by
     non-contiguous fixed-size chunks of memory
+  - `Constant_Indefinite_Ordered_Maps`: task-safe ordered maps with immutable
+    mapping
   - `Cron`: a simple low-precision service of periodic events
   - `Getopt_Long`: command-line argument processing similar to C `getopt_long`
   - `GNAT_HMAC`: instances of `HMAC` using GNAT hash primitives
