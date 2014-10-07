@@ -21,6 +21,7 @@
 with Ada.Command_Line;
 with Ada.Text_IO;
 with Natools.Chunked_Strings.Tests;
+with Natools.Constant_Indefinite_Ordered_Map_Tests;
 with Natools.Cron.Tests;
 with Natools.Getopt_Long_Tests;
 with Natools.HMAC_Tests;
@@ -76,6 +77,10 @@ begin
 
    Report.Section ("Chunked_String with single allocation unit");
    Single_Chunked_Strings_Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("Constant_Indefinite_Ordered_Maps");
+   Natools.Constant_Indefinite_Ordered_Map_Tests.All_Tests (Report);
    Report.End_Section;
 
    Report.Section ("Cron");
