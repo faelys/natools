@@ -46,6 +46,9 @@ package Natools.Static_Hash_Maps is
       Element_Name : in String);
       --  Add the pair Key and element designated by Name.
 
+   procedure Set_Definite (Self : in out Map_Description);
+      --  Use an array to store definite elements (default)
+
    procedure Set_Element_Type
      (Self : in out Map_Description;
       Name : in String);
@@ -63,6 +66,13 @@ package Natools.Static_Hash_Maps is
       --  Set the package name where the perfect hash function will be write.
       --  Defaults to "<map package>.<element type>_Hash".
 
+   procedure Set_Indefinite
+     (Self : in out Map_Description;
+      Indefinite : in Boolean := True);
+      --  Set whether element type is indefinite (and returned by a function
+      --  containing a case statement) or definite (and stored in a global
+      --  array).
+
    procedure Set_Not_Found
      (Self : in out Map_Description;
       Name : in String);
@@ -74,7 +84,8 @@ package Natools.Static_Hash_Maps is
       Nodes : Node_Array;
       Hash_Package_Name : String := "";
       Function_Name : String := "Element";
-      Not_Found : String := "")
+      Not_Found : String := "";
+      Indefinite : Boolean := False)
      return Map_Description;
       --  Create a map in a single call
 
@@ -153,6 +164,7 @@ private
       Function_Name : String_Holder;
       Not_Found : String_Holder;
       Nodes : Node_Lists.List;
+      Indefinite : Boolean := False;
    end record;
 
 

@@ -200,6 +200,40 @@ package body Natools.Static_Hash_Maps is
       Prefix : in String;
       File : in Ada.Text_IO.File_Type) is
    begin
+      if Map.Indefinite then
+         Ada.Text_IO.Put_Line
+           (File,
+            "   function " & Prefix & "_Elements (Hash : "
+            & Prefix & "_Hash)");
+         Ada.Text_IO.Put_Line
+           (File,
+            "     return " & To_String (Map.Element_Type) & " is");
+         Ada.Text_IO.Put_Line (File, "   begin");
+         Ada.Text_IO.Put_Line (File, "      case Hash is");
+
+         declare
+            Pos : Natural := 0;
+            Cursor : Node_Lists.Cursor := Map.Nodes.First;
+         begin
+            while Node_Lists.Has_Element (Cursor) loop
+               Ada.Text_IO.Put_Line
+                 (File, "         when " & Image (Pos) & " =>");
+               Ada.Text_IO.Put_Line
+                 (File,
+                  "            return "
+                  & To_String (Node_Lists.Element (Cursor).Name)
+                  & ';');
+
+               Node_Lists.Next (Cursor);
+               Pos := Pos + 1;
+            end loop;
+         end;
+
+         Ada.Text_IO.Put_Line (File, "      end case;");
+         Ada.Text_IO.Put_Line (File, "   end " & Prefix & "_Elements;");
+         Ada.Text_IO.New_Line (File);
+      end if;
+
       Ada.Text_IO.Put_Line
         (File,
          "   function "
@@ -325,31 +359,45 @@ package body Natools.Static_Hash_Maps is
          Node_Lists.Next (Cursor);
       end loop;
 
-      Ada.Text_IO.Put_Line
-        (File,
-         "   " & Prefix & "_Elements : constant array (0 .. " & Image (Last)
-         & ") of " & To_String (Map.Element_Type));
-      Pos := 0;
-      Cursor := Map.Nodes.First;
-      while Node_Lists.Has_Element (Cursor) loop
-         if Pos = 0 then
-            Ada.Text_IO.Put (File, "     := (");
-         else
-            Ada.Text_IO.Put (File, "         ");
-         end if;
+      if Map.Indefinite then
+         Ada.Text_IO.Put_Line
+           (File,
+            "   subtype " & Prefix & "_Hash is Natural range 0 .. "
+            & Image (Last) & ';');
+         Ada.Text_IO.Put_Line
+           (File,
+            "   function " & Prefix & "_Elements (Hash : "
+            & Prefix & "_Hash)");
+         Ada.Text_IO.Put_Line
+           (File,
+            "     return " & To_String (Map.Element_Type) & ';');
+      else
+         Ada.Text_IO.Put_Line
+           (File,
+            "   " & Prefix & "_Elements : constant array (0 .. " & Image (Last)
+            & ") of " & To_String (Map.Element_Type));
+         Pos := 0;
+         Cursor := Map.Nodes.First;
+         while Node_Lists.Has_Element (Cursor) loop
+            if Pos = 0 then
+               Ada.Text_IO.Put (File, "     := (");
+            else
+               Ada.Text_IO.Put (File, "         ");
+            end if;
 
-         Ada.Text_IO.Put
-           (File, To_String (Node_Lists.Element (Cursor).Name));
+            Ada.Text_IO.Put
+              (File, To_String (Node_Lists.Element (Cursor).Name));
 
-         if Pos = Last then
-            Ada.Text_IO.Put_Line (File, ");");
-         else
-            Ada.Text_IO.Put_Line (File, ",");
-         end if;
+            if Pos = Last then
+               Ada.Text_IO.Put_Line (File, ");");
+            else
+               Ada.Text_IO.Put_Line (File, ",");
+            end if;
 
-         Pos := Pos + 1;
-         Node_Lists.Next (Cursor);
-      end loop;
+            Pos := Pos + 1;
+            Node_Lists.Next (Cursor);
+         end loop;
+      end if;
    end Write_Map_Private_Spec;
 
 
@@ -572,7 +620,8 @@ package body Natools.Static_Hash_Maps is
                Hash_Package_Name => Hold (""),
                Function_Name => Hold (""),
                Not_Found => Hold (""),
-               Nodes => Node_Lists.Empty_List);
+               Nodes => Node_Lists.Empty_List,
+               Indefinite => False);
    end Reset;
 
 
@@ -583,6 +632,12 @@ package body Natools.Static_Hash_Maps is
    begin
       Self.Nodes.Append  (Node (Key, Element_Name));
    end Insert;
+
+
+   procedure Set_Definite (Self : in out Map_Description) is
+   begin
+      Self.Indefinite := False;
+   end Set_Definite;
 
 
    procedure Set_Element_Type
@@ -609,6 +664,14 @@ package body Natools.Static_Hash_Maps is
    end Set_Hash_Package_Name;
 
 
+   procedure Set_Indefinite
+     (Self : in out Map_Description;
+      Indefinite : in Boolean := True) is
+   begin
+      Self.Indefinite := Indefinite;
+   end Set_Indefinite;
+
+
    procedure Set_Not_Found
      (Self : in out Map_Description;
       Name : in String) is
@@ -622,7 +685,8 @@ package body Natools.Static_Hash_Maps is
       Nodes : Node_Array;
       Hash_Package_Name : String := "";
       Function_Name : String := "Element";
-      Not_Found : String := "")
+      Not_Found : String := "";
+      Indefinite : Boolean := False)
      return Map_Description
    is
       Result : Map_Description
@@ -630,7 +694,8 @@ package body Natools.Static_Hash_Maps is
             Hash_Package_Name => Hold (Hash_Package_Name),
             Function_Name => Hold (Function_Name),
             Not_Found => Hold (Not_Found),
-            Nodes => Node_Lists.Empty_List);
+            Nodes => Node_Lists.Empty_List,
+            Indefinite => Indefinite);
    begin
       for I in Nodes'Range loop
          Result.Nodes.Append (Nodes (I));
