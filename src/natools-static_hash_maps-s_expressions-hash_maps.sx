@@ -16,6 +16,8 @@
       (hash-package Natools.Static_Hash_Maps.S_Expressions.Command_Map)
       (function To_Map_Command)
       (nodes
+         (Definite_Elements definite definite-elements)
+         (Indefinite_Elements indefinite indefinite-elements)
          (Hash_Package hash-package)
          (Nodes nodes)
          (Function_Name function)

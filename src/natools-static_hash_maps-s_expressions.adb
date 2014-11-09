@@ -139,6 +139,12 @@ package body Natools.Static_Hash_Maps.S_Expressions is
                Set_Hash_Package_Name (Map, "");
             end if;
 
+         when Definite_Elements =>
+            Set_Definite (Map);
+
+         when Indefinite_Elements =>
+            Set_Indefinite (Map);
+
          when Function_Name =>
             if Event = Sx.Events.Add_Atom then
                Set_Function_Name (Map, Sx.To_String (Arguments.Current_Atom));

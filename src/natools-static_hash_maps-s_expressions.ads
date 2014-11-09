@@ -48,6 +48,8 @@ private
 
    type Map_Command is
      (Hash_Package,
+      Definite_Elements,
+      Indefinite_Elements,
       Nodes,
       Function_Name,
       Not_Found);
