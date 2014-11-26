@@ -34,9 +34,9 @@ package Natools.References is
    pragma Preelaborate (References);
 
    type Accessor (Data : not null access constant Held_Data) is
-     limited private;
+     limited private with Implicit_Dereference => Data;
    type Mutator (Data : not null access Held_Data) is
-     limited private;
+     limited private with Implicit_Dereference => Data;
 
    type Data_Access is access Held_Data;
    for Data_Access'Storage_Pool use Data_Pool;
