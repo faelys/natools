@@ -242,6 +242,29 @@ package body Natools.Reference_Tests is
    end Test_Double_Finalize;
 
 
+   procedure Test_Implicit_Dereference (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Implicit dereference");
+      Other_Number : constant Integer := 123;
+
+      procedure Set_Number (Object : in out Counter);
+
+      procedure Set_Number (Object : in out Counter) is
+      begin
+         Object.Instance_Number := Other_Number;
+      end Set_Number;
+   begin
+      declare
+         Ref : constant Refs.Reference := Refs.Create (Factory'Access);
+         Original_Number : constant Natural := Ref.Query.Instance_Number;
+      begin
+         Set_Number (Ref.Update);
+         Ref.Update.Instance_Number := Original_Number;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Test_Implicit_Dereference;
+
+
    procedure Test_Instance_Counts (Report : in out NT.Reporter'Class) is
       Name : constant String := "Instance counts";
       Initial_Count : constant Integer := Instance_Count;
@@ -492,6 +515,7 @@ package body Natools.Reference_Tests is
    begin
       Test_Data_Access (Report);
       Test_Double_Finalize (Report);
+      Test_Implicit_Dereference (Report);
       Test_Instance_Counts (Report);
       Test_Reference_Counts (Report);
       Test_Reference_Tests (Report);

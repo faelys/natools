@@ -38,6 +38,7 @@ package Natools.Reference_Tests is
 
    procedure Test_Data_Access (Report : in out NT.Reporter'Class);
    procedure Test_Double_Finalize (Report : in out NT.Reporter'Class);
+   procedure Test_Implicit_Dereference (Report : in out NT.Reporter'Class);
    procedure Test_Instance_Counts (Report : in out NT.Reporter'Class);
    procedure Test_Reference_Counts (Report : in out NT.Reporter'Class);
    procedure Test_Reference_Tests (Report : in out NT.Reporter'Class);
