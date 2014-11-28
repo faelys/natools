@@ -48,6 +48,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Indefinite_Ordered_Maps;
+with Ada.Iterator_Interfaces;
 
 private with Ada.Finalization;
 private with Ada.Unchecked_Deallocation;
@@ -67,6 +68,7 @@ package Natools.Constant_Indefinite_Ordered_Maps is
      (Key_Type, Element_Type);
 
    type Cursor is private;  --  with Type_Invariant => Is_Valid (Cursor);
+   pragma Preelaborable_Initialization (Cursor);
 
    No_Element : constant Cursor;
 
@@ -109,7 +111,16 @@ package Natools.Constant_Indefinite_Ordered_Maps is
      with Pre => Has_Element (Right) or else raise Constraint_Error;
 
 
+   package Map_Iterator_Interfaces is new Ada.Iterator_Interfaces
+     (Cursor, Has_Element);
+
+
    type Constant_Map is tagged private;
+--   TODO: add aspects when they don't put GNAT in an infinite loop
+--   with Constant_Indexing => Constant_Reference,
+--        Default_Iterator => Iterate,
+--        Iterator_Element => Element_Type;
+   pragma Preelaborable_Initialization (Constant_Map);
 
    procedure Clear (Container : in out Constant_Map);
    function Create (Source : Unsafe_Maps.Map) return Constant_Map;
@@ -156,8 +167,34 @@ package Natools.Constant_Indefinite_Ordered_Maps is
      (Container : in Constant_Map;
       Process : not null access procedure (Position : in Cursor));
 
+   function Iterate (Container : in Constant_Map)
+     return Map_Iterator_Interfaces.Reversible_Iterator'Class;
 
-   type Updatable_Map is new Constant_Map with private;
+   function Iterate (Container : in Constant_Map; Start : in Cursor)
+     return Map_Iterator_Interfaces.Reversible_Iterator'Class;
+
+
+   type Constant_Reference_Type
+     (Element : not null access constant Element_Type) is private
+     with Implicit_Dereference => Element;
+
+   function Constant_Reference
+     (Container : aliased in Constant_Map;
+      Position : in Cursor)
+     return Constant_Reference_Type;
+
+   function Constant_Reference
+     (Container : aliased in Constant_Map;
+      Key : in Key_Type)
+     return Constant_Reference_Type;
+
+
+   type Updatable_Map is new Constant_Map with private
+     with Constant_Indexing => Constant_Reference,
+          Variable_Indexing => Reference,
+          Default_Iterator => Iterate,
+          Iterator_Element => Element_Type;
+   pragma Preelaborable_Initialization (Updatable_Map);
 
    procedure Update_Element
      (Container : in out Updatable_Map;
@@ -166,6 +203,20 @@ package Natools.Constant_Indefinite_Ordered_Maps is
                                            Element : in out Element_Type))
      with Pre => (Has_Element (Position) or else raise Constraint_Error)
       and then (Is_Related (Container, Position) or else raise Program_Error);
+
+
+   type Reference_Type (Element : not null access Element_Type) is private
+     with Implicit_Dereference => Element;
+
+   function Reference
+     (Container : aliased in out Updatable_Map;
+      Position : in Cursor)
+     return Reference_Type;
+
+   function Reference
+     (Container : aliased in out Updatable_Map;
+      Key : in Key_Type)
+     return Reference_Type;
 
 
 private
@@ -258,6 +309,42 @@ private
    function Is_Related (Container : Constant_Map; Position : Cursor)
      return Boolean
      is (Backend_Refs."=" (Container.Backend, Position.Backend));
+
+
+   type Constant_Reference_Type
+     (Element : not null access constant Element_Type)
+   is record
+      Backend : Backend_Refs.Immutable_Reference;
+   end record;
+
+
+   type Reference_Type (Element : not null access Element_Type) is record
+      Backend : Backend_Refs.Immutable_Reference;
+   end record;
+
+
+   type Iterator is new Map_Iterator_Interfaces.Reversible_Iterator with record
+      Backend : Backend_Refs.Immutable_Reference;
+      Start : Cursor := No_Element;
+   end record;
+
+   overriding function First (Object : Iterator) return Cursor;
+   overriding function Last  (Object : Iterator) return Cursor;
+
+   overriding function Next
+     (Object   : Iterator;
+      Position : Cursor) return Cursor
+     is (Next (Position))
+     with Pre => Position.Is_Empty
+        or else Backend_Refs."=" (Position.Backend, Object.Backend);
+
+   overriding function Previous
+     (Object   : Iterator;
+      Position : Cursor) return Cursor
+     is (Previous (Position))
+     with Pre => Position.Is_Empty
+        or else Backend_Refs."=" (Position.Backend, Object.Backend);
+
 
    No_Element : constant Cursor := (Is_Empty => True);
 

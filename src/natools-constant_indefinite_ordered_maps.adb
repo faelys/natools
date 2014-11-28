@@ -411,6 +411,48 @@ package body Natools.Constant_Indefinite_Ordered_Maps is
       Container.Backend.Reset;
    end Clear;
 
+   function Constant_Reference
+     (Container : aliased in Constant_Map;
+      Position : in Cursor)
+     return Constant_Reference_Type
+   is
+      use type Backend_Refs.Immutable_Reference;
+   begin
+      if Position.Is_Empty then
+         raise Constraint_Error
+           with "Constant_Reference called with empty Position";
+      end if;
+
+      if Container.Backend /= Position.Backend then
+         raise Program_Error with "Constant_Reference called"
+           & " with unrelated Container and Position";
+      end if;
+
+      return
+        (Backend => Container.Backend,
+         Element => Container.Backend.Query.Data.all.Nodes
+                     (Position.Index).Element);
+   end Constant_Reference;
+
+
+   function Constant_Reference
+     (Container : aliased in Constant_Map;
+      Key : in Key_Type)
+     return Constant_Reference_Type
+   is
+      Position : constant Cursor := Container.Find (Key);
+   begin
+      if Position.Is_Empty then
+         raise Constraint_Error
+           with "Constant_Reference called with Key not in map";
+      end if;
+
+      return
+        (Backend => Container.Backend,
+         Element => Container.Backend.Query.Data.Nodes
+                     (Position.Index).Element);
+   end Constant_Reference;
+
 
    function Contains (Container : Constant_Map; Key : Key_Type)
      return Boolean
@@ -517,6 +559,20 @@ package body Natools.Constant_Indefinite_Ordered_Maps is
    end Iterate;
 
 
+   function Iterate (Container : in Constant_Map)
+     return Map_Iterator_Interfaces.Reversible_Iterator'Class is
+   begin
+      return Iterator'(Backend => Container.Backend, Start => No_Element);
+   end Iterate;
+
+
+   function Iterate (Container : in Constant_Map; Start : in Cursor)
+     return Map_Iterator_Interfaces.Reversible_Iterator'Class is
+   begin
+      return Iterator'(Backend => Container.Backend, Start => Start);
+   end Iterate;
+
+
    function Last (Container : Constant_Map) return Cursor is
    begin
       if Container.Is_Empty then
@@ -586,6 +642,46 @@ package body Natools.Constant_Indefinite_Ordered_Maps is
    -- Updatable Map Operations --
    ------------------------------
 
+   function Reference
+     (Container : aliased in out Updatable_Map;
+      Position : in Cursor)
+     return Reference_Type
+   is
+      use type Backend_Refs.Immutable_Reference;
+   begin
+      if Position.Is_Empty then
+         raise Constraint_Error with "Reference called with empty Position";
+      end if;
+
+      if Container.Backend /= Position.Backend then
+         raise Program_Error
+           with "Reference called with unrelated Container and Position";
+      end if;
+
+      return
+        (Backend => Container.Backend,
+         Element => Container.Backend.Query.Data.Nodes
+                     (Position.Index).Element);
+   end Reference;
+
+
+   function Reference
+     (Container : aliased in out Updatable_Map;
+      Key : in Key_Type)
+     return Reference_Type
+   is
+      Position : constant Cursor := Container.Find (Key);
+   begin
+      if Position.Is_Empty then
+         raise Constraint_Error with "Reference called with Key not in map";
+      end if;
+
+      return
+        (Backend => Container.Backend,
+         Element => Container.Backend.Query.Data.Nodes
+                     (Position.Index).Element);
+   end Reference;
+
    procedure Update_Element
      (Container : in out Updatable_Map;
       Position : in Cursor;
@@ -598,5 +694,38 @@ package body Natools.Constant_Indefinite_Ordered_Maps is
         (Accessor.Data.Nodes (Position.Index).Key.all,
          Accessor.Data.Nodes (Position.Index).Element.all);
    end Update_Element;
+
+
+
+   -------------------------
+   -- Iterator Operations --
+   -------------------------
+
+   overriding function First (Object : Iterator) return Cursor is
+   begin
+      if Has_Element (Object.Start) then
+         return Object.Start;
+      elsif Object.Backend.Is_Empty then
+         return No_Element;
+      else
+         return (Is_Empty => False,
+            Backend => Object.Backend,
+            Index => 1);
+      end if;
+   end First;
+
+
+   overriding function Last (Object : Iterator) return Cursor is
+   begin
+      if Has_Element (Object.Start) then
+         return Object.Start;
+      elsif Object.Backend.Is_Empty then
+         return No_Element;
+      else
+         return (Is_Empty => False,
+            Backend => Object.Backend,
+            Index => Object.Backend.Query.Data.Size);
+      end if;
+   end Last;
 
 end Natools.Constant_Indefinite_Ordered_Maps;
