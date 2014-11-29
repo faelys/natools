@@ -23,6 +23,9 @@ package Natools.Constant_Indefinite_Ordered_Map_Tests is
 
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
+   procedure Ada_2012_Errors (Report : in out NT.Reporter'Class);
+   procedure Ada_2012_Indexing (Report : in out NT.Reporter'Class);
+   procedure Ada_2012_Iteration (Report : in out NT.Reporter'Class);
    procedure Consistency (Report : in out NT.Reporter'Class);
    procedure Cursor_Operations (Report : in out NT.Reporter'Class);
    procedure Direct_Access (Report : in out NT.Reporter'Class);

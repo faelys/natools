@@ -28,6 +28,8 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
 
    function Image (Map : Test_Maps.Unsafe_Maps.Map) return String;
 
+   function Image (Map : Test_Maps.Updatable_Map) return String;
+
    function Sample_Map return Test_Maps.Unsafe_Maps.Map;
 
    function Sample_Map return Test_Maps.Updatable_Map
@@ -66,6 +68,12 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
    end Image;
 
 
+   function Image (Map : Test_Maps.Updatable_Map) return String is
+   begin
+      return Image (Map.To_Unsafe_Map);
+   end Image;
+
+
    function Sample_Map return Test_Maps.Unsafe_Maps.Map is
       Result : Test_Maps.Unsafe_Maps.Map;
    begin
@@ -98,6 +106,9 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
       Iterations (Report);
       Map_Updates (Report);
       Unsafe_Map_Roundtrip (Report);
+      Ada_2012_Indexing (Report);
+      Ada_2012_Iteration (Report);
+      Ada_2012_Errors (Report);
    end All_Tests;
 
 
@@ -105,6 +116,214 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
    ----------------------
    -- Individual Tests --
    ----------------------
+
+   procedure Ada_2012_Errors (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Errors in Ada 2012 extensions");
+   begin
+      declare
+         Map : Test_Maps.Updatable_Map := Sample_Map;
+         Fixed_Map : constant Test_Maps.Updatable_Map := Sample_Map;
+         Empty_Map : constant Test_Maps.Updatable_Map
+           := Test_Maps.Create (Test_Maps.Unsafe_Maps.Empty_Map);
+         I : Integer;
+      begin
+         for Position in Empty_Map.Iterate loop
+            Test.Fail ("Found element in empty map:");
+            Test.Info ("  (" & Test_Maps.Key (Position)
+              & " ->" & Integer'Image (Test_Maps.Element (Position)) & ')');
+         end loop;
+
+         for Position in reverse Empty_Map.Iterate loop
+            Test.Fail ("Found element in reverse empty map:");
+            Test.Info ("  (" & Test_Maps.Key (Position)
+              & " ->" & Integer'Image (Test_Maps.Element (Position)) & ')');
+         end loop;
+
+         begin
+            I := Fixed_Map ("#1");
+            Test.Fail ("Found value " & Integer'Image (I) & " for key ""#1""");
+         exception
+            when Constraint_Error => null;
+            when Error : others =>
+               Test.Fail ("Unexpected exception for value ""#1""");
+               Test.Report_Exception (Error, NT.Fail);
+         end;
+
+         begin
+            I := Fixed_Map (Fixed_Map.Find ("#2"));
+            Test.Fail ("Found value " & Integer'Image (I) & " for key ""#2""");
+         exception
+            when Constraint_Error => null;
+            when Error : others =>
+               Test.Fail ("Unexpected exception with value for ""#2""");
+               Test.Report_Exception (Error, NT.Fail);
+         end;
+
+         begin
+            I := Fixed_Map (Map.Find ("20"));
+            Test.Fail ("Found value " & Integer'Image (I)
+              & " for key ""20"" in foreign map");
+         exception
+            when Program_Error => null;
+            when Error : others =>
+               Test.Fail ("Unexpected exception with for foreign cursor");
+               Test.Report_Exception (Error, NT.Fail);
+         end;
+
+         begin
+            Map ("#3") := 93;
+            Test.Fail ("Found node for key ""#3""");
+         exception
+            when Constraint_Error => null;
+            when Error : others =>
+               Test.Fail ("Unexpected exception for value ""#3""");
+               Test.Report_Exception (Error, NT.Fail);
+         end;
+
+         begin
+            Fixed_Map (Fixed_Map.Find ("#4")) := 94;
+            Test.Fail ("Found node for key ""#4""");
+         exception
+            when Constraint_Error => null;
+            when Error : others =>
+               Test.Fail ("Unexpected exception with node for ""#4""");
+               Test.Report_Exception (Error, NT.Fail);
+         end;
+
+         begin
+            Map (Fixed_Map.Find ("20")) := 95;
+            Test.Fail ("Found node for key ""20"" in foreign map");
+         exception
+            when Program_Error => null;
+            when Error : others =>
+               Test.Fail ("Unexpected exception with node for foreign cursor");
+               Test.Report_Exception (Error, NT.Fail);
+         end;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Ada_2012_Errors;
+
+
+   procedure Ada_2012_Indexing (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Ada 2012 user-defined indexing");
+
+      procedure Test_Constant (Map : in Test_Maps.Updatable_Map);
+
+      procedure Test_Constant (Map : in Test_Maps.Updatable_Map) is
+         I : Integer;
+      begin
+         I := Map ("25");
+         if I /= 25 then
+            Test.Fail ("Unexpacted value" & Integer'Image (I)
+              & " for Map (""25"")");
+         end if;
+
+         I := Map (Map.Find ("12"));
+         if I /= 12 then
+            Test.Fail ("Unexpacted value" & Integer'Image (I)
+              & " for Map (""12"")");
+         end if;
+      end Test_Constant;
+   begin
+      declare
+         Map : Test_Maps.Updatable_Map := Sample_Map;
+         I : Integer;
+      begin
+         I := Map ("15");
+         if I /= 15 then
+            Test.Fail ("Unexpacted value" & Integer'Image (I)
+              & " for Map (""15"")");
+         end if;
+
+         Map ("23") := 2;
+         I := Map.Element ("23");
+         if I /= 2 then
+            Test.Fail ("Unexpected value" & Integer'Image (I)
+              & " for updated Map (""23"")");
+            Test.Info ("Full map: " & Image (Map));
+         end if;
+
+         Test_Constant (Map);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Ada_2012_Indexing;
+
+
+   procedure Ada_2012_Iteration (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Ada 2012 user-defined iteration");
+   begin
+      declare
+         Map : Test_Maps.Updatable_Map := Sample_Map;
+         Expected, Direction : Integer;
+         Abort_Loop : Boolean := False;
+
+         procedure Test_Element (Element : in Integer);
+
+         procedure Test_Element (Element : in Integer) is
+         begin
+            if Expected /= Element then
+               Test.Fail ("Got element" & Integer'Image (Element)
+                 & ", expected" & Integer'Image (Expected));
+               Test.Info ("Current map: " & Image (Map));
+               Abort_Loop := True;
+            end if;
+
+            Expected := Expected + Direction;
+         end Test_Element;
+      begin
+         Direction := 1;
+         Expected := 10;
+         Abort_Loop := False;
+         for Element of Map loop
+            Test_Element (Element);
+            exit when Abort_Loop;
+         end loop;
+
+         Direction := -1;
+         Expected := 29;
+         Abort_Loop := False;
+         for Element of reverse Map loop
+            Test_Element (Element);
+            exit when Abort_Loop;
+         end loop;
+
+         Expected := 59;
+         Direction := -1;
+         for Element of Map loop
+            Element := Expected;
+            Expected := Expected + Direction;
+         end loop;
+
+         Direction := 1;
+         Expected := 40;
+         Abort_Loop := False;
+         for Element of reverse Map loop
+            Test_Element (Element);
+            exit when Abort_Loop;
+         end loop;
+
+         Direction := 1;
+         Expected := 50;
+         Abort_Loop := False;
+         for Position in reverse Map.Iterate (Map.Find ("19")) loop
+            Test_Element (Test_Maps.Element (Position));
+            exit when Abort_Loop;
+         end loop;
+
+         Direction := -1;
+         Expected := 50;
+         Abort_Loop := False;
+         for Position in Map.Iterate (Map.Find ("19")) loop
+            Test_Element (Test_Maps.Element (Position));
+            exit when Abort_Loop;
+         end loop;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Ada_2012_Iteration;
+
 
    procedure Consistency (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item ("Consistency checks");
