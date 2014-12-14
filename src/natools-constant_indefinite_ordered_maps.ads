@@ -173,6 +173,9 @@ package Natools.Constant_Indefinite_Ordered_Maps is
    function Iterate (Container : in Constant_Map; Start : in Cursor)
      return Map_Iterator_Interfaces.Reversible_Iterator'Class;
 
+   function Iterate (Container : in Constant_Map; First, Last : in Cursor)
+     return Map_Iterator_Interfaces.Reversible_Iterator'Class;
+
 
    type Constant_Reference_Type
      (Element : not null access constant Element_Type) is private
@@ -342,6 +345,35 @@ private
      (Object   : Iterator;
       Position : Cursor) return Cursor
      is (Previous (Position))
+     with Pre => Position.Is_Empty
+        or else Backend_Refs."=" (Position.Backend, Object.Backend);
+
+
+   type Range_Iterator is new Map_Iterator_Interfaces.Reversible_Iterator
+   with record
+      Backend : Backend_Refs.Immutable_Reference;
+      First_Position : Cursor;
+      Last_Position : Cursor;
+   end record;
+--   with Dynamic_Predicate => not Range_Iterator.Backend.Is_Empty
+--      and then Has_Element (Range_Iterator.First_Position)
+--      and then Has_Element (Range_Iterator.Last_Position)
+--      and then not Range_Iterator.First_Position
+--         > Range_Iterator.Last_Position;
+
+   overriding function First (Object : Range_Iterator) return Cursor;
+
+   overriding function Last  (Object : Range_Iterator) return Cursor;
+
+   overriding function Next
+     (Object   : Range_Iterator;
+      Position : Cursor) return Cursor
+     with Pre => Position.Is_Empty
+        or else Backend_Refs."=" (Position.Backend, Object.Backend);
+
+   overriding function Previous
+     (Object   : Range_Iterator;
+      Position : Cursor) return Cursor
      with Pre => Position.Is_Empty
         or else Backend_Refs."=" (Position.Backend, Object.Backend);
 

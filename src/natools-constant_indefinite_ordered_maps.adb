@@ -573,6 +573,24 @@ package body Natools.Constant_Indefinite_Ordered_Maps is
    end Iterate;
 
 
+   function Iterate (Container : in Constant_Map; First, Last : in Cursor)
+     return Map_Iterator_Interfaces.Reversible_Iterator'Class is
+   begin
+      if Is_Empty (Container)
+        or else not Has_Element (First)
+        or else not Has_Element (Last)
+        or else First > Last
+      then
+         return Iterator'(Backend => Backend_Refs.Null_Immutable_Reference,
+           Start => No_Element);
+      else
+         return Range_Iterator'(Backend => Container.Backend,
+                                First_Position => First,
+                                Last_Position => Last);
+      end if;
+   end Iterate;
+
+
    function Last (Container : Constant_Map) return Cursor is
    begin
       if Container.Is_Empty then
@@ -727,5 +745,41 @@ package body Natools.Constant_Indefinite_Ordered_Maps is
             Index => Object.Backend.Query.Data.Size);
       end if;
    end Last;
+
+
+   overriding function First (Object : Range_Iterator) return Cursor is
+   begin
+      return Object.First_Position;
+   end First;
+
+
+   overriding function Last  (Object : Range_Iterator) return Cursor is
+   begin
+      return Object.Last_Position;
+   end Last;
+
+
+   overriding function Next
+     (Object   : Range_Iterator;
+      Position : Cursor) return Cursor is
+   begin
+      if Has_Element (Position) and then Position < Object.Last_Position then
+         return Next (Position);
+      else
+         return No_Element;
+      end if;
+   end Next;
+
+
+   overriding function Previous
+     (Object   : Range_Iterator;
+      Position : Cursor) return Cursor is
+   begin
+      if Has_Element (Position) and then Position > Object.First_Position then
+         return Previous (Position);
+      else
+         return No_Element;
+      end if;
+   end Previous;
 
 end Natools.Constant_Indefinite_Ordered_Maps;
