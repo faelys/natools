@@ -109,6 +109,7 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
       Ada_2012_Indexing (Report);
       Ada_2012_Iteration (Report);
       Ada_2012_Errors (Report);
+      Range_Iteratiors (Report);
    end All_Tests;
 
 
@@ -785,6 +786,97 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Map_Updates;
+
+
+   procedure Range_Iteratiors (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Map updates");
+   begin
+      declare
+         Map : constant Test_Maps.Updatable_Map := Sample_Map;
+         Expected, Direction : Integer;
+         Abort_Loop : Boolean := False;
+
+         procedure Test_Element (Element : in Integer);
+
+         procedure Test_Element (Element : in Integer) is
+         begin
+            if Expected /= Element then
+               Test.Fail ("Got element" & Integer'Image (Element)
+                 & ", expected" & Integer'Image (Expected));
+               Test.Info ("Current map: " & Image (Map));
+               Abort_Loop := True;
+            end if;
+
+            Expected := Expected + Direction;
+         end Test_Element;
+      begin
+         Direction := 1;
+         Expected := 10;
+         Abort_Loop := False;
+         for Position in Map.Iterate loop
+            Test_Element (Test_Maps.Element (Position));
+            exit when Abort_Loop;
+         end loop;
+
+         Direction := 1;
+         Expected := 15;
+         Abort_Loop := False;
+         for Position in Map.Iterate (Map.Find ("15"), Map.Find ("25")) loop
+            Test_Element (Test_Maps.Element (Position));
+            exit when Abort_Loop;
+         end loop;
+         Test_Element (26);
+
+         Direction := -1;
+         Expected := 23;
+         Abort_Loop := False;
+         for Position in reverse Map.Iterate (Map.Find ("13"), Map.Find ("23"))
+         loop
+            Test_Element (Test_Maps.Element (Position));
+            exit when Abort_Loop;
+         end loop;
+         Test_Element (12);
+
+         Direction := 1;
+         Expected := 99;
+         Abort_Loop := False;
+         for Position in Map.Iterate (Map.Find ("17"), Map.Find ("16")) loop
+            Test_Element (Test_Maps.Element (Position));
+            exit when Abort_Loop;
+         end loop;
+         Test_Element (99);
+
+         Direction := 1;
+         Expected := 99;
+         Abort_Loop := False;
+         for Position in reverse Map.Iterate (Map.Find ("27"), Map.Find ("26"))
+         loop
+            Test_Element (Test_Maps.Element (Position));
+            exit when Abort_Loop;
+         end loop;
+         Test_Element (99);
+
+         Direction := 1;
+         Expected := 10;
+         Abort_Loop := False;
+         for Position in Map.Iterate (Map.First, Map.Find ("20")) loop
+            Test_Element (Test_Maps.Element (Position));
+            exit when Abort_Loop;
+         end loop;
+         Test_Element (21);
+
+         Direction := -1;
+         Expected := 29;
+         Abort_Loop := False;
+         for Position in reverse Map.Iterate (Map.Find ("25"), Map.Last) loop
+            Test_Element (Test_Maps.Element (Position));
+            exit when Abort_Loop;
+         end loop;
+         Test_Element (24);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Range_Iteratiors;
 
 
    procedure Unsafe_Map_Roundtrip (Report : in out NT.Reporter'Class) is
