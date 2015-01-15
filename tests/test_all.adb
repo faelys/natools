@@ -43,6 +43,7 @@ with Natools.Static_Hash_Maps.S_Expressions.Tests;
 with Natools.String_Slice_Set_Tests;
 with Natools.String_Slice_Tests;
 with Natools.Time_IO.Tests;
+with Natools.Time_Keys.Tests;
 with Natools.Time_Statistics.Tests;
 with Natools.Tests.Text_IO;
 
@@ -166,6 +167,10 @@ begin
 
    Report.Section ("Time_IO");
    Natools.Time_IO.Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("Time_Keys");
+   Natools.Time_Keys.Tests.All_Tests (Report);
    Report.End_Section;
 
    Report.Section ("Time_Statistics");
