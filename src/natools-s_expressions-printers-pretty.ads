@@ -122,7 +122,7 @@ package Natools.S_Expressions.Printers.Pretty is
 
 
    type Stream_Printer (Stream : access Ada.Streams.Root_Stream_Type'Class) is
-     limited new Printers.Printer with private;
+     limited new Printer with private;
 
 private
 
