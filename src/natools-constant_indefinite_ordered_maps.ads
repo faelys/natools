@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2015, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -222,6 +222,9 @@ package Natools.Constant_Indefinite_Ordered_Maps is
      return Reference_Type;
 
 
+   Empty_Constant_Map : constant Constant_Map;
+   Empty_Updatable_Map : constant Updatable_Map;
+
 private
 
    type Key_Access is access Key_Type;
@@ -378,6 +381,8 @@ private
         or else Backend_Refs."=" (Position.Backend, Object.Backend);
 
 
+   Empty_Constant_Map : constant Constant_Map := (Backend => <>);
+   Empty_Updatable_Map : constant Updatable_Map := (Backend => <>);
    No_Element : constant Cursor := (Is_Empty => True);
 
 end Natools.Constant_Indefinite_Ordered_Maps;
