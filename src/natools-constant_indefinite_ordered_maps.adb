@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2015, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -653,6 +653,344 @@ package body Natools.Constant_Indefinite_Ordered_Maps is
          Process.all (Position);
       end loop;
    end Reverse_Iterate;
+
+
+
+   ----------------------------------------
+   -- Constant Map "Update" Constructors --
+   ----------------------------------------
+
+   function Insert
+     (Source : in Constant_Map;
+      Key : in Key_Type;
+      New_Item : in Element_Type;
+      Position : out Cursor;
+      Inserted : out Boolean)
+     return Constant_Map
+   is
+      Floor, Ceiling : Count_Type;
+   begin
+      if Source.Is_Empty then
+         declare
+            Backend : constant Backend_Refs.Data_Access := new Backend_Array'
+              (Ada.Finalization.Limited_Controlled with
+               Size => 1,
+               Nodes => (1 => (Key => new Key_Type'(Key),
+                               Element => new Element_Type'(New_Item))),
+               Finalized => False);
+            Result : constant Constant_Map
+              := (Backend => Backend_Refs.Create (Backend));
+         begin
+            Position := (Is_Empty => False,
+               Backend => Result.Backend,
+               Index => 1);
+            Inserted := True;
+            return Result;
+         end;
+      end if;
+
+      Search (Source.Backend.Query.Data.Nodes, Key, Floor, Ceiling);
+
+      if Floor = Ceiling then
+         Position := (Is_Empty => False,
+            Backend => Source.Backend,
+            Index => Floor);
+         Inserted := False;
+         return Source;
+      end if;
+
+      declare
+         function Key_Factory (Index : Index_Type) return Key_Type;
+         function Element_Factory (Index : Index_Type) return Element_Type;
+
+         Accessor : constant Backend_Refs.Accessor := Source.Backend.Query;
+
+         function Key_Factory (Index : Index_Type) return Key_Type is
+         begin
+            if Index <= Floor then
+               return Accessor.Nodes (Index).Key.all;
+            elsif Index = Floor + 1 then
+               return Key;
+            else
+               return Accessor.Nodes (Index - 1).Key.all;
+            end if;
+         end Key_Factory;
+
+         function Element_Factory (Index : Index_Type) return Element_Type is
+         begin
+            if Index <= Floor then
+               return Accessor.Nodes (Index).Element.all;
+            elsif Index = Floor + 1 then
+               return New_Item;
+            else
+               return Accessor.Nodes (Index - 1).Element.all;
+            end if;
+         end Element_Factory;
+
+         Result : constant Constant_Map := (Backend => Make_Backend
+           (Accessor.Size + 1, Key_Factory'Access, Element_Factory'Access));
+      begin
+         Position := (Is_Empty => False,
+            Backend => Result.Backend,
+            Index => Floor + 1);
+         Inserted := True;
+         return Result;
+      end;
+   end Insert;
+
+
+   function Insert
+     (Source : in Constant_Map;
+      Key : in Key_Type;
+      New_Item : in Element_Type)
+     return Constant_Map
+   is
+      Position : Cursor;
+      Inserted : Boolean;
+      Result : constant Constant_Map
+        := Insert (Source, Key, New_Item, Position, Inserted);
+   begin
+      if not Inserted then
+         raise Constraint_Error with "Inserted key already in Constant_Map";
+      end if;
+
+      return Result;
+   end Insert;
+
+
+   function Include
+     (Source : in Constant_Map;
+      Key : in Key_Type;
+      New_Item : in Element_Type)
+     return Constant_Map
+   is
+      Position : Cursor;
+      Inserted : Boolean;
+      Result : constant Constant_Map
+        := Insert (Source, Key, New_Item, Position, Inserted);
+   begin
+      if Inserted then
+         return Result;
+      end if;
+
+      declare
+         function Key_Factory (Index : Index_Type) return Key_Type;
+         function Element_Factory (Index : Index_Type) return Element_Type;
+
+         Accessor : constant Backend_Refs.Accessor := Source.Backend.Query;
+
+         function Key_Factory (Index : Index_Type) return Key_Type is
+         begin
+            if Index = Position.Index then
+               return Key;
+            else
+               return Accessor.Nodes (Index).Key.all;
+            end if;
+         end Key_Factory;
+
+         function Element_Factory (Index : Index_Type) return Element_Type is
+         begin
+            if Index = Position.Index then
+               return New_Item;
+            else
+               return Accessor.Nodes (Index).Element.all;
+            end if;
+         end Element_Factory;
+
+         Result : constant Constant_Map := (Backend => Make_Backend
+           (Accessor.Size, Key_Factory'Access, Element_Factory'Access));
+      begin
+         return Result;
+      end;
+   end Include;
+
+
+   function Replace
+     (Source : in Constant_Map;
+      Key : in Key_Type;
+      New_Item : in Element_Type)
+     return Constant_Map
+   is
+      Floor, Ceiling : Count_Type;
+   begin
+      if Source.Is_Empty then
+         raise Constraint_Error with "Replace called on empty Constant_Map";
+      end if;
+
+      Search (Source.Backend.Query.Data.Nodes, Key, Floor, Ceiling);
+
+      if Floor /= Ceiling then
+         raise Constraint_Error
+           with "Replace called with key not in Constant_Map";
+      end if;
+
+      return Replace_Element
+        (Source => Source,
+         Position =>
+           (Is_Empty => False,
+            Backend => Source.Backend,
+            Index => Floor),
+         New_Item => New_Item);
+   end Replace;
+
+
+   function Replace_Element
+     (Source : in Constant_Map;
+      Position : in Cursor;
+      New_Item : in Element_Type)
+     return Constant_Map
+   is
+      use type Backend_Refs.Immutable_Reference;
+   begin
+      if Position.Is_Empty then
+         raise Constraint_Error
+           with "Constant_Map.Replace_Element called with empty cursor";
+      end if;
+
+      if Source.Backend /= Position.Backend then
+         raise Program_Error with "Constant_Map.Replace_Element "
+           & "with unrelated container and cursor";
+      end if;
+
+      declare
+         function Key_Factory (Index : Index_Type) return Key_Type;
+         function Element_Factory (Index : Index_Type) return Element_Type;
+
+         Accessor : constant Backend_Refs.Accessor := Source.Backend.Query;
+
+         function Key_Factory (Index : Index_Type) return Key_Type is
+         begin
+            return Accessor.Nodes (Index).Key.all;
+         end Key_Factory;
+
+         function Element_Factory (Index : Index_Type) return Element_Type is
+         begin
+            if Index = Position.Index then
+               return New_Item;
+            else
+               return Accessor.Nodes (Index).Element.all;
+            end if;
+         end Element_Factory;
+
+         Result : constant Constant_Map := (Backend => Make_Backend
+           (Accessor.Size, Key_Factory'Access, Element_Factory'Access));
+      begin
+         return Result;
+      end;
+   end Replace_Element;
+
+
+   function Replace_Element
+     (Source : in Constant_Map;
+      Position : in Cursor;
+      New_Item : in Element_Type;
+      New_Position : out Cursor)
+     return Constant_Map
+   is
+      Result : constant Constant_Map
+        := Replace_Element (Source, Position, New_Item);
+   begin
+      New_Position :=
+        (Is_Empty => False,
+         Backend => Result.Backend,
+         Index => Position.Index);
+      return Result;
+   end Replace_Element;
+
+
+   function Exclude
+     (Source : in Constant_Map;
+      Key : in Key_Type)
+     return Constant_Map
+   is
+      Floor, Ceiling : Count_Type;
+   begin
+      if Source.Is_Empty then
+         return Source;
+      end if;
+
+      Search (Source.Backend.Query.Data.Nodes, Key, Floor, Ceiling);
+
+      if Floor = Ceiling then
+         return Delete
+           (Source,
+            Cursor'(Is_Empty => False,
+                    Backend => Source.Backend,
+                    Index => Floor));
+      else
+         return Source;
+      end if;
+   end Exclude;
+
+
+   function Delete
+     (Source : in Constant_Map;
+      Key : in Key_Type)
+     return Constant_Map
+   is
+      Floor, Ceiling : Count_Type;
+   begin
+      if Source.Is_Empty then
+         raise Constraint_Error with "Delete called on empty Constant_Map";
+      end if;
+
+      Search (Source.Backend.Query.Data.Nodes, Key, Floor, Ceiling);
+
+      if Floor /= Ceiling then
+         raise Constraint_Error with "Deleted key not in Constant_Map";
+      end if;
+
+      return Delete (Source,
+        (Is_Empty => False, Backend => Source.Backend, Index => Floor));
+   end Delete;
+
+
+   function Delete
+     (Source : in Constant_Map;
+      Position : in Cursor)
+     return Constant_Map
+   is
+      use type Backend_Refs.Immutable_Reference;
+   begin
+      if Position.Is_Empty then
+         raise Constraint_Error with "Constant_Map.Delete with empty cursor";
+      end if;
+
+      if Source.Backend /= Position.Backend then
+         raise Program_Error
+           with "Constant_Map.Delete with unrelated container and cursor";
+      end if;
+
+      declare
+         function Key_Factory (Index : Index_Type) return Key_Type;
+         function Element_Factory (Index : Index_Type) return Element_Type;
+
+         Accessor : constant Backend_Refs.Accessor := Source.Backend.Query;
+
+         function Key_Factory (Index : Index_Type) return Key_Type is
+         begin
+            if Index < Position.Index then
+               return Accessor.Nodes (Index).Key.all;
+            else
+               return Accessor.Nodes (Index + 1).Key.all;
+            end if;
+         end Key_Factory;
+
+         function Element_Factory (Index : Index_Type) return Element_Type is
+         begin
+            if Index < Position.Index then
+               return Accessor.Nodes (Index).Element.all;
+            else
+               return Accessor.Nodes (Index + 1).Element.all;
+            end if;
+         end Element_Factory;
+
+         Result : constant Constant_Map := (Backend => Make_Backend
+           (Accessor.Size - 1, Key_Factory'Access, Element_Factory'Access));
+      begin
+         return Result;
+      end;
+   end Delete;
 
 
 

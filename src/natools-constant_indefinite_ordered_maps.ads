@@ -27,7 +27,7 @@
 -- map object and the cursor is broken, but the cursor is still usable and  --
 -- behaves as the original version of the maps.                             --
 --                                                                          --
--- There are four types defined here, depending on their restrictions and   --
+-- There are two types defined here, depending on their restrictions and    --
 -- safety against concurrent accesses:                                      --
 --   * Constant_Map cannot be changed in any way, but is completely         --
 --     task-safe (unless some referential magic is performed, like          --
@@ -35,12 +35,13 @@
 --   * Updatable_Map allows read-write operations on stored elements, but   --
 --     it is up to the client to ensure there operations are task-safe,     --
 --     e.g. by using an atomic or protected Element_Type.                   --
---   * Mutable_Map allows all standard operations, but creating a new       --
---     mapping copied from the original. This is likely to be very          --
---     inefficient, and it is up to the client to ensure task-safety of the --
---     underlying copy with regard to update operations.                    --
---     NOTE: Mutable_Map is not provided yet, since its usefullness is      --
---     really not obvious.                                                  --
+--                                                                          --
+-- Insertion and deletion primitives are provided as function rather than   --
+-- procedures, to emphasize that they actually create a new map with the    --
+-- requested change. Since most of the map is blindly duplicated, they are  --
+-- all in O(n) time, which makes them a quite inefficient way to build      --
+-- maps. For a significant number of changes, it's probably better to go    --
+-- through an unsafe map.                                                   --
 --                                                                          --
 -- All the subprograms here have the semantics of standard indefinite       --
 -- ordered maps (see ARM A.18.6), except for tampering, which becomes       --
@@ -190,6 +191,61 @@ package Natools.Constant_Indefinite_Ordered_Maps is
      (Container : aliased in Constant_Map;
       Key : in Key_Type)
      return Constant_Reference_Type;
+
+
+   function Insert
+     (Source : in Constant_Map;
+      Key : in Key_Type;
+      New_Item : in Element_Type;
+      Position : out Cursor;
+      Inserted : out Boolean)
+     return Constant_Map;
+
+   function Insert
+     (Source : in Constant_Map;
+      Key : in Key_Type;
+      New_Item : in Element_Type)
+     return Constant_Map;
+
+   function Include
+     (Source : in Constant_Map;
+      Key : in Key_Type;
+      New_Item : in Element_Type)
+     return Constant_Map;
+
+   function Replace
+     (Source : in Constant_Map;
+      Key : in Key_Type;
+      New_Item : in Element_Type)
+     return Constant_Map;
+
+   function Replace_Element
+     (Source : in Constant_Map;
+      Position : in Cursor;
+      New_Item : in Element_Type)
+     return Constant_Map;
+
+   function Replace_Element
+     (Source : in Constant_Map;
+      Position : in Cursor;
+      New_Item : in Element_Type;
+      New_Position : out Cursor)
+     return Constant_Map;
+
+   function Exclude
+     (Source : in Constant_Map;
+      Key : in Key_Type)
+     return Constant_Map;
+
+   function Delete
+     (Source : in Constant_Map;
+      Key : in Key_Type)
+     return Constant_Map;
+
+   function Delete
+     (Source : in Constant_Map;
+      Position : in Cursor)
+     return Constant_Map;
 
 
    type Updatable_Map is new Constant_Map with private
