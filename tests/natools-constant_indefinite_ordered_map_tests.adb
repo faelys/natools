@@ -109,7 +109,9 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
       Ada_2012_Indexing (Report);
       Ada_2012_Iteration (Report);
       Ada_2012_Errors (Report);
-      Range_Iteratiors (Report);
+      Range_Iterators (Report);
+      Update_Constructors (Report);
+      Update_Constructor_Exceptions (Report);
    end All_Tests;
 
 
@@ -788,7 +790,7 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
    end Map_Updates;
 
 
-   procedure Range_Iteratiors (Report : in out NT.Reporter'Class) is
+   procedure Range_Iterators (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item ("Map updates");
    begin
       declare
@@ -876,7 +878,7 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
       end;
    exception
       when Error : others => Test.Report_Exception (Error);
-   end Range_Iteratiors;
+   end Range_Iterators;
 
 
    procedure Unsafe_Map_Roundtrip (Report : in out NT.Reporter'Class) is
@@ -898,5 +900,340 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Unsafe_Map_Roundtrip;
+
+
+   procedure Update_Constructors (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("""Update"" constructors");
+
+      procedure Check_Map
+        (Map : in Test_Maps.Updatable_Map;
+         Context : in String;
+         Expected_Length : in Ada.Containers.Count_Type;
+         Dump : out Boolean);
+         --  Base map consistency check
+
+      procedure Check_Map_Not_Value
+        (Map : in Test_Maps.Updatable_Map;
+         Context : in String;
+         Expected_Length : in Ada.Containers.Count_Type;
+         Key : in String);
+         --  Check consistency and that Key does not exist
+
+      procedure Check_Map_Value
+        (Map : in Test_Maps.Updatable_Map;
+         Context : in String;
+         Expected_Length : in Ada.Containers.Count_Type;
+         Key : in String;
+         Value : in Integer);
+         --  Check consistency and that Key exists and is associated with Value
+
+      procedure Check_Map
+        (Map : in Test_Maps.Updatable_Map;
+         Context : in String;
+         Expected_Length : in Ada.Containers.Count_Type;
+         Dump : out Boolean)
+      is
+         use type Ada.Containers.Count_Type;
+         I : Integer;
+         Current : Test_Maps.Cursor := Map.First;
+         Previous : Test_Maps.Cursor;
+      begin
+         Dump := False;
+
+         if Map.Length /= Expected_Length then
+            Test.Fail (Context & ": found length"
+              & Ada.Containers.Count_Type'Image (Map.Length)
+              & ", expected:"
+              & Ada.Containers.Count_Type'Image (Expected_Length));
+            Dump := True;
+         end if;
+
+         if not Test_Maps.Has_Element (Current) then
+            return;
+         end if;
+
+         loop
+            begin
+               I := Integer'Value (Test_Maps.Key (Current));
+            exception
+               when Constraint_Error =>
+                  Test.Fail (Context & ": Invalid key """
+                    & Test_Maps.Key (Current) & '"');
+                  Dump := True;
+                  exit;
+            end;
+
+            if I /= abs Test_Maps.Element (Current) then
+               Test.Fail (Context & ": Inconsistent key """
+                 & Test_Maps.Key (Current) & """ and value "
+                 & Integer'Image (Test_Maps.Element (Current)));
+               Dump := True;
+            end if;
+
+            Previous := Current;
+            Test_Maps.Next (Current);
+            exit when not Test_Maps.Has_Element (Current);
+
+            if Test_Maps.Key (Previous) >= Test_Maps.Key (Current) then
+               Test.Fail (Context & ": Inconsistent ordering of keys """
+                 & Test_Maps.Key (Previous) & """ and """
+                 & Test_Maps.Key (Current));
+               Dump := True;
+            end if;
+         end loop;
+      end Check_Map;
+
+      procedure Check_Map_Not_Value
+        (Map : in Test_Maps.Updatable_Map;
+         Context : in String;
+         Expected_Length : in Ada.Containers.Count_Type;
+         Key : in String)
+      is
+         Dump : Boolean;
+         Position : constant Test_Maps.Cursor := Map.Find (Key);
+      begin
+         Check_Map (Map, Context, Expected_Length, Dump);
+
+         if Test_Maps.Has_Element (Position) then
+            Test.Fail (Context & ": unexpected key """
+              & Test_Maps.Key (Position) & """ found with value "
+              & Integer'Image (Test_Maps.Element (Position)));
+            Dump := True;
+         end if;
+
+         if Dump then
+            Test.Info (Context & ": Map dump " & Image (Map));
+         end if;
+      end Check_Map_Not_Value;
+
+      procedure Check_Map_Value
+        (Map : in Test_Maps.Updatable_Map;
+         Context : in String;
+         Expected_Length : in Ada.Containers.Count_Type;
+         Key : in String;
+         Value : in Integer)
+      is
+         Dump : Boolean;
+         Position : constant Test_Maps.Cursor := Map.Find (Key);
+      begin
+         Check_Map (Map, Context, Expected_Length, Dump);
+
+         if not Test_Maps.Has_Element (Position) then
+            Test.Fail (Context & ": key """ & Key & """ not found");
+            Dump := True;
+         elsif Test_Maps.Element (Position) /= Value then
+            Test.Fail (Context & ": key """ & Key & """ found with value "
+              & Integer'Image (Test_Maps.Element (Position))
+              & " instead of "
+              & Integer'Image (Value));
+            Dump := True;
+         end if;
+
+         if Dump then
+            Test.Info (Context & ": Map dump " & Image (Map));
+         end if;
+      end Check_Map_Value;
+   begin
+      declare
+         Base : constant Test_Maps.Updatable_Map := Sample_Map;
+         Position : Test_Maps.Cursor;
+      begin
+         Check_Map_Not_Value (Base, "Base", 20, "152");
+
+         Check_Map_Value
+           (Test_Maps.Insert (Test_Maps.Empty_Updatable_Map, "1", -1),
+            "Insert on empty map", 1,
+            "1", -1);
+         Check_Map_Value
+           (Test_Maps.Insert (Base, "152", 152),
+            "Insert", 21,
+            "152", 152);
+         Check_Map_Value
+           (Base.Include ("21 ", 21),
+            "Inserting Include", 21,
+            "21 ", 21);
+         Check_Map_Value
+           (Base.Include ("21", -21),
+            "Replacing Include", 20,
+            "21", -21);
+         Check_Map_Value
+           (Base.Replace ("28", -28),
+            "Replace", 20,
+            "28", -28);
+         Check_Map_Not_Value
+           (Test_Maps.Delete (Base, "11"),
+            "Delete", 19, "11");
+         Check_Map_Not_Value
+           (Test_Maps.Exclude (Base, "27"),
+            "Exclude", 19, "27");
+         Check_Map_Not_Value
+           (Test_Maps.Exclude (Test_Maps.Empty_Updatable_Map, "23"),
+            "Empty Exclude", 0, "23");
+         Check_Map_Value
+           (Test_Maps.Replace_Element (Base, Base.Find ("12"), -12, Position),
+            "Replace_Element", 20,
+            "12", -12);
+
+         if Test_Maps.Key (Position) /= "12" then
+            Test.Fail ("Output Position key is """
+              & Test_Maps.Key (Position) & """, expected ""12""");
+         end if;
+
+         if Test_Maps.Element (Position) /= -12 then
+            Test.Fail ("Output Position element is "
+              & Integer'Image (Test_Maps.Element (Position))
+              & ", expected -12");
+         end if;
+
+         declare
+            use type Test_Maps.Updatable_Map;
+            Derived : constant Test_Maps.Updatable_Map := Base.Exclude ("foo");
+         begin
+            if Derived /= Base then
+               Test.Fail ("No-op Exclude return differing maps");
+               Test.Info ("Base: " & Image (Base));
+               Test.Info ("Excluded: " & Image (Derived));
+            end if;
+         end;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Update_Constructors;
+
+
+   procedure Update_Constructor_Exceptions
+     (Report : in out NT.Reporter'Class)
+   is
+      Test : NT.Test := Report.Item
+        ("Exceptions raised in ""Update"" constructors");
+   begin
+      declare
+         Map : constant Test_Maps.Updatable_Map := Sample_Map;
+         Unrelated_Map : constant Test_Maps.Updatable_Map := Sample_Map;
+         Unrelated_Position : constant Test_Maps.Cursor
+            := Unrelated_Map.Find ("19");
+         Output : Test_Maps.Updatable_Map;
+      begin
+         Insert :
+         declare
+            Name : constant String := "Insert with used key";
+         begin
+            Output := Test_Maps.Insert (Map, "14", -14);
+            Test.Fail ("Expected exception in " & Name);
+            Test.Info ("Result: " & Image (Output));
+         exception
+            when Constraint_Error => null;
+            when others =>
+               Test.Fail ("Unexpected exception in " & Name);
+         end Insert;
+
+         Empty_Replace :
+         declare
+            Name : constant String := "Replace on empty map";
+         begin
+            Output := Test_Maps.Empty_Updatable_Map.Replace ("14", -14);
+            Test.Fail ("Expected exception in " & Name);
+            Test.Info ("Result: " & Image (Output));
+         exception
+            when Constraint_Error => null;
+            when others =>
+               Test.Fail ("Unexpected exception in " & Name);
+         end Empty_Replace;
+
+         Replace :
+         declare
+            Name : constant String := "Replace with non-existent key";
+         begin
+            Output := Map.Replace ("-14", -14);
+            Test.Fail ("Expected exception in " & Name);
+            Test.Info ("Result: " & Image (Output));
+         exception
+            when Constraint_Error => null;
+            when others =>
+               Test.Fail ("Unexpected exception in " & Name);
+         end Replace;
+
+         Replace_Element :
+         declare
+            Name : constant String := "Replace_Element with empty cursor";
+            Position : constant Test_Maps.Cursor := Map.Find ("-18");
+         begin
+            Output := Test_Maps.Replace_Element (Map, Position, -18);
+            Test.Fail ("Expected exception in " & Name);
+            Test.Info ("Result: " & Image (Output));
+         exception
+            when Constraint_Error => null;
+            when others =>
+               Test.Fail ("Unexpected exception in " & Name);
+         end Replace_Element;
+
+         Unrelated_Replace_Element :
+         declare
+            Name : constant String := "Replace_Element with unrelated cursor";
+         begin
+            Output := Test_Maps.Replace_Element (Map, Unrelated_Position, -1);
+            Test.Fail ("Expected exception in " & Name);
+            Test.Info ("Result: " & Image (Output));
+         exception
+            when Program_Error => null;
+            when others =>
+               Test.Fail ("Unexpected exception in " & Name);
+         end Unrelated_Replace_Element;
+
+         Empty_Delete_Key :
+         declare
+            Name : constant String := "Delete on empty map";
+         begin
+            Output := Test_Maps.Delete (Test_Maps.Empty_Updatable_Map, "24");
+            Test.Fail ("Expected exception in " & Name);
+            Test.Info ("Result: " & Image (Output));
+         exception
+            when Constraint_Error => null;
+            when others =>
+               Test.Fail ("Unexpected exception in " & Name);
+         end Empty_Delete_Key;
+
+         Delete_Key :
+         declare
+            Name : constant String := "Delete with non-existent key";
+         begin
+            Output := Test_Maps.Delete (Map, "-24");
+            Test.Fail ("Expected exception in " & Name);
+            Test.Info ("Result: " & Image (Output));
+         exception
+            when Constraint_Error => null;
+            when others =>
+               Test.Fail ("Unexpected exception in " & Name);
+         end Delete_Key;
+
+         Delete_Empty_Cursor :
+         declare
+            Name : constant String := "Delete with empty cursor";
+         begin
+            Output := Test_Maps.Delete (Map, Test_Maps.No_Element);
+            Test.Fail ("Expected exception in " & Name);
+            Test.Info ("Result: " & Image (Output));
+         exception
+            when Constraint_Error => null;
+            when others =>
+               Test.Fail ("Unexpected exception in " & Name);
+         end Delete_Empty_Cursor;
+
+         Delete_Unrelated_Cursor :
+         declare
+            Name : constant String := "Delete with unrelated cursor";
+         begin
+            Output := Test_Maps.Delete (Map, Unrelated_Position);
+            Test.Fail ("Expected exception in " & Name);
+            Test.Info ("Result: " & Image (Output));
+         exception
+            when Program_Error => null;
+            when others =>
+               Test.Fail ("Unexpected exception in " & Name);
+         end Delete_Unrelated_Cursor;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Update_Constructor_Exceptions;
 
 end Natools.Constant_Indefinite_Ordered_Map_Tests;

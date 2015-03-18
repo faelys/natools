@@ -32,7 +32,9 @@ package Natools.Constant_Indefinite_Ordered_Map_Tests is
    procedure Empty_Map (Report : in out NT.Reporter'Class);
    procedure Iterations (Report : in out NT.Reporter'Class);
    procedure Map_Updates (Report : in out NT.Reporter'Class);
-   procedure Range_Iteratiors (Report : in out NT.Reporter'Class);
+   procedure Range_Iterators (Report : in out NT.Reporter'Class);
    procedure Unsafe_Map_Roundtrip (Report : in out NT.Reporter'Class);
+   procedure Update_Constructors (Report : in out NT.Reporter'Class);
+   procedure Update_Constructor_Exceptions (Report : in out NT.Reporter'Class);
 
 end Natools.Constant_Indefinite_Ordered_Map_Tests;
