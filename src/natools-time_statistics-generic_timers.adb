@@ -29,7 +29,7 @@ package body Natools.Time_Statistics.Generic_Timers is
 
    not overriding procedure Stop (Timer : in out Manual_Timer) is
    begin
-      Timer.Backend.Add (Timer.Start_Time - Now);
+      Timer.Backend.Add (Now - Timer.Start_Time);
       Timer.Running := False;
    end Stop;
 
@@ -61,7 +61,7 @@ package body Natools.Time_Statistics.Generic_Timers is
    overriding procedure Finalize (Object : in out Auto_Timer) is
    begin
       if not Object.Reported then
-         Object.Backend.Add (Object.Start_Time - Now);
+         Object.Backend.Add (Now - Object.Start_Time);
          Object.Reported := True;
       end if;
    end Finalize;
