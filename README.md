@@ -14,6 +14,8 @@ It contains the following package hierarchy:
   - `Constant_Indefinite_Ordered_Maps`: task-safe ordered maps with immutable
     mapping
   - `Cron`: a simple low-precision service of periodic events
+  - `File_Streams`: wrapper around `Stream_IO` files implementing stream
+    interface
   - `Getopt_Long`: command-line argument processing similar to C `getopt_long`
   - `GNAT_HMAC`: instances of `HMAC` using GNAT hash primitives
   - `HMAC`: generic HMAC implementation using a formal hash function
@@ -43,6 +45,7 @@ It contains the following package hierarchy:
                 parameters to and from S-expressions
       - `Replayable`: interface for S-expression descriptors whose state can
         be stored and replayed
+      - `Special_Descriptors`: always-empty and always-in-error descriptors
       - `Templates`: S-expression template renderers
           - `Dates`: rendering of `Ada.Calendar.Time` values
           - `Generic_Discrete_Render`: rendering of enumeration values
@@ -60,6 +63,8 @@ It contains the following package hierarchy:
       - `Human`: human-readable fuzzy formats
       - `RFC_3339`: time format described by
         [RFC-3339](http://tools.ietf.org/html/rfc3339)
+  - `Time_Keys`: short printable string serialization of time that is
+    consistent with lexicographical order
   - `Time_Statistics`: accumulator for (run)time statistics
       - `Coarse_Timers`: instance of `Generic_Timers` with
         standard calendar time
