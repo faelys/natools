@@ -27,6 +27,8 @@ It contains the following package hierarchy:
       - `Atom_Buffers`: dynamic buffer for S-expression atoms
       - `Atom_Ref_Constructors`: helper constructors for atom references
       - `Atom_Refs`: common reference-counted atoms
+      - `Conditionals`: S-expression boolean expressions about some object
+          - `Generic_Evaluate`: Generic boolean expression evaluation framework
       - `Dynamic_Interpreters`: S-expression interpreter with mutable
         commands and callbacks
       - `Encodings`: translators to and from official S-expression encodings
