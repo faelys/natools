@@ -1,0 +1,35 @@
+(Natools.Static_Maps.S_Expressions.Conditionals.Strings
+   pure
+   (test-function T)
+   (extra-decl "\
+   type Parametric_Condition is
+     (Unknown_Parametric_Condition,
+      Case_Insensitive,
+      Case_Sensitive,
+      Contains_All,
+      Contains_Any,
+      Starts_With);
+
+   type Simple_Condition is
+     (Unknown_Simple_Condition,
+      Is_ASCII,
+      Is_Empty);")
+
+   (Parametric_Condition
+      (hash-package Natools.Static_Maps.S_Expressions.Conditionals.Strings.P)
+      (function To_Parametric)
+      (not-found Unknown_Parametric_Condition)
+      (nodes
+         (Case_Insensitive   case-insensitive)
+         (Case_Sensitive   case-sensitive)
+         (Contains_All   contains contains-all contains-all-of)
+         (Contains_Any   contains-any contains-any-of)
+         (Starts_With   starts-with)))
+
+   (Simple_Condition
+      (hash-package Natools.Static_Maps.S_Expressions.Conditionals.Strings.S)
+      (function To_Simple)
+      (not-found Unknown_Simple_Condition)
+      (nodes
+         (Is_ASCII   is-ascii)
+         (Is_Empty   is-empty))))

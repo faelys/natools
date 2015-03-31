@@ -29,6 +29,7 @@ It contains the following package hierarchy:
       - `Atom_Refs`: common reference-counted atoms
       - `Conditionals`: S-expression boolean expressions about some object
           - `Generic_Evaluate`: Generic boolean expression evaluation framework
+          - `Strings`: Boolean expressions on standard strings
       - `Dynamic_Interpreters`: S-expression interpreter with mutable
         commands and callbacks
       - `Encodings`: translators to and from official S-expression encodings
