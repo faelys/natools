@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2015, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -13,6 +13,8 @@
 -- ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF  --
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
+
+with Natools.S_Expressions.Parsers;
 
 package body Natools.S_Expressions.Test_Tools is
 
@@ -482,6 +484,22 @@ package body Natools.S_Expressions.Test_Tools is
            (Test, Tested, Expected, Level, Context);
       end if;
    end Next_And_Check;
+
+
+   function To_S_Expression (Text : String) return Caches.Reference is
+   begin
+      return To_S_Expression (To_Atom (Text));
+   end To_S_Expression;
+
+
+   function To_S_Expression (Data : Atom) return Caches.Reference is
+      Stream : aliased Memory_Stream;
+      Parser : Parsers.Stream_Parser (Stream'Access);
+   begin
+      Stream.Write (Data);
+      Parser.Next;
+      return Caches.Move (Parser);
+   end To_S_Expression;
 
 
 

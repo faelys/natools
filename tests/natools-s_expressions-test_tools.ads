@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2015, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -28,6 +28,7 @@ with Ada.Streams;
 with Natools.Tests;
 
 with Natools.S_Expressions.Atom_Buffers;
+with Natools.S_Expressions.Caches;
 
 package Natools.S_Expressions.Test_Tools is
    pragma Preelaborate (Test_Tools);
@@ -86,6 +87,11 @@ package Natools.S_Expressions.Test_Tools is
       Context : in String := "");
       --  Call Tested.Next and check current event is Add_Atom with Expected,
       --  using Test_Atom_Accessors.
+
+
+   function To_S_Expression (Text : String) return Caches.Reference;
+   function To_S_Expression (Data : Atom) return Caches.Reference;
+      --  Store a S-expression from its serialization
 
 
    type Memory_Stream is new Ada.Streams.Root_Stream_Type with private;
