@@ -57,6 +57,8 @@ package Natools.S_Expressions is
    function To_String (Data : in Atom) return String;
    function To_Atom (Data : in String) return Atom;
 
+   function "=" (Left, Right : Atom) return Boolean
+     renames Ada.Streams."=";
    function "<" (Left, Right : Atom) return Boolean
      renames Ada.Streams."<";
    function Less_Than (Left, Right : Atom) return Boolean;
