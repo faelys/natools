@@ -23,5 +23,6 @@ package Natools.Time_Keys.Tests is
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
    procedure Roundtrips (Report : in out NT.Reporter'Class);
+   procedure Subsecond_Rounding (Report : in out NT.Reporter'Class);
 
 end Natools.Time_Keys.Tests;
