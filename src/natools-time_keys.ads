@@ -29,7 +29,7 @@
 -- for a useful time range).                                                --
 ------------------------------------------------------------------------------
 
-with Ada.Calendar;
+with Ada.Calendar.Formatting;
 
 package Natools.Time_Keys is
 
@@ -44,6 +44,20 @@ package Natools.Time_Keys is
      return String
      with Post => Is_Valid (To_Key'Result);
       --  Convert a time into a key
+
+   function To_Key
+     (Year : Ada.Calendar.Year_Number;
+      Month : Ada.Calendar.Month_Number;
+      Day : Ada.Calendar.Day_Number;
+      Hour : Ada.Calendar.Formatting.Hour_Number := 0;
+      Minute : Ada.Calendar.Formatting.Minute_Number := 0;
+      Second : Ada.Calendar.Formatting.Second_Number := 0;
+      Sub_Second : Ada.Calendar.Formatting.Second_Duration := 0.0;
+      Leap_Second : Boolean := False;
+      Max_Sub_Second_Digits : Natural := 120)
+     return String
+     with Post => Is_Valid (To_Key'Result);
+      --  Convert a split time representation into a key
 
    function To_Time (Key : String) return Ada.Calendar.Time
      with Pre => Is_Valid (Key);

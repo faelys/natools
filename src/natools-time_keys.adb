@@ -14,7 +14,7 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
-with Ada.Calendar.Formatting;
+with Ada.Calendar.Arithmetic;
 
 package body Natools.Time_Keys is
 
@@ -48,9 +48,6 @@ package body Natools.Time_Keys is
       Max_Sub_Second_Digits : in Natural := 120)
      return String
    is
-      Buffer : String (1 .. 7 + Max_Sub_Second_Digits);
-      Last : Positive;
-      N : Natural;
       Year : Ada.Calendar.Year_Number;
       Month : Ada.Calendar.Month_Number;
       Day : Ada.Calendar.Day_Number;
@@ -58,14 +55,70 @@ package body Natools.Time_Keys is
       Minute : Ada.Calendar.Formatting.Minute_Number;
       Second : Ada.Calendar.Formatting.Second_Number;
       Sub_Second : Ada.Calendar.Formatting.Second_Duration;
-      D, Base : Duration;
       Leap_Second : Boolean;
    begin
       Ada.Calendar.Formatting.Split
         (Time,
          Year, Month, Day, Hour, Minute, Second, Sub_Second,
          Leap_Second);
+      return To_Key
+        (Year, Month, Day,
+         Hour, Minute, Second, Sub_Second,
+         Leap_Second,
+         Max_Sub_Second_Digits);
+   end To_Key;
 
+
+   function To_Key
+     (Year : Ada.Calendar.Year_Number;
+      Month : Ada.Calendar.Month_Number;
+      Day : Ada.Calendar.Day_Number;
+      Hour : Ada.Calendar.Formatting.Hour_Number := 0;
+      Minute : Ada.Calendar.Formatting.Minute_Number := 0;
+      Second : Ada.Calendar.Formatting.Second_Number := 0;
+      Sub_Second : Ada.Calendar.Formatting.Second_Duration := 0.0;
+      Leap_Second : Boolean := False;
+      Max_Sub_Second_Digits : Natural := 120)
+     return String
+   is
+      procedure Increment_Buffer;
+
+      Buffer : String (1 .. 7 + Max_Sub_Second_Digits);
+      Last : Positive;
+
+      procedure Increment_Buffer is
+      begin
+         while Last > 7 and then Buffer (Last) = '~' loop
+            Last := Last - 1;
+         end loop;
+
+         if Last > 7 then
+            Buffer (Last) := Image (Value (Buffer (Last)) + 1);
+            return;
+         end if;
+
+         if Second <= 58 then
+            Buffer (7) := I_Image (Second + 1);
+            Last := 7;
+
+         elsif Minute <= 58 then
+            Buffer (6) := I_Image (Minute + 1);
+            Last := 6;
+
+         elsif Hour <= 22 then
+            Buffer (5) := I_Image (Hour + 1);
+            Last := 5;
+
+         else
+            Buffer (1 .. 4) := To_Key (Ada.Calendar.Arithmetic."+"
+              (Ada.Calendar.Formatting.Time_Of (Year, Month, Day), 1));
+            Last := 4;
+         end if;
+      end Increment_Buffer;
+
+      N : Natural;
+      D, Base : Duration;
+   begin
       Buffer (1) := I_Image (Year / 64);
       Buffer (2) := I_Image (Year mod 64);
       Buffer (3) := I_Image (Month);
@@ -105,7 +158,12 @@ package body Natools.Time_Keys is
          N := Natural (D);
 
          if Last = Buffer'Last or Base = 0.0 then
-            Buffer (Last) := I_Image (N);
+            if N < 64 then
+               Buffer (Last) := I_Image (N);
+            else
+               Last := Last - 1;
+               Increment_Buffer;
+            end if;
             exit;
          end if;
 
