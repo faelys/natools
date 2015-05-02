@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013-2014, Natacha Porté                                   --
+-- Copyright (c) 2013-2015, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -38,6 +38,9 @@ package Natools.S_Expressions.Printers is
    procedure Open_List (Output : in out Printer) is abstract;
    procedure Append_Atom (Output : in out Printer; Data : in Atom) is abstract;
    procedure Close_List (Output : in out Printer) is abstract;
+
+
+   procedure Append_String (Output : in out Printer'Class; Data : in String);
 
    procedure Transfer
      (Source : in out Descriptor'Class;

@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013-2014, Natacha Porté                                   --
+-- Copyright (c) 2013-2015, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -42,6 +42,12 @@ package body Natools.S_Expressions.Printers is
    begin
       Output.Stream.Write ((0 => Encodings.List_End));
    end Close_List;
+
+
+   procedure Append_String (Output : in out Printer'Class; Data : in String) is
+   begin
+      Append_Atom (Output, To_Atom (Data));
+   end Append_String;
 
 
    procedure Transfer
