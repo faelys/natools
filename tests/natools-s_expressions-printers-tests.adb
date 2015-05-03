@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2015, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -35,27 +35,27 @@ package body Natools.S_Expressions.Printers.Tests is
            ("3:The(5:quick((5:brown3:fox)()))"
             & "(5:jumps)9:over3:the()4:lazy0:3:dog"));
 
-         Printer.Append_Atom (To_Atom ("The"));
+         Printer.Append_String ("The");
          Printer.Open_List;
-         Printer.Append_Atom (To_Atom ("quick"));
+         Printer.Append_String ("quick");
          Printer.Open_List;
          Printer.Open_List;
-         Printer.Append_Atom (To_Atom ("brown"));
-         Printer.Append_Atom (To_Atom ("fox"));
+         Printer.Append_String ("brown");
+         Printer.Append_String ("fox");
          Printer.Close_List;
          Printer.Open_List;
          Printer.Close_List;
          Printer.Close_List;
          Printer.Close_List;
          Printer.Open_List;
-         Printer.Append_Atom (To_Atom ("jumps"));
+         Printer.Append_String ("jumps");
          Printer.Close_List;
-         Printer.Append_Atom (To_Atom ("over3:the"));
+         Printer.Append_String ("over3:the");
          Printer.Open_List;
          Printer.Close_List;
-         Printer.Append_Atom (To_Atom ("lazy"));
+         Printer.Append_String ("lazy");
          Printer.Append_Atom (Null_Atom);
-         Printer.Append_Atom (To_Atom ("dog"));
+         Printer.Append_String ("dog");
 
          if Stream.Has_Mismatch
            or else Stream.Unread_Expected /= Null_Atom
