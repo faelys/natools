@@ -33,6 +33,7 @@ It contains the following package hierarchy:
       - `Dynamic_Interpreters`: S-expression interpreter with mutable
         commands and callbacks
       - `Encodings`: translators to and from official S-expression encodings
+      - `Enumeration_IO`: tools to help I/O of enumerations in S-expressions
       - `File_Readers`: objects reading a file to an atom or a S-expression
       - `File_Writers`: file-backed S-expression printer
       - `Generic_Caches`: memory container for S-expressions
