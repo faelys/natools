@@ -53,15 +53,106 @@ package body Natools.S_Expressions.Templates.Dates is
           4 => Character'Pos ('0') + Octet (Value mod 10)))
      with Pre => Value in 0 .. 9999;
 
+   function Parse_Time_Offset
+     (Image : in String;
+      Date : in Ada.Calendar.Time)
+     return Ada.Calendar.Time_Zones.Time_Offset;
+
    procedure Render_Triplet
      (Output : in out Ada.Streams.Root_Stream_Type'Class;
       Part_1, Part_2, Part_3 : in Atom;
       Template : in out Lockable.Descriptor'Class);
 
 
+   procedure Interpreter is new Interpreter_Loop
+     (Ada.Streams.Root_Stream_Type'Class, Split_Time, Execute, Append);
+
+
    ------------------------------
    -- Local Helper Subprograms --
    ------------------------------
+
+   function Parse_Time_Offset
+     (Image : in String;
+      Date : in Ada.Calendar.Time)
+     return Ada.Calendar.Time_Zones.Time_Offset
+   is
+      function Value (C : Character)
+        return Ada.Calendar.Time_Zones.Time_Offset;
+
+      function Value (C : Character)
+        return Ada.Calendar.Time_Zones.Time_Offset is
+      begin
+         if C in '0' .. '9' then
+            return Ada.Calendar.Time_Zones.Time_Offset
+                    (Character'Pos (C) - Character'Pos ('0'));
+         else
+            raise Constraint_Error with "Unknown time offset format";
+         end if;
+      end Value;
+   begin
+      if Image = "system" then
+         return Ada.Calendar.Time_Zones.UTC_Time_Offset (Date);
+      end if;
+
+      Abbreviation :
+      begin
+         return Ada.Calendar.Time_Zones.Time_Offset
+           (Static_Maps.S_Expressions.Templates.Dates.To_Time_Offset (Image));
+      exception
+         when Constraint_Error => null;
+      end Abbreviation;
+
+      Numeric :
+      declare
+         use type Ada.Calendar.Time_Zones.Time_Offset;
+         First : Integer := Image'First;
+         Length : Natural := Image'Length;
+         V : Ada.Calendar.Time_Zones.Time_Offset;
+         Negative : Boolean := False;
+      begin
+         if First in Image'Range and then Image (First) in '-' | '+' then
+            Negative := Image (First) = '-';
+            First := First + 1;
+            Length := Length - 1;
+         end if;
+
+         case Length is
+            when 1 =>
+               V := Value (Image (First)) * 60;
+
+            when 2 =>
+               V := Value (Image (First)) * 600
+                  + Value (Image (First + 1)) * 60;
+
+            when 4 =>
+               V := Value (Image (First)) * 600
+                  + Value (Image (First + 1)) * 60
+                  + Value (Image (First + 2)) * 10
+                  + Value (Image (First + 3));
+
+            when 5 =>
+               if Image (First + 2) in '0' .. '9' then
+                  raise Constraint_Error with "Unknown time offset format";
+               end if;
+
+               V := Value (Image (First)) * 600
+                  + Value (Image (First + 1)) * 60
+                  + Value (Image (First + 3)) * 10
+                  + Value (Image (First + 4));
+
+            when others =>
+               raise Constraint_Error with "Unknown time offset format";
+         end case;
+
+         if Negative then
+            return -V;
+         else
+            return V;
+         end if;
+      end Numeric;
+   end Parse_Time_Offset;
+
 
    procedure Render_Triplet
      (Output : in out Ada.Streams.Root_Stream_Type'Class;
@@ -216,14 +307,34 @@ package body Natools.S_Expressions.Templates.Dates is
             Format.Set_Image (-1, Null_Atom);
             Integers.Render (Output, Format, Arguments, Value.Second);
 
+         when Commands.With_Offset =>
+            if Arguments.Current_Event = Events.Add_Atom then
+               declare
+                  use type Ada.Calendar.Time_Zones.Time_Offset;
+                  New_Offset : Ada.Calendar.Time_Zones.Time_Offset;
+               begin
+                  begin
+                     New_Offset := Parse_Time_Offset
+                       (S_Expressions.To_String (Arguments.Current_Atom),
+                        Value.Source);
+                  exception
+                     when Constraint_Error => return;
+                  end;
+
+                  Arguments.Next;
+
+                  if New_Offset = Value.Time_Zone then
+                     Interpreter (Arguments, Output, Value);
+                  else
+                     Render (Output, Arguments, Value.Source, New_Offset);
+                  end if;
+               end;
+            end if;
+
          when Commands.Year =>
             Integers.Render (Output, Arguments, Value.Year);
       end case;
    end Execute;
-
-
-   procedure Interpreter is new Interpreter_Loop
-     (Ada.Streams.Root_Stream_Type'Class, Split_Time, Execute, Append);
 
 
 
