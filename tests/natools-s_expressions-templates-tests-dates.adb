@@ -63,6 +63,7 @@ package body Natools.S_Expressions.Templates.Tests.Dates is
    procedure All_Tests (Report : in out NT.Reporter'Class) is
    begin
       Composite_Components (Report);
+      Forced_Time_Zone (Report);
       Padded_Components (Report);
       RFC_3339 (Report);
       Simple_Components (Report);
@@ -100,6 +101,40 @@ package body Natools.S_Expressions.Templates.Tests.Dates is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Composite_Components;
+
+
+   procedure Forced_Time_Zone (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Time zone set in template");
+      Moment : constant Ada.Calendar.Time := Ada.Calendar.Formatting.Time_Of
+        (2012, 8, 29, 22, 42, 16, Time_Zone => 0);
+   begin
+      Test_Render
+        (Test, "(in-zone 0 (rfc-3339))",
+         "2012-08-29T22:42:16Z", Moment);
+      Test_Render
+        (Test, "(in-zone CEST (rfc-3339))",
+         "2012-08-30T00:42:16+02:00", Moment);
+      Test_Render
+        (Test, "(in-zone -01:12 (rfc-3339))",
+         "2012-08-29T21:30:16-01:12", Moment);
+      Test_Render
+        (Test, "(in-zone +0130 (rfc-3339))",
+         "2012-08-30T00:12:16+01:30", Moment);
+      Test_Render
+        (Test, "(in-zone -10 (rfc-3339))",
+         "2012-08-29T12:42:16-10:00", Moment);
+      Test_Render
+        (Test, "(in-zone FOO (rfc-3339))",
+         "", Moment);
+      Test_Render
+        (Test, "(in-zone BARST (rfc-3339))",
+         "", Moment);
+      Test_Render
+        (Test, "(in-zone 12345 (rfc-3339))",
+         "", Moment);
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Forced_Time_Zone;
 
 
    procedure Padded_Components (Report : in out NT.Reporter'Class) is

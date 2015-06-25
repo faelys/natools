@@ -24,6 +24,7 @@ package Natools.S_Expressions.Templates.Tests.Dates is
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
    procedure Composite_Components (Report : in out NT.Reporter'Class);
+   procedure Forced_Time_Zone (Report : in out NT.Reporter'Class);
    procedure Padded_Components (Report : in out NT.Reporter'Class);
    procedure RFC_3339 (Report : in out NT.Reporter'Class);
    procedure Simple_Components (Report : in out NT.Reporter'Class);
