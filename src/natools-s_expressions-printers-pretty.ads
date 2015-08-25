@@ -136,7 +136,7 @@ private
    end record;
 
    type Stream_Printer (Stream : access Ada.Streams.Root_Stream_Type'Class) is
-     new Printer with null record;
+     limited new Printer with null record;
 
    overriding procedure Write_Raw
      (Output : in out Stream_Printer;

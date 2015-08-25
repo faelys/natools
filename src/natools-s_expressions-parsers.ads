@@ -122,7 +122,7 @@ private
    end record;
 
    type Stream_Parser (Input : access Ada.Streams.Root_Stream_Type'Class) is
-     new Parser with null record;
+     limited new Parser with null record;
 
    overriding procedure Read_More
      (Self : in out Stream_Parser;
