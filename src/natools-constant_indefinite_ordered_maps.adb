@@ -998,6 +998,24 @@ package body Natools.Constant_Indefinite_Ordered_Maps is
    -- Updatable Map Operations --
    ------------------------------
 
+   function Constant_Reference_For_Bugged_GNAT
+     (Container : aliased in Updatable_Map;
+      Position : in Cursor)
+     return Constant_Reference_Type is
+   begin
+      return Constant_Reference (Constant_Map (Container), Position);
+   end Constant_Reference_For_Bugged_GNAT;
+
+
+   function Constant_Reference_For_Bugged_GNAT
+     (Container : aliased in Updatable_Map;
+      Key : in Key_Type)
+     return Constant_Reference_Type is
+   begin
+      return Constant_Reference (Constant_Map (Container), Key);
+   end Constant_Reference_For_Bugged_GNAT;
+
+
    function Reference
      (Container : aliased in out Updatable_Map;
       Position : in Cursor)
@@ -1038,12 +1056,14 @@ package body Natools.Constant_Indefinite_Ordered_Maps is
                      (Position.Index).Element);
    end Reference;
 
+
    procedure Update_Element
      (Container : in out Updatable_Map;
       Position : in Cursor;
       Process : not null access procedure (Key : in Key_Type;
                                            Element : in out Element_Type))
    is
+      pragma Unreferenced (Container);
       Accessor : constant Backend_Refs.Accessor := Position.Backend.Query;
    begin
       Process.all

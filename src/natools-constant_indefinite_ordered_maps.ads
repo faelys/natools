@@ -249,11 +249,21 @@ package Natools.Constant_Indefinite_Ordered_Maps is
 
 
    type Updatable_Map is new Constant_Map with private
-     with Constant_Indexing => Constant_Reference,
+     with Constant_Indexing => Constant_Reference_For_Bugged_GNAT,
           Variable_Indexing => Reference,
           Default_Iterator => Iterate,
           Iterator_Element => Element_Type;
    pragma Preelaborable_Initialization (Updatable_Map);
+
+   function Constant_Reference_For_Bugged_GNAT
+     (Container : aliased in Updatable_Map;
+      Position : in Cursor)
+     return Constant_Reference_Type;
+
+   function Constant_Reference_For_Bugged_GNAT
+     (Container : aliased in Updatable_Map;
+      Key : in Key_Type)
+     return Constant_Reference_Type;
 
    procedure Update_Element
      (Container : in out Updatable_Map;
