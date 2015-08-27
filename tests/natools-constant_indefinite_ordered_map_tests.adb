@@ -184,7 +184,7 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
          end;
 
          begin
-            Fixed_Map (Fixed_Map.Find ("#4")) := 94;
+            Map (Map.Find ("#4")) := 94;
             Test.Fail ("Found node for key ""#4""");
          exception
             when Constraint_Error => null;
