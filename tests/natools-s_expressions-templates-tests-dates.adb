@@ -68,6 +68,7 @@ package body Natools.S_Expressions.Templates.Tests.Dates is
       RFC_3339 (Report);
       Simple_Components (Report);
       Static_Hash_Map (Report);
+      Weekday_In_Time_Zone (Report);
    end All_Tests;
 
 
@@ -245,5 +246,38 @@ package body Natools.S_Expressions.Templates.Tests.Dates is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Static_Hash_Map;
+
+
+   procedure Weekday_In_Time_Zone (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Week day in various time zones");
+      Early : constant Ada.Calendar.Time := Ada.Calendar.Formatting.Time_Of
+        (2015, 11, 11, 0, 29, 0, Time_Zone => 0);
+      Late : constant Ada.Calendar.Time := Ada.Calendar.Formatting.Time_Of
+        (2015, 11, 11, 23, 31, 0, Time_Zone => 0);
+      Template_Prefix : constant String := "(in-zone ";
+      Template_Suffix : constant String
+        := " (day-of-week Monday Tuesday Wednesday"
+         & " Thursday Friday Saturday Sunday) 1: "
+         & " (day (suffix th (st 1 21 31) (nd 2 22) (rd 3 23))) 2:, "
+         & " (hour) 1:: (padded-minute))";
+
+      procedure Double_Test (Zone, Expected_Early, Expected_Late : String);
+
+      procedure Double_Test (Zone, Expected_Early, Expected_Late : String) is
+      begin
+         Test_Render
+           (Test, Template_Prefix & Zone & Template_Suffix,
+            Expected_Early, Early);
+         Test_Render
+           (Test, Template_Prefix & Zone & Template_Suffix,
+            Expected_Late, Late);
+      end Double_Test;
+   begin
+      Double_Test ("0", "Wednesday 11th, 0:29", "Wednesday 11th, 23:31");
+      Double_Test ("-01:00", "Tuesday 10th, 23:29", "Wednesday 11th, 22:31");
+      Double_Test ("+01:00", "Wednesday 11th, 1:29", "Thursday 12th, 0:31");
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Weekday_In_Time_Zone;
 
 end Natools.S_Expressions.Templates.Tests.Dates;

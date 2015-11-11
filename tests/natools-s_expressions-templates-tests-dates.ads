@@ -29,5 +29,6 @@ package Natools.S_Expressions.Templates.Tests.Dates is
    procedure RFC_3339 (Report : in out NT.Reporter'Class);
    procedure Simple_Components (Report : in out NT.Reporter'Class);
    procedure Static_Hash_Map (Report : in out NT.Reporter'Class);
+   procedure Weekday_In_Time_Zone (Report : in out NT.Reporter'Class);
 
 end Natools.S_Expressions.Templates.Tests.Dates;
