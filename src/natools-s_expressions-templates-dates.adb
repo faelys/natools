@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2015, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -347,6 +347,10 @@ package body Natools.S_Expressions.Templates.Dates is
       Time_Zone : Ada.Calendar.Time_Zones.Time_Offset)
      return Split_Time
    is
+      use type Ada.Calendar.Time_Zones.Time_Offset;
+      Zone_Offset : constant Ada.Calendar.Time_Zones.Time_Offset
+        := Time_Zone - Ada.Calendar.Time_Zones.UTC_Time_Offset (Value);
+
       Year : Ada.Calendar.Year_Number;
       Month : Ada.Calendar.Month_Number;
       Day : Ada.Calendar.Day_Number;
@@ -368,7 +372,8 @@ package body Natools.S_Expressions.Templates.Dates is
          Year => Year,
          Month => Month,
          Day => Day,
-         Day_Of_Week => Ada.Calendar.Formatting.Day_Of_Week (Value),
+         Day_Of_Week => Ada.Calendar.Formatting.Day_Of_Week
+           (Ada.Calendar."+" (Value, 60 * Duration (Zone_Offset))),
          Hour => Hour,
          Minute => Minute,
          Second => Second,
