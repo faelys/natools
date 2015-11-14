@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2015, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -152,9 +152,11 @@ package body Natools.Cron is
          Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
          Actual_Time : Periodic_Time := Time;
       begin
-         while Actual_Time.Origin < Now loop
-            Actual_Time.Origin := Actual_Time.Origin + Actual_Time.Period;
-         end loop;
+         if Actual_Time.Period > 0.0 then
+            while Actual_Time.Origin < Now loop
+               Actual_Time.Origin := Actual_Time.Origin + Actual_Time.Period;
+            end loop;
+         end if;
 
          if Map.Is_Empty then
             if Global_Worker /= null and then Global_Worker.all'Terminated then
@@ -258,7 +260,10 @@ package body Natools.Cron is
                   Old_Time : constant Periodic_Time := Entry_Maps.Key (Cursor);
                begin
                   Map.Delete (Cursor);
-                  Insert (Old_Time, Callback);
+
+                  if Old_Time.Period > 0.0 then
+                     Insert (Old_Time, Callback);
+                  end if;
                end;
 
                exit Search;
