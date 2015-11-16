@@ -83,6 +83,17 @@ package body Natools.Cron is
 
 
    function Create
+     (Origin : in Ada.Calendar.Time;
+      Callback : in Cron.Callback'Class)
+     return Cron_Entry is
+   begin
+      return Result : Cron_Entry do
+         Result.Set (Origin, Callback);
+      end return;
+   end Create;
+
+
+   function Create
      (Period : in Duration;
       Callback : in Cron.Callback'Class)
      return Cron_Entry is
@@ -108,6 +119,15 @@ package body Natools.Cron is
       Self.Reset;
       Self.Callback.Replace (Create'Access);
       Database.Insert (Time, Self.Callback);
+   end Set;
+
+
+   procedure Set
+     (Self : in out Cron_Entry;
+      Origin : in Ada.Calendar.Time;
+      Callback : in Cron.Callback'Class) is
+   begin
+      Set (Self, (Origin, 0.0), Callback);
    end Set;
 
 

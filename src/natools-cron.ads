@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2015, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -55,6 +55,12 @@ package Natools.Cron is
       --  Create a new entry with the given parameters
 
    function Create
+     (Origin : in Ada.Calendar.Time;
+      Callback : in Cron.Callback'Class)
+     return Cron_Entry;
+      --  Create a new entry that executes only once, at the given time
+
+   function Create
      (Period : in Duration;
       Callback : in Cron.Callback'Class)
      return Cron_Entry;
@@ -65,6 +71,12 @@ package Natools.Cron is
       Time : in Periodic_Time;
       Callback : in Cron.Callback'Class);
       --  Reset an entry with the given parameters
+
+   procedure Set
+     (Self : in out Cron_Entry;
+      Origin : in Ada.Calendar.Time;
+      Callback : in Cron.Callback'Class);
+      --  Reset entry with the given parameters, running only once
 
    procedure Set
      (Self : in out Cron_Entry;
