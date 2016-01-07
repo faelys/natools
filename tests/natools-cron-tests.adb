@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2016, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -89,8 +89,10 @@ package body Natools.Cron.Tests is
    -----------------------
 
    procedure Basic_Usage (Report : in out NT.Reporter'Class) is
+      use type Ada.Calendar.Time;
+
       Test : NT.Test := Report.Item ("Basic black-box usage");
-      Total : constant Duration := 1.0;
+      Total : constant Duration := 10.0;
       Tick : constant Duration := Total / 10;
       Half_Tick : constant Duration := Tick / 2;
       Log : aliased Bounded_String (256);
@@ -99,6 +101,11 @@ package body Natools.Cron.Tests is
          Beat : constant Cron_Entry := Create
            (Tick, Test_Callback'(Backend => Log'Access, Symbol => '.'));
          pragma Unreferenced (Beat);
+
+         One_Time_Entry : constant Cron_Entry := Create
+           (Ada.Calendar.Clock + Half_Tick,
+            Test_Callback'(Backend => Log'Access, Symbol => 'o'));
+         pragma Unreferenced (One_Time_Entry);
 
          Test_Entry : Cron_Entry;
       begin
@@ -114,13 +121,17 @@ package body Natools.Cron.Tests is
       delay Tick / 10;
 
       declare
-         use type Ada.Calendar.Time;
-
          Beat : constant Cron_Entry := Create
            ((Origin => Ada.Calendar.Clock + Half_Tick,
              Period => Tick),
             Test_Callback'(Backend => Log'Access, Symbol => '.'));
          pragma Unreferenced (Beat);
+
+         One_Time_Entry : constant Cron_Entry := Create
+           ((Origin => Ada.Calendar.Clock + Tick,
+             Period => -Half_Tick),
+            Test_Callback'(Backend => Log'Access, Symbol => 'O'));
+         pragma Unreferenced (One_Time_Entry);
 
          Slow, Fast : Cron_Entry;
       begin
@@ -144,7 +155,7 @@ package body Natools.Cron.Tests is
       --  Fast: set at 6.5, reset at 8.0,
       --        run at 6.7, 6.9, 7.1, 7.3, 7.5, 7.7, 7.9
 
-      Check (Test, Get (Log), ".1.1.1.|..sff.fffff.s.");
+      Check (Test, Get (Log), "o.1.1.1.|.O.sff.fffff.s.");
    exception
       when Error : others => Test.Report_Exception (Error);
    end Basic_Usage;
