@@ -187,7 +187,7 @@ package body Natools.Cron.Tests is
 
    procedure Insert_While_Busy (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item ("Insert entry while callback is running");
-      Total : constant Duration := 0.1;
+      Total : constant Duration := 1.0;
       Log : aliased Bounded_String (256);
    begin
       declare
