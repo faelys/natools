@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2015, Natacha Porté                                        --
+-- Copyright (c) 2015-2016, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -91,6 +91,7 @@ package body Natools.Time_Keys.Tests is
 
    procedure All_Tests (Report : in out NT.Reporter'Class) is
    begin
+      Leap_Second (Report);
       Roundtrips (Report);
       Subsecond_Rounding (Report);
    end All_Tests;
@@ -100,6 +101,45 @@ package body Natools.Time_Keys.Tests is
    ----------------------
    -- Individual Tests --
    ----------------------
+
+   procedure Leap_Second (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Leap second support");
+   begin
+      declare
+         use type Ada.Calendar.Time;
+
+         Year : constant Ada.Calendar.Year_Number                      := 2012;
+         Month : constant Ada.Calendar.Month_Number                    := 6;
+         Day : constant Ada.Calendar.Day_Number                        := 30;
+         Hour : constant Ada.Calendar.Formatting.Hour_Number           := 23;
+         Minute : constant Ada.Calendar.Formatting.Minute_Number       := 59;
+         Second : constant Ada.Calendar.Formatting.Second_Number       := 59;
+         Sub_Second : constant Ada.Calendar.Formatting.Second_Duration := 0.5;
+
+         Expected_Time : constant Ada.Calendar.Time
+           := Ada.Calendar.Formatting.Time_Of
+              (Year, Month, Day, Hour, Minute, Second, Sub_Second, True);
+         Expected_Key : constant String := "VS6UNwxW";
+
+         Generated_Key : constant String := To_Key
+           (Year, Month, Day, Hour, Minute, Second, Sub_Second, True, 1);
+         Recovered_Time : constant Ada.Calendar.Time
+           := To_Time (Generated_Key);
+      begin
+         if Generated_Key /= Expected_Key then
+            Test.Fail ("Generated key """ & Generated_Key
+              & """, expected """ & Expected_Key & '"');
+         end if;
+
+         if Recovered_Time /= Expected_Time then
+            Test.Fail ("Roundtrip time: " & Image (Recovered_Time)
+              & ", expected: " & Image (Expected_Time));
+         end if;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Leap_Second;
+
 
    procedure Roundtrips (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item ("Conversion Roundtrips");

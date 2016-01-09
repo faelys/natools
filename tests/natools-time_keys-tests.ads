@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2015, Natacha Porté                                        --
+-- Copyright (c) 2015-2016, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -22,6 +22,7 @@ package Natools.Time_Keys.Tests is
 
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
+   procedure Leap_Second (Report : in out NT.Reporter'Class);
    procedure Roundtrips (Report : in out NT.Reporter'Class);
    procedure Subsecond_Rounding (Report : in out NT.Reporter'Class);
 
