@@ -116,6 +116,13 @@ package Natools.S_Expressions is
    procedure Next (Object : in out Descriptor'Class);
       --  Call Next discarding current event
 
+   procedure Close_Current_List (Object : in out Descriptor'Class);
+      --  Repeatedly call Next until reaching end-of-input or the Close_List
+      --  event matching the current list.
+      --  Note: if current event is Open_List, then this is the designated list
+      --  while for other events, including Close_List, the designated list
+      --  contains the current object or the just-closed list.
+
 private
 
    use type Ada.Streams.Stream_Element;

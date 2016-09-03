@@ -50,4 +50,33 @@ package body Natools.S_Expressions is
       Next (Object, Discarded);
    end Next;
 
+
+   procedure Close_Current_List (Object : in out Descriptor'Class) is
+      Level : Natural := 0;
+      Event : Events.Event := Object.Current_Event;
+   begin
+      if Object.Current_Event in Events.Error | Events.End_Of_Input then
+         return;
+      end if;
+
+      loop
+         Object.Next (Event);
+
+         case Event is
+            when Events.Error | Events.End_Of_Input =>
+               exit;
+
+            when Events.Open_List =>
+               Level := Level + 1;
+
+            when Events.Close_List =>
+               exit when Level = 0;
+               Level := Level - 1;
+
+            when Events.Add_Atom =>
+               null;
+         end case;
+      end loop;
+   end Close_Current_List;
+
 end Natools.S_Expressions;
