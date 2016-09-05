@@ -35,4 +35,14 @@ package Natools.Smaz.Tools is
       Descriptor : in out S_Expressions.Descriptor'Class);
       --  Read atoms from Descriptor to fill List
 
+   function To_Dictionary
+     (List : in String_Lists.List;
+      Variable_Length_Verbatim : in Boolean)
+     return Dictionary
+     with Pre => String_Lists.Length (List) in 1 ..
+                 Ada.Containers.Count_Type (Ada.Streams.Stream_Element'Last);
+      --  Build a Dictionary object from a string list
+      --  Note that Hash is set to a placeholder which uncinditionnally
+      --  raises Program_Error when called.
+
 end Natools.Smaz.Tools;
