@@ -45,4 +45,20 @@ package Natools.Smaz.Tools is
       --  Note that Hash is set to a placeholder which uncinditionnally
       --  raises Program_Error when called.
 
+   generic
+      with procedure Put_Line (Line : String);
+   procedure Print_Dictionary_In_Ada
+     (Dict : in Dictionary;
+      Hash_Image : in String := "TODO";
+      Max_Width : in Positive := 70;
+      First_Prefix : in String := "     := (";
+      Prefix : in String := "         ";
+      Half_Indent : in String := "   ");
+      --  Output Ada code corresponding to the value of the dictionary.
+      --  Note that Prefix is the actual base indentation, while Half_Indent
+      --  is added beyond Prefix before values continued on another line.
+      --  Frist_Prefix is used instead of Prefix on the first line.
+      --  All the defaults value are what was used to generate the constant
+      --  in Natools.Smaz.Original.
+
 end Natools.Smaz.Tools;
