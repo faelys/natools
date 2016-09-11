@@ -25,12 +25,14 @@ with Ada.Text_IO.Text_Streams;
 with Natools.Getopt_Long;
 with Natools.S_Expressions.Parsers;
 with Natools.Smaz.Tools;
+with Natools.Smaz.Tools.GNAT;
 
 procedure Smaz is
    package Options is
       type Id is
         (Help,
-         Output_Ada_Dictionary);
+         Output_Ada_Dictionary,
+         Output_Hash);
    end Options;
 
    package Getopt is new Natools.Getopt_Long (Options.Id);
@@ -39,6 +41,7 @@ procedure Smaz is
       Display_Help : Boolean := False;
       Need_Dictionary : Boolean := False;
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
+      Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 
    overriding procedure Option
@@ -90,6 +93,11 @@ procedure Smaz is
                Handler.Ada_Dictionary
                  := Ada.Strings.Unbounded.To_Unbounded_String ("-");
             end if;
+
+         when Options.Output_Hash =>
+            Handler.Need_Dictionary := True;
+            Handler.Hash_Package
+              := Ada.Strings.Unbounded.To_Unbounded_String (Argument);
       end case;
    end Option;
 
@@ -100,6 +108,7 @@ procedure Smaz is
       R : Getopt.Configuration;
    begin
       R.Add_Option ("ada-dict", 'A', Optional_Argument, Output_Ada_Dictionary);
+      R.Add_Option ("hash-pkg", 'H', Required_Argument, Output_Hash);
       R.Add_Option ("help",     'h', No_Argument,       Help);
 
       return R;
@@ -175,6 +184,13 @@ procedure Smaz is
                  & "Output the current dictionary as Ada code in the given");
                Put_Line (Output, Indent & Indent
                  & "file, or standard output if filename is ""-""");
+
+            when Options.Output_Hash =>
+               Put_Line (Output, " <Hash Package Name>");
+               Put_Line (Output, Indent & Indent
+                 & "Build a package with a perfect hash function for the");
+               Put_Line (Output, Indent & Indent
+                 & "current dictionary.");
          end case;
       end loop;
    end Print_Help;
@@ -219,9 +235,15 @@ begin
         := Natools.Smaz.Tools.To_Dictionary (Input_List, True);
       Ada_Dictionary : constant String
         := Ada.Strings.Unbounded.To_String (Handler.Ada_Dictionary);
+      Hash_Package : constant String
+        := Ada.Strings.Unbounded.To_String (Handler.Hash_Package);
    begin
       if Ada_Dictionary'Length > 0 then
-         Print_Dictionary (Ada_Dictionary, Dictionary);
+         Print_Dictionary (Ada_Dictionary, Dictionary, Hash_Package);
+      end if;
+
+      if Hash_Package'Length > 0 then
+         Natools.Smaz.Tools.GNAT.Build_Perfect_Hash (Input_List, Hash_Package);
       end if;
    end Build_Dictionary;
 end Smaz;
