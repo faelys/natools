@@ -41,6 +41,7 @@ with Natools.S_Expressions.Printers.Tests;
 with Natools.S_Expressions.Printers.Pretty.Tests;
 with Natools.S_Expressions.Printers.Pretty.Config.Tests;
 with Natools.S_Expressions.Templates.Tests;
+with Natools.Smaz.Tests;
 with Natools.Static_Hash_Maps.S_Expressions.Tests;
 with Natools.String_Slice_Set_Tests;
 with Natools.String_Slice_Tests;
@@ -161,6 +162,10 @@ begin
 
    Report.Section ("S_Expressions.Templates");
    Natools.S_Expressions.Templates.Tests.All_Tests (Report);
+   Report.End_Section;
+
+   Report.Section ("Smaz");
+   Natools.Smaz.Tests.All_Tests (Report);
    Report.End_Section;
 
    Report.Section ("Static_Hash_Maps.S_Expressions");
