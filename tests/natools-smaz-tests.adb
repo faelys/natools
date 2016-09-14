@@ -80,7 +80,7 @@ package body Natools.Smaz.Tests is
          Done : Boolean := False;
       begin
          begin
-            Decompress (Dict, Compressed, Buffer_2, Last_2);
+            Decompress (Dict, Buffer (1 .. Last), Buffer_2, Last_2);
             Done := True;
          exception
             when Error : others =>
