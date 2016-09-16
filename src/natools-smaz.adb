@@ -33,6 +33,9 @@ package body Natools.Smaz is
    function To_String (Data : in Ada.Streams.Stream_Element_Array)
      return String;
 
+   function Verbatim_Size (Dict : Dictionary; Original_Size : Natural)
+     return Ada.Streams.Stream_Element_Count;
+
 
    ------------------------------
    -- Local Helper Subprograms --
@@ -93,6 +96,49 @@ package body Natools.Smaz is
    end To_String;
 
 
+   function Verbatim_Size (Dict : Dictionary; Original_Size : Natural)
+     return Ada.Streams.Stream_Element_Count
+   is
+      Verbatim1_Max_Size : constant Ada.Streams.Stream_Element_Count
+        := Ada.Streams.Stream_Element_Count
+            (Ada.Streams.Stream_Element'Last - Dict.Dict_Last)
+         - Boolean'Pos (Dict.Variable_Length_Verbatim);
+      Verbatim2_Max_Size : constant Ada.Streams.Stream_Element_Count
+        := Ada.Streams.Stream_Element_Count (Ada.Streams.Stream_Element'Last)
+         + Verbatim1_Max_Size;
+
+      Remaining : Ada.Streams.Stream_Element_Count
+        := Ada.Streams.Stream_Element_Count (Original_Size);
+      Overhead : Ada.Streams.Stream_Element_Count := 0;
+   begin
+      if Dict.Variable_Length_Verbatim then
+         if Remaining >= Verbatim2_Max_Size then
+            declare
+               Full_Blocks : constant Ada.Streams.Stream_Element_Count
+                 := Remaining / Verbatim2_Max_Size;
+            begin
+               Overhead := Overhead + 2 * Full_Blocks;
+               Remaining := Remaining - Verbatim2_Max_Size * Full_Blocks;
+            end;
+         end if;
+
+         if Remaining > Verbatim1_Max_Size then
+            Overhead := Overhead + 2;
+            Remaining := 0;
+         end if;
+      end if;
+
+      declare
+         Full_Blocks : constant Ada.Streams.Stream_Element_Count
+           := Remaining / Verbatim1_Max_Size;
+      begin
+         Overhead := Overhead + Full_Blocks;
+      end;
+
+      return Overhead + Ada.Streams.Stream_Element_Count (Original_Size);
+   end Verbatim_Size;
+
+
 
    ----------------------
    -- Public Interface --
@@ -101,22 +147,9 @@ package body Natools.Smaz is
    function Compressed_Upper_Bound
      (Dict : in Dictionary;
       Input : in String)
-     return Ada.Streams.Stream_Element_Count
-   is
-      Verbatim1_Max_Size : constant Natural
-        := Natural (Ada.Streams.Stream_Element'Last - Dict.Dict_Last)
-         - Boolean'Pos (Dict.Variable_Length_Verbatim);
-      Verbatim2_Max_Size : constant Natural
-        := Natural (Ada.Streams.Stream_Element'Last)
-         + Verbatim1_Max_Size;
+     return Ada.Streams.Stream_Element_Count is
    begin
-      if Dict.Variable_Length_Verbatim then
-         return Ada.Streams.Stream_Element_Count (Input'Length
-           + 2 * (Input'Length + Verbatim2_Max_Size - 1) / Verbatim2_Max_Size);
-      else
-         return Ada.Streams.Stream_Element_Count (Input'Length
-           + (Input'Length + Verbatim1_Max_Size - 1) / Verbatim1_Max_Size);
-      end if;
+      return Verbatim_Size (Dict, Input'Length);
    end Compressed_Upper_Bound;
 
 
@@ -149,6 +182,9 @@ package body Natools.Smaz is
             Word,
             Length);
       end Find_Entry;
+
+      Previous_Verbatim_Beginning : Natural := 0;
+      Previous_Verbatim_Last : Ada.Streams.Stream_Element_Offset := 0;
    begin
       Output_Last := Output_Buffer'First - 1;
       Find_Entry;
@@ -176,6 +212,19 @@ package body Natools.Smaz is
             end loop Verbatim_Scan;
 
             Verbatim_Length := Input_Index - Beginning;
+
+            if Previous_Verbatim_Beginning > 0
+              and then Output_Last + Verbatim_Size (Dict, Verbatim_Length)
+                 > Previous_Verbatim_Last + Verbatim_Size
+                    (Dict, Input_Index - Previous_Verbatim_Beginning)
+            then
+               Beginning := Previous_Verbatim_Beginning;
+               Output_Last := Previous_Verbatim_Last;
+               Verbatim_Length := Input_Index - Beginning;
+            else
+               Previous_Verbatim_Beginning := Beginning;
+               Previous_Verbatim_Last := Output_Last;
+            end if;
 
             Verbatim_Encode :
             while Verbatim_Length > 0 loop
