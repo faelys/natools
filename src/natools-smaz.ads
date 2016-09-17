@@ -54,6 +54,9 @@ package Natools.Smaz is
       Output_Buffer : out Ada.Streams.Stream_Element_Array;
       Output_Last : out Ada.Streams.Stream_Element_Offset);
 
+   function Compress (Dict : in Dictionary; Input : in String)
+     return Ada.Streams.Stream_Element_Array;
+
 
    function Decompressed_Length
      (Dict : in Dictionary;
@@ -65,5 +68,9 @@ package Natools.Smaz is
       Input : in Ada.Streams.Stream_Element_Array;
       Output_Buffer : out String;
       Output_Last : out Natural);
+
+   function Decompress
+     (Dict : in Dictionary; Input : in Ada.Streams.Stream_Element_Array)
+     return String;
 
 end Natools.Smaz;

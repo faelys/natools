@@ -263,6 +263,18 @@ package body Natools.Smaz is
    end Compress;
 
 
+   function Compress (Dict : in Dictionary; Input : in String)
+     return Ada.Streams.Stream_Element_Array
+   is
+      Result : Ada.Streams.Stream_Element_Array
+        (1 .. Compressed_Upper_Bound (Dict, Input) + 1);
+      Last : Ada.Streams.Stream_Element_Offset;
+   begin
+      Compress (Dict, Input, Result, Last);
+      return Result (Result'First .. Last);
+   end Compress;
+
+
    function Decompressed_Length
      (Dict : in Dictionary;
       Input : in Ada.Streams.Stream_Element_Array)
@@ -357,6 +369,19 @@ package body Natools.Smaz is
             Input_Index := Input_Index + Verbatim_Length + 1;
          end if;
       end loop;
+   end Decompress;
+
+
+   function Decompress
+     (Dict : in Dictionary; Input : in Ada.Streams.Stream_Element_Array)
+     return String
+   is
+      Result : String (1 .. Decompressed_Length (Dict, Input));
+      Last : Natural;
+   begin
+      Decompress (Dict, Input, Result, Last);
+      pragma Assert (Last = Result'Last);
+      return Result;
    end Decompress;
 
 end Natools.Smaz;
