@@ -52,46 +52,73 @@ package body Natools.Smaz.Tests is
    is
       use type Ada.Streams.Stream_Element_Array;
       use type Ada.Streams.Stream_Element_Offset;
-
-      Buffer : Ada.Streams.Stream_Element_Array
-        (1 .. Compressed_Upper_Bound (Dict, Decompressed) + 10);
-      Last : Ada.Streams.Stream_Element_Offset;
-      Done : Boolean := False;
    begin
+      declare
+         First_OK : Boolean := False;
       begin
-         Compress (Dict, Decompressed, Buffer, Last);
-         Done := True;
+         declare
+            Buffer : constant Ada.Streams.Stream_Element_Array
+              := Compress (Dict, Decompressed);
+         begin
+            First_OK := True;
+
+            if Buffer /= Compressed then
+               Test.Fail ("Bad compression of """ & Decompressed & '"');
+               Test.Info ("Found:   " & Image (Buffer));
+               Test.Info ("Expected:" & Image (Compressed));
+
+               declare
+                  Round : constant String := Decompress (Dict, Buffer);
+               begin
+                  if Round /= Decompressed then
+                     Test.Info ("Roundtrip failed, got: """ & Round & '"');
+                  else
+                     Test.Info ("Roundtrip OK");
+                  end if;
+               end;
+            end if;
+         end;
       exception
          when Error : others =>
-            Test.Info ("During compression of """ & Decompressed & '"');
+            if not First_OK then
+               Test.Info ("During compression of """ & Decompressed & '"');
+            end if;
+
             Test.Report_Exception (Error, NT.Fail);
       end;
 
-      if Done and then Buffer (1 .. Last) /= Compressed then
-         Test.Fail ("Compression of """ & Decompressed & """ failed");
-         Test.Info ("Found:   " & Image (Buffer (1 .. Last)));
-         Test.Info ("Expected:" & Image (Compressed));
-      end if;
-
       declare
-         Buffer_2 : String
-           (1 .. Decompressed_Length (Dict, Buffer (1 .. Last)));
-         Last_2 : Natural;
-         Done : Boolean := False;
+         First_OK : Boolean := False;
       begin
+         declare
+            Buffer : constant String := Decompress (Dict, Compressed);
          begin
-            Decompress (Dict, Buffer (1 .. Last), Buffer_2, Last_2);
-            Done := True;
-         exception
-            when Error : others =>
-               Test.Info ("During compression of """ & Decompressed & '"');
-               Test.Report_Exception (Error, NT.Fail);
-         end;
+            First_OK := True;
 
-         if Done and then Buffer_2 (1 .. Last_2) /= Decompressed then
-            Test.Fail ("Roundtrip for """ & Decompressed & """ failed");
-            Test.Info ("Found """ & Buffer_2 (1 .. Last_2) & '"');
-         end if;
+            if Buffer /= Decompressed then
+               Test.Fail ("Bad decompression of " & Image (Compressed));
+               Test.Info ("Found:   """ & Buffer & '"');
+               Test.Info ("Expected:""" & Decompressed & '"');
+
+               declare
+                  Round : constant Ada.Streams.Stream_Element_Array
+                    := Compress (Dict, Buffer);
+               begin
+                  if Round /= Compressed then
+                     Test.Info ("Roundtrip failed, got: " & Image (Round));
+                  else
+                     Test.Info ("Roundtrip OK");
+                  end if;
+               end;
+            end if;
+         end;
+      exception
+         when Error : others =>
+            if not First_OK then
+               Test.Info ("During compression of " & Image (Compressed));
+            end if;
+
+            Test.Report_Exception (Error, NT.Fail);
       end;
    end Roundtrip_Test;
 
