@@ -153,8 +153,8 @@ package body Natools.Smaz.Tests is
          (1, 171, 61));
       Roundtrip_Test (Test, Original.Dictionary,
          "not-a-g00d-Exampl333",
-         (132, 204, 4, 204, 59, 255, 1, 48, 48, 24, 204, 254, 69, 250, 4, 45,
-           60, 22, 255, 2, 51, 51, 51));
+         (132, 204, 4, 204, 59, 255, 12, 48, 48, 100, 45, 69, 120, 97, 109,
+           112, 108, 51, 51, 51));
       Roundtrip_Test (Test, Original.Dictionary,
          "Smaz is a simple compression library",
          (254, 83, 173, 219, 56, 172, 62, 226, 60, 87, 161, 45, 60, 33, 166,
@@ -172,7 +172,7 @@ package body Natools.Smaz.Tests is
       Roundtrip_Test (Test, Original.Dictionary,
          "1000 numbers 2000 will 10 20 30 compress very little",
          (255, 3, 49, 48, 48, 48, 236, 38, 45, 92, 221, 0, 255, 3, 50, 48, 48,
-           48, 243, 152, 0, 255, 1, 49, 48, 0, 255, 1, 50, 48, 0, 255, 1, 51,
+           48, 243, 152, 0, 255, 7, 49, 48, 32, 50, 48, 32, 51,
            48, 161, 45, 60, 33, 166, 0, 231, 71, 151, 3, 3, 87));
    exception
       when Error : others => Test.Report_Exception (Error);
