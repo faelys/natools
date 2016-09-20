@@ -174,6 +174,9 @@ package body Natools.Smaz.Tests is
          (255, 3, 49, 48, 48, 48, 236, 38, 45, 92, 221, 0, 255, 3, 50, 48, 48,
            48, 243, 152, 0, 255, 7, 49, 48, 32, 50, 48, 32, 51,
            48, 161, 45, 60, 33, 166, 0, 231, 71, 151, 3, 3, 87));
+      Roundtrip_Test (Test, Original.Dictionary,
+         ": : : :",
+         (255, 6, 58, 32, 58, 32, 58, 32, 58));
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings;
