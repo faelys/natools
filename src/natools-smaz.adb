@@ -215,7 +215,7 @@ package body Natools.Smaz is
 
             if Previous_Verbatim_Beginning > 0
               and then Output_Last + Verbatim_Size (Dict, Verbatim_Length)
-                 > Previous_Verbatim_Last + Verbatim_Size
+                 >= Previous_Verbatim_Last + Verbatim_Size
                     (Dict, Input_Index - Previous_Verbatim_Beginning)
             then
                Beginning := Previous_Verbatim_Beginning;
@@ -267,7 +267,7 @@ package body Natools.Smaz is
      return Ada.Streams.Stream_Element_Array
    is
       Result : Ada.Streams.Stream_Element_Array
-        (1 .. Compressed_Upper_Bound (Dict, Input) + 1);
+        (1 .. Compressed_Upper_Bound (Dict, Input));
       Last : Ada.Streams.Stream_Element_Offset;
    begin
       Compress (Dict, Input, Result, Last);
