@@ -52,6 +52,18 @@ package body Natools.Smaz.Tools is
    -- Public Interface --
    ----------------------
 
+   function Linear_Search (Value : String) return Natural is
+      Result : Ada.Streams.Stream_Element := 0;
+   begin
+      for S of List_For_Linear_Search loop
+         exit when S = Value;
+         Result := Result + 1;
+      end loop;
+
+      return Natural (Result);
+   end Linear_Search;
+
+
    procedure Print_Dictionary_In_Ada
      (Dict : in Dictionary;
       Hash_Image : in String := "TODO";

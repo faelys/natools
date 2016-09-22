@@ -61,4 +61,9 @@ package Natools.Smaz.Tools is
       --  All the defaults value are what was used to generate the constant
       --  in Natools.Smaz.Original.
 
+   List_For_Linear_Search : String_Lists.List;
+   function Linear_Search (Value : String) return Natural;
+      --  Function and data source for inefficient but dynamic function
+      --  that can be used with Dictionary.Hash.
+
 end Natools.Smaz.Tools;
