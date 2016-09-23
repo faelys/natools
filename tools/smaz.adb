@@ -24,15 +24,23 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO.Text_Streams;
 with Natools.Getopt_Long;
 with Natools.S_Expressions.Parsers;
+with Natools.S_Expressions.Printers;
 with Natools.Smaz.Tools;
 with Natools.Smaz.Tools.GNAT;
 
 procedure Smaz is
+   package Actions is
+      type Enum is
+        (Nothing,
+         Encode);
+   end Actions;
+
    package Options is
       type Id is
-        (Help,
-         Output_Ada_Dictionary,
-         Output_Hash);
+        (Output_Ada_Dictionary,
+         Encode,
+         Output_Hash,
+         Help);
    end Options;
 
    package Getopt is new Natools.Getopt_Long (Options.Id);
@@ -40,6 +48,7 @@ procedure Smaz is
    type Callback is new Getopt.Handlers.Callback with record
       Display_Help : Boolean := False;
       Need_Dictionary : Boolean := False;
+      Action : Actions.Enum := Actions.Nothing;
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
       Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
    end record;
@@ -83,6 +92,10 @@ procedure Smaz is
          when Options.Help =>
             Handler.Display_Help := True;
 
+         when Options.Encode =>
+            Handler.Need_Dictionary := True;
+            Handler.Action := Actions.Encode;
+
          when Options.Output_Ada_Dictionary =>
             Handler.Need_Dictionary := True;
 
@@ -108,6 +121,7 @@ procedure Smaz is
       R : Getopt.Configuration;
    begin
       R.Add_Option ("ada-dict", 'A', Optional_Argument, Output_Ada_Dictionary);
+      R.Add_Option ("encode",   'e', No_Argument,       Encode);
       R.Add_Option ("hash-pkg", 'H', Required_Argument, Output_Hash);
       R.Add_Option ("help",     'h', No_Argument,       Help);
 
@@ -178,6 +192,11 @@ procedure Smaz is
                Put_Line (Output, Indent & Indent
                  & "Display this help text");
 
+            when Options.Encode =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Read a list of strings and encode them");
+
             when Options.Output_Ada_Dictionary =>
                Put_Line (Output, "=[filename]");
                Put_Line (Output, Indent & Indent
@@ -195,10 +214,9 @@ procedure Smaz is
       end loop;
    end Print_Help;
 
-
    Opt_Config : constant Getopt.Configuration := Getopt_Config;
    Handler : Callback;
-   Input_List : Natools.Smaz.Tools.String_Lists.List;
+   Input_List, Input_Data : Natools.Smaz.Tools.String_Lists.List;
 begin
    Process_Command_Line :
    begin
@@ -220,24 +238,36 @@ begin
 
    Read_Input_List :
    declare
+      use type Actions.Enum;
+
       Input : constant access Ada.Streams.Root_Stream_Type'Class
         := Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Input);
       Parser : Natools.S_Expressions.Parsers.Stream_Parser (Input);
    begin
       Parser.Next;
       Natools.Smaz.Tools.Read_List (Input_List, Parser);
+
+      if Handler.Action /= Actions.Nothing then
+         Parser.Next;
+         Natools.Smaz.Tools.Read_List (Input_Data, Parser);
+      end if;
    end Read_Input_List;
 
 
    Build_Dictionary :
    declare
-      Dictionary : constant Natools.Smaz.Dictionary
+      Dictionary : Natools.Smaz.Dictionary
         := Natools.Smaz.Tools.To_Dictionary (Input_List, True);
+      Output : Natools.S_Expressions.Printers.Canonical
+        (Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Output));
       Ada_Dictionary : constant String
         := Ada.Strings.Unbounded.To_String (Handler.Ada_Dictionary);
       Hash_Package : constant String
         := Ada.Strings.Unbounded.To_String (Handler.Hash_Package);
    begin
+      Dictionary.Hash := Natools.Smaz.Tools.Linear_Search'Access;
+      Natools.Smaz.Tools.List_For_Linear_Search := Input_List;
+
       if Ada_Dictionary'Length > 0 then
          Print_Dictionary (Ada_Dictionary, Dictionary, Hash_Package);
       end if;
@@ -245,5 +275,16 @@ begin
       if Hash_Package'Length > 0 then
          Natools.Smaz.Tools.GNAT.Build_Perfect_Hash (Input_List, Hash_Package);
       end if;
+
+      case Handler.Action is
+         when Actions.Nothing => null;
+
+         when Actions.Encode =>
+            Output.Open_List;
+            for S of Input_Data loop
+               Output.Append_Atom (Natools.Smaz.Compress (Dictionary, S));
+            end loop;
+            Output.Close_List;
+      end case;
    end Build_Dictionary;
 end Smaz;
