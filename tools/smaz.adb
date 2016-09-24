@@ -18,6 +18,7 @@
 -- Command Line Interface for primitives in Natools.Smaz.Tools.             --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Latin_1;
 with Ada.Command_Line;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
@@ -40,7 +41,11 @@ procedure Smaz is
         (Output_Ada_Dictionary,
          Encode,
          Output_Hash,
-         Help);
+         Help,
+         Stat_Output,
+         No_Stat_Output,
+         Sx_Output,
+         No_Sx_Output);
    end Options;
 
    package Getopt is new Natools.Getopt_Long (Options.Id);
@@ -48,6 +53,8 @@ procedure Smaz is
    type Callback is new Getopt.Handlers.Callback with record
       Display_Help : Boolean := False;
       Need_Dictionary : Boolean := False;
+      Stat_Output : Boolean := False;
+      Sx_Output : Boolean := False;
       Action : Actions.Enum := Actions.Nothing;
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
       Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
@@ -96,6 +103,12 @@ procedure Smaz is
             Handler.Need_Dictionary := True;
             Handler.Action := Actions.Encode;
 
+         when Options.No_Stat_Output =>
+            Handler.Stat_Output := False;
+
+         when Options.No_Sx_Output =>
+            Handler.Sx_Output := False;
+
          when Options.Output_Ada_Dictionary =>
             Handler.Need_Dictionary := True;
 
@@ -111,6 +124,12 @@ procedure Smaz is
             Handler.Need_Dictionary := True;
             Handler.Hash_Package
               := Ada.Strings.Unbounded.To_Unbounded_String (Argument);
+
+         when Options.Stat_Output =>
+            Handler.Stat_Output := True;
+
+         when Options.Sx_Output =>
+            Handler.Sx_Output := True;
       end case;
    end Option;
 
@@ -122,8 +141,12 @@ procedure Smaz is
    begin
       R.Add_Option ("ada-dict", 'A', Optional_Argument, Output_Ada_Dictionary);
       R.Add_Option ("encode",   'e', No_Argument,       Encode);
-      R.Add_Option ("hash-pkg", 'H', Required_Argument, Output_Hash);
       R.Add_Option ("help",     'h', No_Argument,       Help);
+      R.Add_Option ("hash-pkg", 'H', Required_Argument, Output_Hash);
+      R.Add_Option ("stats",    's', No_Argument,       Stat_Output);
+      R.Add_Option ("no-stats", 'S', No_Argument,       No_Stat_Output);
+      R.Add_Option ("s-expr",   'x', No_Argument,       Sx_Output);
+      R.Add_Option ("no-s-expr", 'X', No_Argument,       No_Sx_Output);
 
       return R;
    end Getopt_Config;
@@ -197,6 +220,16 @@ procedure Smaz is
                Put_Line (Output, Indent & Indent
                  & "Read a list of strings and encode them");
 
+            when Options.No_Stat_Output =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Do not output filter statistics");
+
+            when Options.No_Sx_Output =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Do not output filtered results in a S-expression");
+
             when Options.Output_Ada_Dictionary =>
                Put_Line (Output, "=[filename]");
                Put_Line (Output, Indent & Indent
@@ -210,6 +243,16 @@ procedure Smaz is
                  & "Build a package with a perfect hash function for the");
                Put_Line (Output, Indent & Indent
                  & "current dictionary.");
+
+            when Options.Stat_Output =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Output filter statistics");
+
+            when Options.Sx_Output =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Output filtered results in a S-expression");
          end case;
       end loop;
    end Print_Help;
@@ -236,6 +279,10 @@ begin
       return;
    end if;
 
+   if not (Handler.Stat_Output or Handler.Sx_Output) then
+      Handler.Sx_Output := True;
+   end if;
+
    Read_Input_List :
    declare
       use type Actions.Enum;
@@ -258,7 +305,7 @@ begin
    declare
       Dictionary : Natools.Smaz.Dictionary
         := Natools.Smaz.Tools.To_Dictionary (Input_List, True);
-      Output : Natools.S_Expressions.Printers.Canonical
+      Sx_Output : Natools.S_Expressions.Printers.Canonical
         (Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Output));
       Ada_Dictionary : constant String
         := Ada.Strings.Unbounded.To_String (Handler.Ada_Dictionary);
@@ -280,11 +327,54 @@ begin
          when Actions.Nothing => null;
 
          when Actions.Encode =>
-            Output.Open_List;
-            for S of Input_Data loop
-               Output.Append_Atom (Natools.Smaz.Compress (Dictionary, S));
-            end loop;
-            Output.Close_List;
+            if Handler.Sx_Output then
+               Sx_Output.Open_List;
+               for S of Input_Data loop
+                  Sx_Output.Append_Atom
+                    (Natools.Smaz.Compress (Dictionary, S));
+               end loop;
+               Sx_Output.Close_List;
+            end if;
+
+            if Handler.Stat_Output then
+               declare
+                  procedure Print_Line (Original, Output, Base64 : Natural);
+
+                  procedure Print_Line (Original, Output, Base64 : Natural) is
+                  begin
+                     Ada.Text_IO.Put_Line
+                       (Natural'Image (Original)
+                        & Ada.Characters.Latin_1.HT
+                        & Natural'Image (Output)
+                        & Ada.Characters.Latin_1.HT
+                        & Natural'Image (Base64)
+                        & Ada.Characters.Latin_1.HT
+                        & Float'Image (Float (Output) / Float (Original))
+                        & Ada.Characters.Latin_1.HT
+                        & Float'Image (Float (Base64) / Float (Original)));
+                  end Print_Line;
+                  Original_Total : Natural := 0;
+                  Output_Total : Natural := 0;
+                  Base64_Total : Natural := 0;
+               begin
+                  for S of Input_Data loop
+                     declare
+                        Original_Size : constant Natural := S'Length;
+                        Output_Size : constant Natural
+                          := Natools.Smaz.Compress (Dictionary, S)'Length;
+                        Base64_Size : constant Natural
+                          := ((Output_Size + 2) / 3) * 4;
+                     begin
+                        Print_Line (Original_Size, Output_Size, Base64_Size);
+                        Original_Total := Original_Total + Original_Size;
+                        Output_Total := Output_Total + Output_Size;
+                        Base64_Total := Base64_Total + Base64_Size;
+                     end;
+                  end loop;
+
+                  Print_Line (Original_Total, Output_Total, Base64_Total);
+               end;
+            end if;
       end case;
    end Build_Dictionary;
 end Smaz;
