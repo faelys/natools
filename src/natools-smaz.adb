@@ -23,18 +23,24 @@ package body Natools.Smaz is
       Index : in Ada.Streams.Stream_Element)
      return String
      with Pre => Index <= Dict.Dict_Last;
+      --  Return the string for at the given Index in Dict
 
    procedure Find_Entry
      (Dict : in Dictionary;
       Template : in String;
       Index : out Ada.Streams.Stream_Element;
       Length : out Natural);
+      --  Try to find the longest entry in Dict that is a prefix of Template,
+      --  setting Length to 0 when no such entry exists.
 
    function To_String (Data : in Ada.Streams.Stream_Element_Array)
      return String;
+      --  Convert a stream element array into a string
 
    function Verbatim_Size (Dict : Dictionary; Original_Size : Natural)
      return Ada.Streams.Stream_Element_Count;
+      --  Return the number of bytes needed by the verbatim encoding
+      --  of Original_Size bytes.
 
 
    ------------------------------
