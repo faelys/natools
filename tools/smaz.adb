@@ -30,15 +30,20 @@ with Natools.Smaz.Tools;
 with Natools.Smaz.Tools.GNAT;
 
 procedure Smaz is
+   function To_SEA (S : String) return Ada.Streams.Stream_Element_Array
+     renames Natools.S_Expressions.To_Atom;
+
    package Actions is
       type Enum is
         (Nothing,
+         Decode,
          Encode);
    end Actions;
 
    package Options is
       type Id is
         (Output_Ada_Dictionary,
+         Decode,
          Encode,
          Output_Hash,
          Help,
@@ -99,6 +104,10 @@ procedure Smaz is
          when Options.Help =>
             Handler.Display_Help := True;
 
+         when Options.Decode =>
+            Handler.Need_Dictionary := True;
+            Handler.Action := Actions.Decode;
+
          when Options.Encode =>
             Handler.Need_Dictionary := True;
             Handler.Action := Actions.Encode;
@@ -140,6 +149,7 @@ procedure Smaz is
       R : Getopt.Configuration;
    begin
       R.Add_Option ("ada-dict", 'A', Optional_Argument, Output_Ada_Dictionary);
+      R.Add_Option ("decode",   'd', No_Argument,       Decode);
       R.Add_Option ("encode",   'e', No_Argument,       Encode);
       R.Add_Option ("help",     'h', No_Argument,       Help);
       R.Add_Option ("hash-pkg", 'H', Required_Argument, Output_Hash);
@@ -214,6 +224,11 @@ procedure Smaz is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Display this help text");
+
+            when Options.Decode =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Read a list of strings and decode them");
 
             when Options.Encode =>
                New_Line (Output);
@@ -325,6 +340,49 @@ begin
 
       case Handler.Action is
          when Actions.Nothing => null;
+
+         when Actions.Decode =>
+            if Handler.Sx_Output then
+               Sx_Output.Open_List;
+               for S of Input_Data loop
+                  Sx_Output.Append_String
+                    (Natools.Smaz.Decompress (Dictionary, To_SEA (S)));
+               end loop;
+               Sx_Output.Close_List;
+            end if;
+
+            if Handler.Stat_Output then
+               declare
+                  procedure Print_Line (Original, Output : Natural);
+
+                  procedure Print_Line (Original, Output : Natural) is
+                  begin
+                     Ada.Text_IO.Put_Line
+                       (Natural'Image (Original)
+                        & Ada.Characters.Latin_1.HT
+                        & Natural'Image (Output)
+                        & Ada.Characters.Latin_1.HT
+                        & Float'Image (Float (Original) / Float (Output)));
+                  end Print_Line;
+                  Original_Total : Natural := 0;
+                  Output_Total : Natural := 0;
+               begin
+                  for S of Input_Data loop
+                     declare
+                        Original_Size : constant Natural := S'Length;
+                        Output_Size : constant Natural
+                          := Natools.Smaz.Decompress
+                             (Dictionary, To_SEA (S))'Length;
+                     begin
+                        Print_Line (Original_Size, Output_Size);
+                        Original_Total := Original_Total + Original_Size;
+                        Output_Total := Output_Total + Output_Size;
+                     end;
+                  end loop;
+
+                  Print_Line (Original_Total, Output_Total);
+               end;
+            end if;
 
          when Actions.Encode =>
             if Handler.Sx_Output then
