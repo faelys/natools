@@ -348,4 +348,51 @@ package body Natools.Smaz.Tools is
       end;
    end To_Dictionary;
 
+
+
+   -------------------
+   -- Word Counting --
+   -------------------
+
+   procedure Add_Substrings
+     (Counter : in out Word_Counter;
+      Phrase : in String;
+      Min_Size : in Positive;
+      Max_Size : in Positive) is
+   begin
+      for First in Phrase'First .. Phrase'Last - Min_Size + 1 loop
+         for Last in First + Min_Size - 1
+           .. Natural'Min (First + Max_Size - 1, Phrase'Last)
+         loop
+            Add_Word (Counter, Phrase (First .. Last));
+         end loop;
+      end loop;
+   end Add_Substrings;
+
+
+   procedure Add_Word
+     (Counter : in out Word_Counter;
+      Word : in String;
+      Count : in String_Count := 1)
+   is
+      procedure Update
+        (Key : in String; Element : in out String_Count);
+
+      procedure Update
+        (Key : in String; Element : in out String_Count)
+      is
+         pragma Unreferenced (Key);
+      begin
+         Element := Element + Count;
+      end Update;
+
+      Cursor : constant Word_Maps.Cursor := Word_Maps.Find (Counter.Map, Word);
+   begin
+      if Word_Maps.Has_Element (Cursor) then
+         Word_Maps.Update_Element (Counter.Map, Cursor, Update'Access);
+      else
+         Word_Maps.Insert (Counter.Map, Word, Count);
+      end if;
+   end Add_Word;
+
 end Natools.Smaz.Tools;

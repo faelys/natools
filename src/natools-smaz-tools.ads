@@ -24,6 +24,8 @@
 with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 with Natools.S_Expressions;
 
+private with Ada.Containers.Indefinite_Ordered_Maps;
+
 package Natools.Smaz.Tools is
    pragma Preelaborate;
 
@@ -65,5 +67,34 @@ package Natools.Smaz.Tools is
    function Linear_Search (Value : String) return Natural;
       --  Function and data source for inefficient but dynamic function
       --  that can be used with Dictionary.Hash.
+
+   type String_Count is range 0 .. 2 ** 31 - 1;
+      --  Type for a number of substring occurrences
+
+   type Word_Counter is private;
+      --  Accumulate frequency/occurrence counts for a set of strings
+
+   procedure Add_Word
+     (Counter : in out Word_Counter;
+      Word : in String;
+      Count : in String_Count := 1);
+      --  Include Count number of occurrences of Word in Counter
+
+   procedure Add_Substrings
+     (Counter : in out Word_Counter;
+      Phrase : in String;
+      Min_Size : in Positive;
+      Max_Size : in Positive);
+      --  Include all the substrings of Phrase whose lengths are
+      --  between Min_Size and Max_Size.
+
+private
+
+   package Word_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (String, String_Count);
+
+   type Word_Counter is record
+      Map : Word_Maps.Map;
+   end record;
 
 end Natools.Smaz.Tools;
