@@ -25,6 +25,7 @@ with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 with Natools.S_Expressions;
 
 private with Ada.Containers.Indefinite_Ordered_Maps;
+private with Ada.Containers.Indefinite_Ordered_Sets;
 
 package Natools.Smaz.Tools is
    pragma Preelaborate;
@@ -88,6 +89,13 @@ package Natools.Smaz.Tools is
       --  Include all the substrings of Phrase whose lengths are
       --  between Min_Size and Max_Size.
 
+   function Simple_Dictionary
+     (Counter : in Word_Counter;
+      Word_Count : in Natural)
+     return String_Lists.List;
+      --  Return the Word_Count words in Counter that have the highest score,
+      --  the score being count * length.
+
 private
 
    package Word_Maps is new Ada.Containers.Indefinite_Ordered_Maps
@@ -96,5 +104,23 @@ private
    type Word_Counter is record
       Map : Word_Maps.Map;
    end record;
+
+
+   type Score_Value is range 0 .. 2 ** 31 - 1;
+
+   type Scored_Word (Size : Natural) is record
+      Word : String (1 .. Size);
+      Score : Score_Value;
+   end record;
+
+   function "<" (Left, Right : Scored_Word) return Boolean
+     is (Left.Score > Right.Score
+         or else (Left.Score = Right.Score and then Left.Word < Right.Word));
+
+   function To_Scored_Word (Cursor : in Word_Maps.Cursor)
+     return Scored_Word;
+
+   package Scored_Word_Sets is new Ada.Containers.Indefinite_Ordered_Sets
+     (Scored_Word);
 
 end Natools.Smaz.Tools;

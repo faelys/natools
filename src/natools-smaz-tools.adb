@@ -395,4 +395,43 @@ package body Natools.Smaz.Tools is
       end if;
    end Add_Word;
 
+
+   function Simple_Dictionary
+     (Counter : in Word_Counter;
+      Word_Count : in Natural)
+     return String_Lists.List
+   is
+      use type Ada.Containers.Count_Type;
+      Target_Count : constant Ada.Containers.Count_Type
+        := Ada.Containers.Count_Type (Word_Count);
+      Set : Scored_Word_Sets.Set;
+      Result : String_Lists.List;
+   begin
+      for Cursor in Word_Maps.Iterate (Counter.Map) loop
+         Scored_Word_Sets.Include (Set, To_Scored_Word (Cursor));
+
+         if Scored_Word_Sets.Length (Set) > Target_Count then
+            Scored_Word_Sets.Delete_Last (Set);
+         end if;
+      end loop;
+
+      for Cursor in Scored_Word_Sets.Iterate (Set) loop
+         Result.Append (Scored_Word_Sets.Element (Cursor).Word);
+      end loop;
+
+      return Result;
+   end Simple_Dictionary;
+
+
+   function To_Scored_Word (Cursor : in Word_Maps.Cursor)
+     return Scored_Word
+   is
+      Word : constant String := Word_Maps.Key (Cursor);
+   begin
+      return Scored_Word'
+        (Size => Word'Length,
+         Word => Word,
+         Score => Score_Value (Word_Maps.Element (Cursor)) * Word'Length);
+   end To_Scored_Word;
+
 end Natools.Smaz.Tools;
