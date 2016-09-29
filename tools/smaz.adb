@@ -40,15 +40,23 @@ procedure Smaz is
          Encode);
    end Actions;
 
+   package Dict_Sources is
+      type Enum is
+        (S_Expression,
+         Word_List);
+   end Dict_Sources;
+
    package Options is
       type Id is
-        (Output_Ada_Dictionary,
+        (Output_Ada_Dict,
+         Dictionary_Input,
          Decode,
          Encode,
          Output_Hash,
          Help,
          Stat_Output,
          No_Stat_Output,
+         Word_List_Input,
          Sx_Output,
          No_Sx_Output);
    end Options;
@@ -63,6 +71,7 @@ procedure Smaz is
       Action : Actions.Enum := Actions.Nothing;
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
       Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
+      Dict_Source : Dict_Sources.Enum := Dict_Sources.S_Expression;
    end record;
 
    overriding procedure Option
@@ -94,6 +103,12 @@ procedure Smaz is
       Output : in Ada.Text_IO.File_Type);
       --  Print the help text to the given file
 
+   function To_Dictionary
+     (Handler : in Callback'Class;
+      Input : in Natools.Smaz.Tools.String_Lists.List)
+     return Natools.Smaz.Dictionary;
+      --  Convert the input into a dictionary given the option in Handler
+
 
    overriding procedure Option
      (Handler  : in out Callback;
@@ -118,7 +133,7 @@ procedure Smaz is
          when Options.No_Sx_Output =>
             Handler.Sx_Output := False;
 
-         when Options.Output_Ada_Dictionary =>
+         when Options.Output_Ada_Dict =>
             Handler.Need_Dictionary := True;
 
             if Argument'Length > 0 then
@@ -139,6 +154,12 @@ procedure Smaz is
 
          when Options.Sx_Output =>
             Handler.Sx_Output := True;
+
+         when Options.Dictionary_Input =>
+            Handler.Dict_Source := Dict_Sources.S_Expression;
+
+         when Options.Word_List_Input =>
+            Handler.Dict_Source := Dict_Sources.Word_List;
       end case;
    end Option;
 
@@ -148,14 +169,16 @@ procedure Smaz is
       use Options;
       R : Getopt.Configuration;
    begin
-      R.Add_Option ("ada-dict", 'A', Optional_Argument, Output_Ada_Dictionary);
-      R.Add_Option ("decode",   'd', No_Argument,       Decode);
-      R.Add_Option ("encode",   'e', No_Argument,       Encode);
-      R.Add_Option ("help",     'h', No_Argument,       Help);
-      R.Add_Option ("hash-pkg", 'H', Required_Argument, Output_Hash);
-      R.Add_Option ("stats",    's', No_Argument,       Stat_Output);
-      R.Add_Option ("no-stats", 'S', No_Argument,       No_Stat_Output);
-      R.Add_Option ("s-expr",   'x', No_Argument,       Sx_Output);
+      R.Add_Option ("ada-dict",  'A', Optional_Argument, Output_Ada_Dict);
+      R.Add_Option ("decode",    'd', No_Argument,       Decode);
+      R.Add_Option ("dict",      'D', No_Argument,       Dictionary_Input);
+      R.Add_Option ("encode",    'e', No_Argument,       Encode);
+      R.Add_Option ("help",      'h', No_Argument,       Help);
+      R.Add_Option ("hash-pkg",  'H', Required_Argument, Output_Hash);
+      R.Add_Option ("stats",     's', No_Argument,       Stat_Output);
+      R.Add_Option ("no-stats",  'S', No_Argument,       No_Stat_Output);
+      R.Add_Option ("word-list", 'w', No_Argument,       Word_List_Input);
+      R.Add_Option ("s-expr",    'x', No_Argument,       Sx_Output);
       R.Add_Option ("no-s-expr", 'X', No_Argument,       No_Sx_Output);
 
       return R;
@@ -245,7 +268,7 @@ procedure Smaz is
                Put_Line (Output, Indent & Indent
                  & "Do not output filtered results in a S-expression");
 
-            when Options.Output_Ada_Dictionary =>
+            when Options.Output_Ada_Dict =>
                Put_Line (Output, "=[filename]");
                Put_Line (Output, Indent & Indent
                  & "Output the current dictionary as Ada code in the given");
@@ -268,9 +291,43 @@ procedure Smaz is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Output filtered results in a S-expression");
+
+            when Options.Dictionary_Input =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Read dictionary directly in input S-expression (default)");
+
+            when Options.Word_List_Input =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Compute dictionary from word list in input S-expression");
          end case;
       end loop;
    end Print_Help;
+
+   function To_Dictionary
+     (Handler : in Callback'Class;
+      Input : in Natools.Smaz.Tools.String_Lists.List)
+     return Natools.Smaz.Dictionary is
+   begin
+      case Handler.Dict_Source is
+         when Dict_Sources.S_Expression =>
+            return Natools.Smaz.Tools.To_Dictionary (Input, True);
+
+         when Dict_Sources.Word_List =>
+            declare
+               Counter : Natools.Smaz.Tools.Word_Counter;
+            begin
+               for S of Input loop
+                  Natools.Smaz.Tools.Add_Substrings (Counter, S, 1, 3);
+               end loop;
+
+               return Natools.Smaz.Tools.To_Dictionary
+                 (Natools.Smaz.Tools.Most_Common_Words (Counter, 254),
+                  True);
+            end;
+      end case;
+   end To_Dictionary;
 
    Opt_Config : constant Getopt.Configuration := Getopt_Config;
    Handler : Callback;
@@ -319,7 +376,7 @@ begin
    Build_Dictionary :
    declare
       Dictionary : Natools.Smaz.Dictionary
-        := Natools.Smaz.Tools.To_Dictionary (Input_List, True);
+        := To_Dictionary (Handler, Input_List);
       Sx_Output : Natools.S_Expressions.Printers.Canonical
         (Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Output));
       Ada_Dictionary : constant String
