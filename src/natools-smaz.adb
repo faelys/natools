@@ -18,12 +18,6 @@ package body Natools.Smaz is
 
    use type Ada.Streams.Stream_Element_Offset;
 
-   function Dict_Entry
-     (Dict : in Dictionary;
-      Index : in Ada.Streams.Stream_Element)
-     return String
-     with Pre => Index <= Dict.Dict_Last;
-      --  Return the string for at the given Index in Dict
 
    procedure Find_Entry
      (Dict : in Dictionary;
@@ -46,22 +40,6 @@ package body Natools.Smaz is
    ------------------------------
    -- Local Helper Subprograms --
    ------------------------------
-
-   function Dict_Entry
-     (Dict : in Dictionary;
-      Index : in Ada.Streams.Stream_Element)
-     return String
-   is
-      First : constant Positive := Dict.Offsets (Index);
-      Last : Natural := Dict.Values'Last;
-   begin
-      if Index + 1 in Dict.Offsets'Range then
-         Last := Dict.Offsets (Index + 1) - 1;
-      end if;
-
-      return Dict.Values (First .. Last);
-   end Dict_Entry;
-
 
    procedure Find_Entry
      (Dict : in Dictionary;
@@ -149,6 +127,22 @@ package body Natools.Smaz is
    ----------------------
    -- Public Interface --
    ----------------------
+
+   function Dict_Entry
+     (Dict : in Dictionary;
+      Index : in Ada.Streams.Stream_Element)
+     return String
+   is
+      First : constant Positive := Dict.Offsets (Index);
+      Last : Natural := Dict.Values'Last;
+   begin
+      if Index + 1 in Dict.Offsets'Range then
+         Last := Dict.Offsets (Index + 1) - 1;
+      end if;
+
+      return Dict.Values (First .. Last);
+   end Dict_Entry;
+
 
    function Compressed_Upper_Bound
      (Dict : in Dictionary;

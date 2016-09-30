@@ -72,6 +72,13 @@ package Natools.Smaz is
                       - Dictionary.Offsets (I)
                   in 1 .. Dictionary.Max_Word_Length));
 
+   function Dict_Entry
+     (Dict : in Dictionary;
+      Index : in Ada.Streams.Stream_Element)
+     return String
+     with Pre => Index <= Dict.Dict_Last;
+      --  Return the string for at the given Index in Dict
+
 
    function Compressed_Upper_Bound
      (Dict : in Dictionary;
