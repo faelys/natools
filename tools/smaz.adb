@@ -54,6 +54,7 @@ procedure Smaz is
          Encode,
          Output_Hash,
          Help,
+         Sx_Dict_Output,
          Stat_Output,
          No_Stat_Output,
          Word_List_Input,
@@ -68,6 +69,7 @@ procedure Smaz is
       Need_Dictionary : Boolean := False;
       Stat_Output : Boolean := False;
       Sx_Output : Boolean := False;
+      Sx_Dict_Output : Boolean := False;
       Action : Actions.Enum := Actions.Nothing;
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
       Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
@@ -160,6 +162,10 @@ procedure Smaz is
 
          when Options.Word_List_Input =>
             Handler.Dict_Source := Dict_Sources.Word_List;
+
+         when Options.Sx_Dict_Output =>
+            Handler.Need_Dictionary := True;
+            Handler.Sx_Dict_Output := True;
       end case;
    end Option;
 
@@ -175,6 +181,7 @@ procedure Smaz is
       R.Add_Option ("encode",    'e', No_Argument,       Encode);
       R.Add_Option ("help",      'h', No_Argument,       Help);
       R.Add_Option ("hash-pkg",  'H', Required_Argument, Output_Hash);
+      R.Add_Option ("sx-dict",   'L', No_Argument,       Sx_Dict_Output);
       R.Add_Option ("stats",     's', No_Argument,       Stat_Output);
       R.Add_Option ("no-stats",  'S', No_Argument,       No_Stat_Output);
       R.Add_Option ("word-list", 'w', No_Argument,       Word_List_Input);
@@ -301,6 +308,11 @@ procedure Smaz is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Compute dictionary from word list in input S-expression");
+
+            when Options.Sx_Dict_Output =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Output the dictionary as a S-expression");
          end case;
       end loop;
    end Print_Help;
@@ -323,7 +335,7 @@ procedure Smaz is
                end loop;
 
                return Natools.Smaz.Tools.To_Dictionary
-                 (Natools.Smaz.Tools.Most_Common_Words (Counter, 254),
+                 (Natools.Smaz.Tools.Simple_Dictionary (Counter, 254),
                   True);
             end;
       end case;
@@ -393,6 +405,15 @@ begin
 
       if Hash_Package'Length > 0 then
          Natools.Smaz.Tools.GNAT.Build_Perfect_Hash (Input_List, Hash_Package);
+      end if;
+
+      if Handler.Sx_Dict_Output then
+         Sx_Output.Open_List;
+         for I in Dictionary.Offsets'Range loop
+            Sx_Output.Append_String
+              (Natools.Smaz.Dict_Entry (Dictionary, I));
+         end loop;
+         Sx_Output.Close_List;
       end if;
 
       case Handler.Action is
