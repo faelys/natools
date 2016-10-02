@@ -396,6 +396,47 @@ package body Natools.Smaz.Tools is
    end Add_Word;
 
 
+   procedure Add_Words
+     (Counter : in out Word_Counter;
+      Phrase : in String;
+      Min_Size : in Positive;
+      Max_Size : in Positive)
+   is
+      subtype Word_Part is Character with Static_Predicate
+        => Word_Part in '0' .. '9' | 'A' .. 'Z' | 'a' .. 'z'
+                      | Character'Val (128) .. Character'Val (255);
+      I, First, Next : Positive;
+   begin
+      if Max_Size < Min_Size then
+         return;
+      end if;
+
+      I := Phrase'First;
+
+      Main_Loop :
+      while I in Phrase'Range loop
+         Skip_Non_Word :
+         while I in Phrase'Range and then Phrase (I) not in Word_Part loop
+            I := I + 1;
+         end loop Skip_Non_Word;
+
+         exit Main_Loop when I not in Phrase'Range;
+         First := I;
+
+         Skip_Word :
+         while I in Phrase'Range and then Phrase (I) in Word_Part loop
+            I := I + 1;
+         end loop Skip_Word;
+
+         Next := I;
+
+         if Next - First in Min_Size .. Max_Size then
+            Add_Word (Counter, Phrase (First .. Next - 1));
+         end if;
+      end loop Main_Loop;
+   end Add_Words;
+
+
    function Simple_Dictionary
      (Counter : in Word_Counter;
       Word_Count : in Natural)

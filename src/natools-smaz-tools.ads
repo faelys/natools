@@ -89,6 +89,15 @@ package Natools.Smaz.Tools is
       --  Include all the substrings of Phrase whose lengths are
       --  between Min_Size and Max_Size.
 
+   procedure Add_Words
+     (Counter : in out Word_Counter;
+      Phrase : in String;
+      Min_Size : in Positive;
+      Max_Size : in Positive);
+      --  Add the "words" from Phrase into Counter, with a word being currently
+      --  defined as anything between ASCII blanks or punctuation,
+      --  or in other words [0-9A-Za-z\x80-\xFF]+
+
    function Simple_Dictionary
      (Counter : in Word_Counter;
       Word_Count : in Natural)
