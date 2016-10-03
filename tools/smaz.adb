@@ -332,6 +332,7 @@ procedure Smaz is
             begin
                for S of Input loop
                   Natools.Smaz.Tools.Add_Substrings (Counter, S, 1, 3);
+                  Natools.Smaz.Tools.Add_Words (Counter, S, 4, 10);
                end loop;
 
                return Natools.Smaz.Tools.To_Dictionary
