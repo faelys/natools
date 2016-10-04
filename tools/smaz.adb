@@ -55,6 +55,8 @@ procedure Smaz is
          Output_Hash,
          Help,
          Sx_Dict_Output,
+         Min_Sub_Size,
+         Max_Sub_Size,
          Stat_Output,
          No_Stat_Output,
          Word_List_Input,
@@ -70,6 +72,8 @@ procedure Smaz is
       Stat_Output : Boolean := False;
       Sx_Output : Boolean := False;
       Sx_Dict_Output : Boolean := False;
+      Min_Sub_Size : Positive := 1;
+      Max_Sub_Size : Positive := 3;
       Action : Actions.Enum := Actions.Nothing;
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
       Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
@@ -166,6 +170,12 @@ procedure Smaz is
          when Options.Sx_Dict_Output =>
             Handler.Need_Dictionary := True;
             Handler.Sx_Dict_Output := True;
+
+         when Options.Min_Sub_Size =>
+            Handler.Min_Sub_Size := Positive'Value (Argument);
+
+         when Options.Max_Sub_Size =>
+            Handler.Max_Sub_Size := Positive'Value (Argument);
       end case;
    end Option;
 
@@ -175,18 +185,20 @@ procedure Smaz is
       use Options;
       R : Getopt.Configuration;
    begin
-      R.Add_Option ("ada-dict",  'A', Optional_Argument, Output_Ada_Dict);
-      R.Add_Option ("decode",    'd', No_Argument,       Decode);
-      R.Add_Option ("dict",      'D', No_Argument,       Dictionary_Input);
-      R.Add_Option ("encode",    'e', No_Argument,       Encode);
-      R.Add_Option ("help",      'h', No_Argument,       Help);
-      R.Add_Option ("hash-pkg",  'H', Required_Argument, Output_Hash);
-      R.Add_Option ("sx-dict",   'L', No_Argument,       Sx_Dict_Output);
-      R.Add_Option ("stats",     's', No_Argument,       Stat_Output);
-      R.Add_Option ("no-stats",  'S', No_Argument,       No_Stat_Output);
-      R.Add_Option ("word-list", 'w', No_Argument,       Word_List_Input);
-      R.Add_Option ("s-expr",    'x', No_Argument,       Sx_Output);
-      R.Add_Option ("no-s-expr", 'X', No_Argument,       No_Sx_Output);
+      R.Add_Option ("ada-dict",      'A', Optional_Argument, Output_Ada_Dict);
+      R.Add_Option ("decode",        'd', No_Argument,       Decode);
+      R.Add_Option ("dict",          'D', No_Argument,       Dictionary_Input);
+      R.Add_Option ("encode",        'e', No_Argument,       Encode);
+      R.Add_Option ("help",          'h', No_Argument,       Help);
+      R.Add_Option ("hash-pkg",      'H', Required_Argument, Output_Hash);
+      R.Add_Option ("sx-dict",       'L', No_Argument,       Sx_Dict_Output);
+      R.Add_Option ("min-substring", 'm', Required_Argument, Min_Sub_Size);
+      R.Add_Option ("max-substring", 'M', Required_Argument, Max_Sub_Size);
+      R.Add_Option ("stats",         's', No_Argument,       Stat_Output);
+      R.Add_Option ("no-stats",      'S', No_Argument,       No_Stat_Output);
+      R.Add_Option ("word-list",     'w', No_Argument,       Word_List_Input);
+      R.Add_Option ("s-expr",        'x', No_Argument,       Sx_Output);
+      R.Add_Option ("no-s-expr",     'X', No_Argument,       No_Sx_Output);
 
       return R;
    end Getopt_Config;
@@ -313,6 +325,16 @@ procedure Smaz is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Output the dictionary as a S-expression");
+
+            when Options.Min_Sub_Size =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Minimum substring size when building a dictionary");
+
+            when Options.Max_Sub_Size =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Maximum substring size when building a dictionary");
          end case;
       end loop;
    end Print_Help;
@@ -331,8 +353,10 @@ procedure Smaz is
                Counter : Natools.Smaz.Tools.Word_Counter;
             begin
                for S of Input loop
-                  Natools.Smaz.Tools.Add_Substrings (Counter, S, 1, 3);
-                  Natools.Smaz.Tools.Add_Words (Counter, S, 4, 10);
+                  Natools.Smaz.Tools.Add_Substrings
+                    (Counter, S, Handler.Min_Sub_Size, Handler.Max_Sub_Size);
+                  Natools.Smaz.Tools.Add_Words
+                    (Counter, S, Handler.Max_Sub_Size + 1, 10);
                end loop;
 
                return Natools.Smaz.Tools.To_Dictionary
