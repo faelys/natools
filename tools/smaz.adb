@@ -60,6 +60,7 @@ procedure Smaz is
          Stat_Output,
          No_Stat_Output,
          Word_List_Input,
+         Max_Word_Size,
          Sx_Output,
          No_Sx_Output);
    end Options;
@@ -74,6 +75,7 @@ procedure Smaz is
       Sx_Dict_Output : Boolean := False;
       Min_Sub_Size : Positive := 1;
       Max_Sub_Size : Positive := 3;
+      Max_Word_Size : Positive := 10;
       Action : Actions.Enum := Actions.Nothing;
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
       Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
@@ -176,6 +178,9 @@ procedure Smaz is
 
          when Options.Max_Sub_Size =>
             Handler.Max_Sub_Size := Positive'Value (Argument);
+
+         when Options.Max_Word_Size =>
+            Handler.Max_Word_Size := Positive'Value (Argument);
       end case;
    end Option;
 
@@ -197,6 +202,7 @@ procedure Smaz is
       R.Add_Option ("stats",         's', No_Argument,       Stat_Output);
       R.Add_Option ("no-stats",      'S', No_Argument,       No_Stat_Output);
       R.Add_Option ("word-list",     'w', No_Argument,       Word_List_Input);
+      R.Add_Option ("max-word-len",  'W', Required_Argument, Max_Word_Size);
       R.Add_Option ("s-expr",        'x', No_Argument,       Sx_Output);
       R.Add_Option ("no-s-expr",     'X', No_Argument,       No_Sx_Output);
 
@@ -335,6 +341,11 @@ procedure Smaz is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Maximum substring size when building a dictionary");
+
+            when Options.Max_Word_Size =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Maximum word size when building a dictionary");
          end case;
       end loop;
    end Print_Help;
@@ -355,8 +366,12 @@ procedure Smaz is
                for S of Input loop
                   Natools.Smaz.Tools.Add_Substrings
                     (Counter, S, Handler.Min_Sub_Size, Handler.Max_Sub_Size);
-                  Natools.Smaz.Tools.Add_Words
-                    (Counter, S, Handler.Max_Sub_Size + 1, 10);
+
+                  if Handler.Max_Word_Size > Handler.Max_Sub_Size then
+                     Natools.Smaz.Tools.Add_Words
+                       (Counter, S,
+                        Handler.Max_Sub_Size + 1, Handler.Max_Word_Size);
+                  end if;
                end loop;
 
                return Natools.Smaz.Tools.To_Dictionary
