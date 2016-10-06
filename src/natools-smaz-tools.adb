@@ -437,6 +437,61 @@ package body Natools.Smaz.Tools is
    end Add_Words;
 
 
+   procedure Evaluate_Dictionary
+     (Dict : in Dictionary;
+      Corpus : in String_Lists.List;
+      Compressed_Size : out Ada.Streams.Stream_Element_Count;
+      Counts : out Dictionary_Counts)
+   is
+      Verbatim_Code_Count : constant Ada.Streams.Stream_Element_Offset
+        := Ada.Streams.Stream_Element_Offset
+           (Ada.Streams.Stream_Element'Last - Dict.Dict_Last);
+
+      Verbatim_Length : Ada.Streams.Stream_Element_Offset;
+      Input_Byte : Ada.Streams.Stream_Element;
+   begin
+      Compressed_Size := 0;
+
+      for I in Counts'Range loop
+         Counts (I) := 0;
+      end loop;
+
+      for S of Corpus loop
+         declare
+            use type Ada.Streams.Stream_Element_Offset;
+            Compressed : constant Ada.Streams.Stream_Element_Array
+              := Compress (Dict, S);
+            Index : Ada.Streams.Stream_Element_Offset := Compressed'First;
+         begin
+            Compressed_Size := Compressed_Size + Compressed'Length;
+
+            while Index in Compressed'Range loop
+               Input_Byte := Compressed (Index);
+
+               if Input_Byte in Dict.Offsets'Range then
+                  Counts (Input_Byte) := Counts (Input_Byte) + 1;
+                  Index := Index + 1;
+               else
+                  if not Dict.Variable_Length_Verbatim then
+                     Verbatim_Length := Ada.Streams.Stream_Element_Offset
+                       (Ada.Streams.Stream_Element'Last - Input_Byte) + 1;
+                  elsif Input_Byte < Ada.Streams.Stream_Element'Last then
+                     Verbatim_Length := Ada.Streams.Stream_Element_Offset
+                       (Ada.Streams.Stream_Element'Last - Input_Byte);
+                  else
+                     Index := Index + 1;
+                     Verbatim_Length := Ada.Streams.Stream_Element_Offset
+                       (Compressed (Index)) + Verbatim_Code_Count - 1;
+                  end if;
+
+                  Index := Index + Verbatim_Length + 1;
+               end if;
+            end loop;
+         end;
+      end loop;
+   end Evaluate_Dictionary;
+
+
    function Simple_Dictionary
      (Counter : in Word_Counter;
       Word_Count : in Natural)

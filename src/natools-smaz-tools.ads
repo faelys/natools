@@ -105,6 +105,18 @@ package Natools.Smaz.Tools is
       --  Return the Word_Count words in Counter that have the highest score,
       --  the score being count * length.
 
+   type Dictionary_Counts is
+     array (Ada.Streams.Stream_Element) of String_Count;
+
+   procedure Evaluate_Dictionary
+     (Dict : in Dictionary;
+      Corpus : in String_Lists.List;
+      Compressed_Size : out Ada.Streams.Stream_Element_Count;
+      Counts : out Dictionary_Counts);
+      --  Compress all strings of Corpus, returning the total number of
+      --  compressed bytes and the number of uses for each dictionary
+      --  element.
+
 private
 
    package Word_Maps is new Ada.Containers.Indefinite_Ordered_Maps
