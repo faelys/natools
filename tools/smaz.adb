@@ -21,6 +21,7 @@
 with Ada.Characters.Latin_1;
 with Ada.Command_Line;
 with Ada.Streams;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO.Text_Streams;
 with Natools.Getopt_Long;
@@ -37,7 +38,8 @@ procedure Smaz is
       type Enum is
         (Nothing,
          Decode,
-         Encode);
+         Encode,
+         Evaluate);
    end Actions;
 
    package Dict_Sources is
@@ -52,6 +54,7 @@ procedure Smaz is
          Dictionary_Input,
          Decode,
          Encode,
+         Evaluate,
          Output_Hash,
          Help,
          Sx_Dict_Output,
@@ -135,6 +138,10 @@ procedure Smaz is
             Handler.Need_Dictionary := True;
             Handler.Action := Actions.Encode;
 
+         when Options.Evaluate =>
+            Handler.Need_Dictionary := True;
+            Handler.Action := Actions.Evaluate;
+
          when Options.No_Stat_Output =>
             Handler.Stat_Output := False;
 
@@ -194,6 +201,7 @@ procedure Smaz is
       R.Add_Option ("decode",        'd', No_Argument,       Decode);
       R.Add_Option ("dict",          'D', No_Argument,       Dictionary_Input);
       R.Add_Option ("encode",        'e', No_Argument,       Encode);
+      R.Add_Option ("evaluate",      'E', No_Argument,       Evaluate);
       R.Add_Option ("help",          'h', No_Argument,       Help);
       R.Add_Option ("hash-pkg",      'H', Required_Argument, Output_Hash);
       R.Add_Option ("sx-dict",       'L', No_Argument,       Sx_Dict_Output);
@@ -346,6 +354,11 @@ procedure Smaz is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Maximum word size when building a dictionary");
+
+            when Options.Evaluate =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Evaluate the dictionary on the input given corpus");
          end case;
       end loop;
    end Print_Help;
@@ -551,6 +564,38 @@ begin
                   Print_Line (Original_Total, Output_Total, Base64_Total);
                end;
             end if;
+
+         when Actions.Evaluate =>
+            declare
+               Total_Size : Ada.Streams.Stream_Element_Count;
+               Counts : Natools.Smaz.Tools.Dictionary_Counts;
+            begin
+               Natools.Smaz.Tools.Evaluate_Dictionary
+                 (Dictionary, Input_Data, Total_Size, Counts);
+
+               if Handler.Sx_Output then
+                  Sx_Output.Open_List;
+                  Sx_Output.Append_String (Ada.Strings.Fixed.Trim
+                    (Ada.Streams.Stream_Element_Count'Image (Total_Size),
+                     Ada.Strings.Both));
+
+                  for E in Dictionary.Offsets'Range loop
+                     Sx_Output.Open_List;
+                     Sx_Output.Append_Atom ((0 => E));
+                     Sx_Output.Append_String
+                       (Natools.Smaz.Dict_Entry (Dictionary, E));
+                     Sx_Output.Append_String (Ada.Strings.Fixed.Trim
+                       (Natools.Smaz.Tools.String_Count'Image (Counts (E)),
+                        Ada.Strings.Both));
+                     Sx_Output.Close_List;
+                  end loop;
+                  Sx_Output.Close_List;
+               end if;
+
+               if Handler.Stat_Output then
+                  Ada.Text_IO.Put_Line ("Not implemented yet");
+               end if;
+            end;
       end case;
    end Build_Dictionary;
 end Smaz;
