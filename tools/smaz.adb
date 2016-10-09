@@ -29,6 +29,7 @@ with Natools.S_Expressions.Parsers;
 with Natools.S_Expressions.Printers;
 with Natools.Smaz.Tools;
 with Natools.Smaz.Tools.GNAT;
+with Natools.String_Escapes;
 
 procedure Smaz is
    function To_SEA (S : String) return Ada.Streams.Stream_Element_Array
@@ -593,7 +594,114 @@ begin
                end if;
 
                if Handler.Stat_Output then
-                  Ada.Text_IO.Put_Line ("Not implemented yet");
+                  declare
+                     type Score_Value is range 0 .. 2 ** 31 - 1;
+
+                     function Length (E : Ada.Streams.Stream_Element)
+                       return Score_Value
+                       is (Natools.Smaz.Dict_Entry (Dictionary, E)'Length);
+
+                     function Encoded (E : Ada.Streams.Stream_Element)
+                       return Score_Value
+                       is (Score_Value (Counts (E)) * Length (E));
+                     function Frequency (E : Ada.Streams.Stream_Element)
+                       return Score_Value
+                       is (Score_Value (Counts (E)));
+                     function Gain (E : Ada.Streams.Stream_Element)
+                       return Score_Value
+                       is (Score_Value (Counts (E)) * (Length (E) - 1));
+
+                     procedure Print
+                       (Label : in String;
+                        E : in Ada.Streams.Stream_Element;
+                        Score : in Score_Value);
+
+                     procedure Print_Min_Max
+                       (Label : in String;
+                        Score : not null access function
+                          (E : Ada.Streams.Stream_Element) return Score_Value);
+
+                     procedure Print_Value
+                       (Label : in String;
+                        Score : not null access function
+                          (E : Ada.Streams.Stream_Element) return Score_Value;
+                        Ref : in Score_Value);
+
+
+                     procedure Print
+                       (Label : in String;
+                        E : in Ada.Streams.Stream_Element;
+                        Score : in Score_Value) is
+                     begin
+                        if Handler.Sx_Output then
+                           Sx_Output.Open_List;
+                           Sx_Output.Append_Atom ((0 => E));
+                           Sx_Output.Append_String
+                             (Natools.Smaz.Dict_Entry (Dictionary, E));
+                           Sx_Output.Append_String (Ada.Strings.Fixed.Trim
+                             (Score_Value'Image (Score), Ada.Strings.Both));
+                           Sx_Output.Close_List;
+                        else
+                           Ada.Text_IO.Put_Line
+                             (Label
+                              & Ada.Characters.Latin_1.HT
+                              & Ada.Streams.Stream_Element'Image (E)
+                              & Ada.Characters.Latin_1.HT
+                              & Natools.String_Escapes.C_Escape_Hex
+                                (Natools.Smaz.Dict_Entry (Dictionary, E), True)
+                              & Ada.Characters.Latin_1.HT
+                              & Score_Value'Image (Score));
+                        end if;
+                     end Print;
+
+                     procedure Print_Min_Max
+                       (Label : in String;
+                        Score : not null access function
+                          (E : Ada.Streams.Stream_Element) return Score_Value)
+                     is
+                        Min_Score, Max_Score : Score_Value := Score (0);
+                        S : Score_Value;
+                     begin
+                        for E in 1 .. Dictionary.Dict_Last loop
+                           S := Score (E);
+                           if S < Min_Score then
+                              Min_Score := S;
+                           end if;
+                           if S > Max_Score then
+                              Max_Score := S;
+                           end if;
+                        end loop;
+
+                        Print_Value ("best-" & Label, Score, Max_Score);
+                        Print_Value ("worst-" & Label, Score, Min_Score);
+                     end Print_Min_Max;
+
+                     procedure Print_Value
+                       (Label : in String;
+                        Score : not null access function
+                          (E : Ada.Streams.Stream_Element) return Score_Value;
+                        Ref : in Score_Value) is
+                     begin
+                        if Handler.Sx_Output then
+                           Sx_Output.Open_List;
+                           Sx_Output.Append_String (Label);
+                        end if;
+
+                        for E in Dictionary.Offsets'Range loop
+                           if Score (E) = Ref then
+                              Print (Label, E, Ref);
+                           end if;
+                        end loop;
+
+                        if Handler.Sx_Output then
+                           Sx_Output.Close_List;
+                        end if;
+                     end Print_Value;
+                  begin
+                     Print_Min_Max ("encoded", Encoded'Access);
+                     Print_Min_Max ("frequency", Frequency'Access);
+                     Print_Min_Max ("gain", Gain'Access);
+                  end;
                end if;
             end;
       end case;
