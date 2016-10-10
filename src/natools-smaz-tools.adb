@@ -441,55 +441,61 @@ package body Natools.Smaz.Tools is
      (Dict : in Dictionary;
       Corpus : in String_Lists.List;
       Compressed_Size : out Ada.Streams.Stream_Element_Count;
-      Counts : out Dictionary_Counts)
+      Counts : out Dictionary_Counts) is
+   begin
+      Compressed_Size := 0;
+      Counts := (others => 0);
+
+      for S of Corpus loop
+         Evaluate_Dictionary_Partial
+           (Dict, S, Compressed_Size, Counts);
+      end loop;
+   end Evaluate_Dictionary;
+
+
+   procedure Evaluate_Dictionary_Partial
+     (Dict : in Dictionary;
+      Corpus_Entry : in String;
+      Compressed_Size : in out Ada.Streams.Stream_Element_Count;
+      Counts : in out Dictionary_Counts)
    is
+      use type Ada.Streams.Stream_Element_Offset;
+
       Verbatim_Code_Count : constant Ada.Streams.Stream_Element_Offset
         := Ada.Streams.Stream_Element_Offset
            (Ada.Streams.Stream_Element'Last - Dict.Dict_Last);
 
       Verbatim_Length : Ada.Streams.Stream_Element_Offset;
       Input_Byte : Ada.Streams.Stream_Element;
+      Compressed : constant Ada.Streams.Stream_Element_Array
+        := Compress (Dict, Corpus_Entry);
+      Index : Ada.Streams.Stream_Element_Offset := Compressed'First;
    begin
-      Compressed_Size := 0;
+      Compressed_Size := Compressed_Size + Compressed'Length;
 
-      for I in Counts'Range loop
-         Counts (I) := 0;
+      while Index in Compressed'Range loop
+         Input_Byte := Compressed (Index);
+
+         if Input_Byte in Dict.Offsets'Range then
+            Counts (Input_Byte) := Counts (Input_Byte) + 1;
+            Index := Index + 1;
+         else
+            if not Dict.Variable_Length_Verbatim then
+               Verbatim_Length := Ada.Streams.Stream_Element_Offset
+                 (Ada.Streams.Stream_Element'Last - Input_Byte) + 1;
+            elsif Input_Byte < Ada.Streams.Stream_Element'Last then
+               Verbatim_Length := Ada.Streams.Stream_Element_Offset
+                 (Ada.Streams.Stream_Element'Last - Input_Byte);
+            else
+               Index := Index + 1;
+               Verbatim_Length := Ada.Streams.Stream_Element_Offset
+                 (Compressed (Index)) + Verbatim_Code_Count - 1;
+            end if;
+
+            Index := Index + Verbatim_Length + 1;
+         end if;
       end loop;
-
-      for S of Corpus loop
-         declare
-            use type Ada.Streams.Stream_Element_Offset;
-            Compressed : constant Ada.Streams.Stream_Element_Array
-              := Compress (Dict, S);
-            Index : Ada.Streams.Stream_Element_Offset := Compressed'First;
-         begin
-            Compressed_Size := Compressed_Size + Compressed'Length;
-
-            while Index in Compressed'Range loop
-               Input_Byte := Compressed (Index);
-
-               if Input_Byte in Dict.Offsets'Range then
-                  Counts (Input_Byte) := Counts (Input_Byte) + 1;
-                  Index := Index + 1;
-               else
-                  if not Dict.Variable_Length_Verbatim then
-                     Verbatim_Length := Ada.Streams.Stream_Element_Offset
-                       (Ada.Streams.Stream_Element'Last - Input_Byte) + 1;
-                  elsif Input_Byte < Ada.Streams.Stream_Element'Last then
-                     Verbatim_Length := Ada.Streams.Stream_Element_Offset
-                       (Ada.Streams.Stream_Element'Last - Input_Byte);
-                  else
-                     Index := Index + 1;
-                     Verbatim_Length := Ada.Streams.Stream_Element_Offset
-                       (Compressed (Index)) + Verbatim_Code_Count - 1;
-                  end if;
-
-                  Index := Index + Verbatim_Length + 1;
-               end if;
-            end loop;
-         end;
-      end loop;
-   end Evaluate_Dictionary;
+   end Evaluate_Dictionary_Partial;
 
 
    function Simple_Dictionary

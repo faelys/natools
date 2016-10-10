@@ -113,6 +113,11 @@ package Natools.Smaz.Tools is
       Corpus : in String_Lists.List;
       Compressed_Size : out Ada.Streams.Stream_Element_Count;
       Counts : out Dictionary_Counts);
+   procedure Evaluate_Dictionary_Partial
+     (Dict : in Dictionary;
+      Corpus_Entry : in String;
+      Compressed_Size : in out Ada.Streams.Stream_Element_Count;
+      Counts : in out Dictionary_Counts);
       --  Compress all strings of Corpus, returning the total number of
       --  compressed bytes and the number of uses for each dictionary
       --  element.
