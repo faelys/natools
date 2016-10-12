@@ -25,6 +25,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO.Text_Streams;
 with Natools.Getopt_Long;
+with Natools.Parallelism;
 with Natools.S_Expressions.Parsers;
 with Natools.S_Expressions.Printers;
 with Natools.Smaz.Tools;
@@ -57,6 +58,7 @@ procedure Smaz is
          Encode,
          Evaluate,
          Output_Hash,
+         Job_Count,
          Help,
          Sx_Dict_Output,
          Min_Sub_Size,
@@ -80,6 +82,7 @@ procedure Smaz is
       Min_Sub_Size : Positive := 1;
       Max_Sub_Size : Positive := 3;
       Max_Word_Size : Positive := 10;
+      Job_Count : Natural := 0;
       Action : Actions.Enum := Actions.Nothing;
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
       Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
@@ -99,6 +102,15 @@ procedure Smaz is
 
    function Getopt_Config return Getopt.Configuration;
       --  Build the configuration object
+
+   procedure Parallel_Evaluate_Dictionary
+     (Job_Count : in Positive;
+      Dict : in Natools.Smaz.Dictionary;
+      Corpus : in Natools.Smaz.Tools.String_Lists.List;
+      Compressed_Size : out Ada.Streams.Stream_Element_Count;
+      Counts : out Natools.Smaz.Tools.Dictionary_Counts);
+      --  Return the same results as Natools.Smaz.Tools.Evaluate_Dictionary,
+      --  but hopefully more quickly, using Job_Count tasks.
 
    procedure Print_Dictionary
      (Filename : in String;
@@ -189,6 +201,9 @@ procedure Smaz is
 
          when Options.Max_Word_Size =>
             Handler.Max_Word_Size := Positive'Value (Argument);
+
+         when Options.Job_Count =>
+            Handler.Job_Count := Natural'Value (Argument);
       end case;
    end Option;
 
@@ -205,6 +220,7 @@ procedure Smaz is
       R.Add_Option ("evaluate",      'E', No_Argument,       Evaluate);
       R.Add_Option ("help",          'h', No_Argument,       Help);
       R.Add_Option ("hash-pkg",      'H', Required_Argument, Output_Hash);
+      R.Add_Option ("jobs",          'j', Required_Argument, Job_Count);
       R.Add_Option ("sx-dict",       'L', No_Argument,       Sx_Dict_Output);
       R.Add_Option ("min-substring", 'm', Required_Argument, Min_Sub_Size);
       R.Add_Option ("max-substring", 'M', Required_Argument, Max_Sub_Size);
@@ -217,6 +233,88 @@ procedure Smaz is
 
       return R;
    end Getopt_Config;
+
+
+   procedure Parallel_Evaluate_Dictionary
+     (Job_Count : in Positive;
+      Dict : in Natools.Smaz.Dictionary;
+      Corpus : in Natools.Smaz.Tools.String_Lists.List;
+      Compressed_Size : out Ada.Streams.Stream_Element_Count;
+      Counts : out Natools.Smaz.Tools.Dictionary_Counts)
+   is
+      package String_Lists renames Natools.Smaz.Tools.String_Lists;
+
+      type State is record
+         Position : String_Lists.Cursor;
+         Compressed_Size : Ada.Streams.Stream_Element_Count;
+         Counts : Natools.Smaz.Tools.Dictionary_Counts;
+      end record;
+
+      procedure Initialize_Job
+        (Global : in out String_Lists.Cursor;
+         Job : out State);
+
+      procedure Do_Job (Job : in out State);
+
+      procedure Gather_Result
+        (Global : in out String_Lists.Cursor;
+         Job : in State);
+
+      function Is_Finished (Global : in String_Lists.Cursor) return Boolean;
+
+
+      procedure Initialize_Job
+        (Global : in out String_Lists.Cursor;
+         Job : out State) is
+      begin
+         Job := (Position => Global,
+                 Compressed_Size => 0,
+                 Counts => (others => 0));
+         String_Lists.Next (Global);
+      end Initialize_Job;
+
+
+      procedure Do_Job (Job : in out State) is
+      begin
+         Natools.Smaz.Tools.Evaluate_Dictionary_Partial
+           (Dict,
+            String_Lists.Element (Job.Position),
+            Job.Compressed_Size,
+            Job.Counts);
+      end Do_Job;
+
+
+      procedure Gather_Result
+        (Global : in out String_Lists.Cursor;
+         Job : in State)
+      is
+         pragma Unreferenced (Global);
+         use type Ada.Streams.Stream_Element_Count;
+         use type Natools.Smaz.Tools.String_Count;
+      begin
+         Compressed_Size := Compressed_Size + Job.Compressed_Size;
+
+         for I in Counts'Range loop
+            Counts (I) := Counts (I) + Job.Counts (I);
+         end loop;
+      end Gather_Result;
+
+
+      function Is_Finished (Global : in String_Lists.Cursor) return Boolean is
+      begin
+         return not String_Lists.Has_Element (Global);
+      end Is_Finished;
+
+
+      procedure Parallel_Run is new Natools.Parallelism.Single_Accumulator_Run
+        (String_Lists.Cursor, State);
+
+      Cursor : String_Lists.Cursor := String_Lists.First (Corpus);
+   begin
+      Compressed_Size := 0;
+      Counts := (others => 0);
+      Parallel_Run (Cursor, Job_Count);
+   end Parallel_Evaluate_Dictionary;
 
 
    procedure Print_Dictionary
@@ -360,6 +458,11 @@ procedure Smaz is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Evaluate the dictionary on the input given corpus");
+
+            when Options.Job_Count =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Number of parallel jobs in long calculations");
          end case;
       end loop;
    end Print_Help;
@@ -571,8 +674,13 @@ begin
                Total_Size : Ada.Streams.Stream_Element_Count;
                Counts : Natools.Smaz.Tools.Dictionary_Counts;
             begin
-               Natools.Smaz.Tools.Evaluate_Dictionary
-                 (Dictionary, Input_Data, Total_Size, Counts);
+               if Handler.Job_Count > 0 then
+                  Parallel_Evaluate_Dictionary (Handler.Job_Count,
+                     Dictionary, Input_Data, Total_Size, Counts);
+               else
+                  Natools.Smaz.Tools.Evaluate_Dictionary
+                    (Dictionary, Input_Data, Total_Size, Counts);
+               end if;
 
                if Handler.Sx_Output then
                   Sx_Output.Open_List;
