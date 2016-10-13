@@ -50,4 +50,40 @@ package Natools.Parallelism is
      (Global : in out Global_State;
       Task_Count : in Positive);
 
+
+
+   generic
+      type Global_State (<>) is limited private;
+         --  State common to all jobs, only accessed from protected subprograms
+
+      type Task_Result is limited private;
+         --  Accumulated result in a single task
+
+      type Job_Description is limited private;
+         --  Parameters for a given job
+
+      with procedure Initialize (Result : in out Task_Result) is <>;
+         --  Initialize Result for the current task
+
+      with procedure Get_Next_Job
+        (Global : in out Global_State;
+         Job : out Job_Description;
+         Terminated : out Boolean) is <>;
+         --  If there is a next job available from Global, set Terminated
+         --  to False and initialize Job, otherwise set Terminated to True.
+
+      with procedure Do_Job
+        (Result : in out Task_Result;
+         Job : in Job_Description) is <>;
+         --  Perform the job in parallel
+
+      with procedure Gather_Result
+        (Global : in out Global_State;
+         Partial : in Task_Result) is <>;
+         --  Update Global with results stored in Partial
+
+   procedure Per_Task_Accumulator_Run
+     (Global : in out Global_State;
+      Task_Count : in Positive);
+
 end Natools.Parallelism;
