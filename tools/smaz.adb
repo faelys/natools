@@ -244,70 +244,78 @@ procedure Smaz is
    is
       package String_Lists renames Natools.Smaz.Tools.String_Lists;
 
-      type State is record
-         Position : String_Lists.Cursor;
+      type Result_Values is record
          Compressed_Size : Ada.Streams.Stream_Element_Count;
          Counts : Natools.Smaz.Tools.Dictionary_Counts;
       end record;
 
-      procedure Initialize_Job
-        (Global : in out String_Lists.Cursor;
-         Job : out State);
+      procedure Initialize (Result : in out Result_Values);
 
-      procedure Do_Job (Job : in out State);
+      procedure Get_Next_Job
+        (Global : in out String_Lists.Cursor;
+         Job : out String_Lists.Cursor;
+         Terminated : out Boolean);
+
+      procedure Do_Job
+        (Result : in out Result_Values;
+         Job : in String_Lists.Cursor);
 
       procedure Gather_Result
         (Global : in out String_Lists.Cursor;
-         Job : in State);
-
-      function Is_Finished (Global : in String_Lists.Cursor) return Boolean;
+         Partial : in Result_Values);
 
 
-      procedure Initialize_Job
-        (Global : in out String_Lists.Cursor;
-         Job : out State) is
+      procedure Initialize (Result : in out Result_Values) is
       begin
-         Job := (Position => Global,
-                 Compressed_Size => 0,
-                 Counts => (others => 0));
-         String_Lists.Next (Global);
-      end Initialize_Job;
+         Result := (Compressed_Size => 0,
+                    Counts => (others => 0));
+      end Initialize;
 
 
-      procedure Do_Job (Job : in out State) is
+      procedure Get_Next_Job
+        (Global : in out String_Lists.Cursor;
+         Job : out String_Lists.Cursor;
+         Terminated : out Boolean) is
+      begin
+         Job := Global;
+         Terminated := not String_Lists.Has_Element (Global);
+         if not Terminated then
+            String_Lists.Next (Global);
+         end if;
+      end Get_Next_Job;
+
+
+      procedure Do_Job
+        (Result : in out Result_Values;
+         Job : in String_Lists.Cursor) is
       begin
          Natools.Smaz.Tools.Evaluate_Dictionary_Partial
            (Dict,
-            String_Lists.Element (Job.Position),
-            Job.Compressed_Size,
-            Job.Counts);
+            String_Lists.Element (Job),
+            Result.Compressed_Size,
+            Result.Counts);
       end Do_Job;
 
 
       procedure Gather_Result
         (Global : in out String_Lists.Cursor;
-         Job : in State)
+         Partial : in Result_Values)
       is
          pragma Unreferenced (Global);
          use type Ada.Streams.Stream_Element_Count;
          use type Natools.Smaz.Tools.String_Count;
       begin
-         Compressed_Size := Compressed_Size + Job.Compressed_Size;
+         Compressed_Size := Compressed_Size + Partial.Compressed_Size;
 
          for I in Counts'Range loop
-            Counts (I) := Counts (I) + Job.Counts (I);
+            Counts (I) := Counts (I) + Partial.Counts (I);
          end loop;
       end Gather_Result;
 
 
-      function Is_Finished (Global : in String_Lists.Cursor) return Boolean is
-      begin
-         return not String_Lists.Has_Element (Global);
-      end Is_Finished;
-
-
-      procedure Parallel_Run is new Natools.Parallelism.Single_Accumulator_Run
-        (String_Lists.Cursor, State);
+      procedure Parallel_Run
+        is new Natools.Parallelism.Per_Task_Accumulator_Run
+           (String_Lists.Cursor, Result_Values, String_Lists.Cursor);
 
       Cursor : String_Lists.Cursor := String_Lists.First (Corpus);
    begin
