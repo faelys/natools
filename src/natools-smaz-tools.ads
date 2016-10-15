@@ -69,6 +69,11 @@ package Natools.Smaz.Tools is
       --  Function and data source for inefficient but dynamic function
       --  that can be used with Dictionary.Hash.
 
+   procedure Set_Dictionary_For_Map_Search (Dict : in Dictionary);
+   function Map_Search (Value : String) return Natural;
+      --  Function and data source for logarithmic search using standard
+      --  ordered map, that can be used with Dictionary.Hash.
+
    type String_Count is range 0 .. 2 ** 31 - 1;
       --  Type for a number of substring occurrences
 
@@ -148,5 +153,10 @@ private
 
    package Scored_Word_Sets is new Ada.Containers.Indefinite_Ordered_Sets
      (Scored_Word);
+
+   package Dictionary_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (String, Ada.Streams.Stream_Element);
+
+   Search_Map : Dictionary_Maps.Map;
 
 end Natools.Smaz.Tools;

@@ -52,18 +52,6 @@ package body Natools.Smaz.Tools is
    -- Public Interface --
    ----------------------
 
-   function Linear_Search (Value : String) return Natural is
-      Result : Ada.Streams.Stream_Element := 0;
-   begin
-      for S of List_For_Linear_Search loop
-         exit when S = Value;
-         Result := Result + 1;
-      end loop;
-
-      return Natural (Result);
-   end Linear_Search;
-
-
    procedure Print_Dictionary_In_Ada
      (Dict : in Dictionary;
       Hash_Image : in String := "TODO";
@@ -347,6 +335,45 @@ package body Natools.Smaz.Tools is
             Hash => Dummy_Hash'Access);
       end;
    end To_Dictionary;
+
+
+
+   ---------------------------------
+   -- Dynamic Dictionary Searches --
+   ---------------------------------
+
+   function Linear_Search (Value : String) return Natural is
+      Result : Ada.Streams.Stream_Element := 0;
+   begin
+      for S of List_For_Linear_Search loop
+         exit when S = Value;
+         Result := Result + 1;
+      end loop;
+
+      return Natural (Result);
+   end Linear_Search;
+
+
+   function Map_Search (Value : String) return Natural is
+      Cursor : constant Dictionary_Maps.Cursor
+        := Dictionary_Maps.Find (Search_Map, Value);
+   begin
+      if Dictionary_Maps.Has_Element (Cursor) then
+         return Natural (Dictionary_Maps.Element (Cursor));
+      else
+         return Natural (Ada.Streams.Stream_Element'Last);
+      end if;
+   end Map_Search;
+
+
+   procedure Set_Dictionary_For_Map_Search (Dict : in Dictionary) is
+   begin
+      Dictionary_Maps.Clear (Search_Map);
+
+      for I in Dict.Offsets'Range loop
+         Dictionary_Maps.Insert (Search_Map, Dict_Entry (Dict, I), I);
+      end loop;
+   end Set_Dictionary_For_Map_Search;
 
 
 
