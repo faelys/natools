@@ -26,6 +26,7 @@ with Natools.S_Expressions;
 
 private with Ada.Containers.Indefinite_Ordered_Maps;
 private with Ada.Containers.Indefinite_Ordered_Sets;
+private with Ada.Finalization;
 
 package Natools.Smaz.Tools is
    pragma Preelaborate;
@@ -73,6 +74,12 @@ package Natools.Smaz.Tools is
    function Map_Search (Value : String) return Natural;
       --  Function and data source for logarithmic search using standard
       --  ordered map, that can be used with Dictionary.Hash.
+
+   type Search_Trie is private;
+   procedure Initialize (Trie : out Search_Trie; Dict : in Dictionary);
+   function Search (Trie : in Search_Trie; Value : in String) return Natural;
+      --  Trie-based search in a dynamic dictionary, for lookup whose
+      --  speed-vs-memory is even more skewed towards speed.
 
    type String_Count is range 0 .. 2 ** 31 - 1;
       --  Type for a number of substring occurrences
@@ -158,5 +165,27 @@ private
      (String, Ada.Streams.Stream_Element);
 
    Search_Map : Dictionary_Maps.Map;
+
+   type Trie_Node;
+   type Trie_Node_Access is access Trie_Node;
+   type Trie_Node_Array is array (Character) of Trie_Node_Access;
+
+   type Trie_Node (Is_Leaf : Boolean) is new Ada.Finalization.Controlled
+     with record
+      Index : Natural;
+
+      case Is_Leaf is
+         when True  => null;
+         when False => Children : Trie_Node_Array;
+      end case;
+   end record;
+
+   overriding procedure Adjust (Node : in out Trie_Node);
+   overriding procedure Finalize (Node : in out Trie_Node);
+
+   type Search_Trie is record
+      Not_Found : Natural;
+      Root : Trie_Node (False);
+   end record;
 
 end Natools.Smaz.Tools;
