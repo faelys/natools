@@ -81,6 +81,11 @@ package Natools.Smaz.Tools is
       --  Trie-based search in a dynamic dictionary, for lookup whose
       --  speed-vs-memory is even more skewed towards speed.
 
+   procedure Set_Dictionary_For_Trie_Search (Dict : in Dictionary);
+   function Trie_Search (Value : String) return Natural;
+      --  Function and data source for trie-based search that can be
+      --  used with Dictionary.Hash.
+
    type String_Count is range 0 .. 2 ** 31 - 1;
       --  Type for a number of substring occurrences
 
@@ -187,5 +192,7 @@ private
       Not_Found : Natural;
       Root : Trie_Node (False);
    end record;
+
+   Trie_For_Search : Search_Trie;
 
 end Natools.Smaz.Tools;

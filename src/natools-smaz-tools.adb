@@ -517,6 +517,18 @@ package body Natools.Smaz.Tools is
    end Set_Dictionary_For_Map_Search;
 
 
+   procedure Set_Dictionary_For_Trie_Search (Dict : in Dictionary) is
+   begin
+      Initialize (Trie_For_Search, Dict);
+   end Set_Dictionary_For_Trie_Search;
+
+
+   function Trie_Search (Value : String) return Natural is
+   begin
+      return Search (Trie_For_Search, Value);
+   end Trie_Search;
+
+
 
    -------------------
    -- Word Counting --
