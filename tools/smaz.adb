@@ -678,8 +678,8 @@ begin
             end if;
 
          when Actions.Evaluate =>
-            Natools.Smaz.Tools.Set_Dictionary_For_Map_Search (Dictionary);
-            Dictionary.Hash := Natools.Smaz.Tools.Map_Search'Access;
+            Natools.Smaz.Tools.Set_Dictionary_For_Trie_Search (Dictionary);
+            Dictionary.Hash := Natools.Smaz.Tools.Trie_Search'Access;
 
             declare
                Total_Size : Ada.Streams.Stream_Element_Count;
