@@ -115,6 +115,11 @@ package Natools.Smaz.Tools is
       --  defined as anything between ASCII blanks or punctuation,
       --  or in other words [0-9A-Za-z\x80-\xFF]+
 
+   procedure Filter_By_Count
+     (Counter : in out Word_Counter;
+      Threshold_Count : in String_Count);
+      --  Remove from Counter all entries whose count is below the threshold
+
    function Simple_Dictionary
      (Counter : in Word_Counter;
       Word_Count : in Natural)

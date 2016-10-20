@@ -678,6 +678,28 @@ package body Natools.Smaz.Tools is
    end Evaluate_Dictionary_Partial;
 
 
+   procedure Filter_By_Count
+     (Counter : in out Word_Counter;
+      Threshold_Count : in String_Count)
+   is
+      Position, Next : Word_Maps.Cursor;
+   begin
+      Position := Word_Maps.First (Counter.Map);
+
+      while Word_Maps.Has_Element (Position) loop
+         Next := Word_Maps.Next (Position);
+
+         if Word_Maps.Element (Position) < Threshold_Count then
+            Word_Maps.Delete (Counter.Map, Position);
+         end if;
+
+         Position := Next;
+      end loop;
+
+      pragma Assert (for all Count of Counter.Map => Count >= Threshold_Count);
+   end Filter_By_Count;
+
+
    function Simple_Dictionary
      (Counter : in Word_Counter;
       Word_Count : in Natural)
