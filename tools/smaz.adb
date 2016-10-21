@@ -57,6 +57,7 @@ procedure Smaz is
          Decode,
          Encode,
          Evaluate,
+         Filter_Threshold,
          Output_Hash,
          Job_Count,
          Help,
@@ -83,6 +84,7 @@ procedure Smaz is
       Max_Sub_Size : Positive := 3;
       Max_Word_Size : Positive := 10;
       Job_Count : Natural := 0;
+      Filter_Threshold : Natools.Smaz.Tools.String_Count := 0;
       Action : Actions.Enum := Actions.Nothing;
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
       Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
@@ -204,6 +206,10 @@ procedure Smaz is
 
          when Options.Job_Count =>
             Handler.Job_Count := Natural'Value (Argument);
+
+         when Options.Filter_Threshold =>
+            Handler.Filter_Threshold
+              := Natools.Smaz.Tools.String_Count'Value (Argument);
       end case;
    end Option;
 
@@ -218,6 +224,7 @@ procedure Smaz is
       R.Add_Option ("dict",          'D', No_Argument,       Dictionary_Input);
       R.Add_Option ("encode",        'e', No_Argument,       Encode);
       R.Add_Option ("evaluate",      'E', No_Argument,       Evaluate);
+      R.Add_Option ("filter",        'F', Required_Argument, Filter_Threshold);
       R.Add_Option ("help",          'h', No_Argument,       Help);
       R.Add_Option ("hash-pkg",      'H', Required_Argument, Output_Hash);
       R.Add_Option ("jobs",          'j', Required_Argument, Job_Count);
@@ -471,6 +478,13 @@ procedure Smaz is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Number of parallel jobs in long calculations");
+
+            when Options.Filter_Threshold =>
+               Put_Line (Output, " <threshold>");
+               Put_Line (Output, Indent & Indent
+                 & "Before building a dictionary from substrings, remove");
+               Put_Line (Output, Indent & Indent
+                 & "substrings whose count is below the threshold.");
          end case;
       end loop;
    end Print_Help;
@@ -478,7 +492,9 @@ procedure Smaz is
    function To_Dictionary
      (Handler : in Callback'Class;
       Input : in Natools.Smaz.Tools.String_Lists.List)
-     return Natools.Smaz.Dictionary is
+     return Natools.Smaz.Dictionary
+   is
+      use type Natools.Smaz.Tools.String_Count;
    begin
       case Handler.Dict_Source is
          when Dict_Sources.S_Expression =>
@@ -498,6 +514,11 @@ procedure Smaz is
                         Handler.Max_Sub_Size + 1, Handler.Max_Word_Size);
                   end if;
                end loop;
+
+               if Handler.Filter_Threshold > 0 then
+                  Natools.Smaz.Tools.Filter_By_Count
+                    (Counter, Handler.Filter_Threshold);
+               end if;
 
                return Natools.Smaz.Tools.To_Dictionary
                  (Natools.Smaz.Tools.Simple_Dictionary (Counter, 254),
