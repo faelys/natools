@@ -47,7 +47,7 @@ procedure Smaz is
    package Dict_Sources is
       type Enum is
         (S_Expression,
-         Word_List);
+         Text_List);
    end Dict_Sources;
 
    package Options is
@@ -66,7 +66,7 @@ procedure Smaz is
          Max_Sub_Size,
          Stat_Output,
          No_Stat_Output,
-         Word_List_Input,
+         Text_List_Input,
          Max_Word_Size,
          Sx_Output,
          No_Sx_Output);
@@ -188,8 +188,8 @@ procedure Smaz is
          when Options.Dictionary_Input =>
             Handler.Dict_Source := Dict_Sources.S_Expression;
 
-         when Options.Word_List_Input =>
-            Handler.Dict_Source := Dict_Sources.Word_List;
+         when Options.Text_List_Input =>
+            Handler.Dict_Source := Dict_Sources.Text_List;
 
          when Options.Sx_Dict_Output =>
             Handler.Need_Dictionary := True;
@@ -233,7 +233,7 @@ procedure Smaz is
       R.Add_Option ("max-substring", 'M', Required_Argument, Max_Sub_Size);
       R.Add_Option ("stats",         's', No_Argument,       Stat_Output);
       R.Add_Option ("no-stats",      'S', No_Argument,       No_Stat_Output);
-      R.Add_Option ("word-list",     'w', No_Argument,       Word_List_Input);
+      R.Add_Option ("text-list",     't', No_Argument,       Text_List_Input);
       R.Add_Option ("max-word-len",  'W', Required_Argument, Max_Word_Size);
       R.Add_Option ("s-expr",        'x', No_Argument,       Sx_Output);
       R.Add_Option ("no-s-expr",     'X', No_Argument,       No_Sx_Output);
@@ -444,10 +444,11 @@ procedure Smaz is
                Put_Line (Output, Indent & Indent
                  & "Read dictionary directly in input S-expression (default)");
 
-            when Options.Word_List_Input =>
+            when Options.Text_List_Input =>
                New_Line (Output);
                Put_Line (Output, Indent & Indent
-                 & "Compute dictionary from word list in input S-expression");
+                 & "Compute dictionary from sample texts"
+                 & " in input S-expression");
 
             when Options.Sx_Dict_Output =>
                New_Line (Output);
@@ -500,7 +501,7 @@ procedure Smaz is
          when Dict_Sources.S_Expression =>
             return Natools.Smaz.Tools.To_Dictionary (Input, True);
 
-         when Dict_Sources.Word_List =>
+         when Dict_Sources.Text_List =>
             declare
                Counter : Natools.Smaz.Tools.Word_Counter;
             begin
