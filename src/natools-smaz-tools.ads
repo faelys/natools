@@ -65,6 +65,22 @@ package Natools.Smaz.Tools is
       --  All the defaults value are what was used to generate the constant
       --  in Natools.Smaz.Original.
 
+   function Remove_Element
+     (Dict : in Dictionary;
+      Index : in Ada.Streams.Stream_Element)
+     return Dictionary
+     with Pre => Index <= Dict.Dict_Last,
+         Post => Dict.Dict_Last = Remove_Element'Result.Dict_Last + 1
+               and then (Index = 0
+                         or else (for all I in 0 .. Index - 1
+                                  => Dict_Entry (Dict, I)
+                                     = Dict_Entry (Remove_Element'Result, I)))
+               and then (Index = Dict.Dict_Last
+                         or else (for all I in Index .. Dict.Dict_Last - 1
+                                  => Dict_Entry (Dict, I + 1)
+                                     = Dict_Entry (Remove_Element'Result, I)));
+      --  Return a new dictionary equal to Dict without element for Index
+
    List_For_Linear_Search : String_Lists.List;
    function Linear_Search (Value : String) return Natural;
       --  Function and data source for inefficient but dynamic function

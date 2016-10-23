@@ -368,6 +368,64 @@ package body Natools.Smaz.Tools is
    end Read_List;
 
 
+   function Remove_Element
+     (Dict : in Dictionary;
+      Index : in Ada.Streams.Stream_Element)
+     return Dictionary
+   is
+      Removed_Length : constant Positive := Dict_Entry (Dict, Index)'Length;
+
+      function New_Offsets return Offset_Array;
+      function New_Values return String;
+
+      function New_Offsets return Offset_Array is
+         Result : Offset_Array (0 .. Dict.Dict_Last - 1);
+      begin
+         for I in Result'Range loop
+            if I < Index then
+               Result (I) := Dict.Offsets (I);
+            else
+               Result (I) := Dict.Offsets (I + 1) - Removed_Length;
+            end if;
+         end loop;
+
+         return Result;
+      end New_Offsets;
+
+      function New_Values return String is
+      begin
+         if Index < Dict.Dict_Last then
+            return Dict.Values (1 .. Dict.Offsets (Index) - 1)
+              & Dict.Values (Dict.Offsets (Index + 1) .. Dict.Values'Last);
+         else
+            return Dict.Values (1 .. Dict.Offsets (Index) - 1);
+         end if;
+      end New_Values;
+
+      New_Max_Word_Length : Positive := Dict.Max_Word_Length;
+   begin
+      if Removed_Length = Dict.Max_Word_Length then
+         New_Max_Word_Length := 1;
+         for I in Dict.Offsets'Range loop
+            if I /= Index
+              and then Dict_Entry (Dict, I)'Length > New_Max_Word_Length
+            then
+               New_Max_Word_Length := Dict_Entry (Dict, I)'Length;
+            end if;
+         end loop;
+      end if;
+
+      return Dictionary'
+        (Dict_Last => Dict.Dict_Last - 1,
+         String_Size => Dict.String_Size - Removed_Length,
+         Variable_Length_Verbatim => Dict.Variable_Length_Verbatim,
+         Max_Word_Length => New_Max_Word_Length,
+         Offsets => New_Offsets,
+         Values => New_Values,
+         Hash => Dummy_Hash'Access);
+   end Remove_Element;
+
+
    function To_Dictionary
      (List : in String_Lists.List;
       Variable_Length_Verbatim : in Boolean)
