@@ -131,6 +131,22 @@ package body Natools.Smaz.Tools is
    -- Public Interface --
    ----------------------
 
+   function Append_String
+     (Dict : in Dictionary;
+      Value : in String)
+     return Dictionary is
+   begin
+      return Dictionary'
+        (Dict_Last => Dict.Dict_Last + 1,
+         String_Size => Dict.String_Size + Value'Length,
+         Variable_Length_Verbatim => Dict.Variable_Length_Verbatim,
+         Max_Word_Length => Positive'Max (Dict.Max_Word_Length, Value'Length),
+         Offsets => Dict.Offsets & (1 => Dict.String_Size + 1),
+         Values => Dict.Values & Value,
+         Hash => Dummy_Hash'Access);
+   end Append_String;
+
+
    procedure Print_Dictionary_In_Ada
      (Dict : in Dictionary;
       Hash_Image : in String := "TODO";

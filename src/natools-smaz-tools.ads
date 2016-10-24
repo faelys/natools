@@ -81,6 +81,21 @@ package Natools.Smaz.Tools is
                                      = Dict_Entry (Remove_Element'Result, I)));
       --  Return a new dictionary equal to Dict without element for Index
 
+   function Append_String
+     (Dict : in Dictionary;
+      Value : in String)
+     return Dictionary
+     with Pre => Dict.Dict_Last < Ada.Streams.Stream_Element'Last
+               and then Value'Length > 0,
+         Post => Dict.Dict_Last = Append_String'Result.Dict_Last - 1
+               and then (for all I in 0 .. Dict.Dict_Last
+                         => Dict_Entry (Dict, I)
+                            = Dict_Entry (Append_String'Result, I))
+               and then Dict_Entry (Append_String'Result,
+                                    Append_String'Result.Dict_Last)
+                        = Value;
+      --  Return a new dictionary with Value appended
+
    List_For_Linear_Search : String_Lists.List;
    function Linear_Search (Value : String) return Natural;
       --  Function and data source for inefficient but dynamic function
