@@ -158,6 +158,15 @@ package Natools.Smaz.Tools is
       --  Return the Word_Count words in Counter that have the highest score,
       --  the score being count * length.
 
+   procedure Simple_Dictionary_And_Pending
+     (Counter : in Word_Counter;
+      Word_Count : in Natural;
+      Selected : out String_Lists.List;
+      Pending : out String_Lists.List);
+      --  Return in Selected the Word_Count words in Counter that have the
+      --  highest score, and in Pending the remaining words,
+      --  the score being count * length.
+
    type Dictionary_Counts is
      array (Ada.Streams.Stream_Element) of String_Count;
 

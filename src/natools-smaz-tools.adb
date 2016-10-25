@@ -801,6 +801,34 @@ package body Natools.Smaz.Tools is
    end Simple_Dictionary;
 
 
+   procedure Simple_Dictionary_And_Pending
+     (Counter : in Word_Counter;
+      Word_Count : in Natural;
+      Selected : out String_Lists.List;
+      Pending : out String_Lists.List)
+   is
+      use type Ada.Containers.Count_Type;
+      Target_Count : constant Ada.Containers.Count_Type
+        := Ada.Containers.Count_Type (Word_Count);
+      Set : Scored_Word_Sets.Set;
+   begin
+      for Cursor in Word_Maps.Iterate (Counter.Map) loop
+         Scored_Word_Sets.Insert (Set, To_Scored_Word (Cursor));
+      end loop;
+
+      Selected := String_Lists.Empty_List;
+      Pending := String_Lists.Empty_List;
+
+      for Cursor in Scored_Word_Sets.Iterate (Set) loop
+         if String_Lists.Length (Selected) < Target_Count then
+            Selected.Append (Scored_Word_Sets.Element (Cursor).Word);
+         else
+            Pending.Append (Scored_Word_Sets.Element (Cursor).Word);
+         end if;
+      end loop;
+   end Simple_Dictionary_And_Pending;
+
+
    function To_Scored_Word (Cursor : in Word_Maps.Cursor)
      return Scored_Word
    is
