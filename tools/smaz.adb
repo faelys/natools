@@ -20,6 +20,7 @@
 
 with Ada.Characters.Latin_1;
 with Ada.Command_Line;
+with Ada.Containers.Indefinite_Holders;
 with Ada.Streams;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -36,6 +37,9 @@ procedure Smaz is
    function To_SEA (S : String) return Ada.Streams.Stream_Element_Array
      renames Natools.S_Expressions.To_Atom;
 
+   package Holders is new Ada.Containers.Indefinite_Holders
+     (Natools.Smaz.Dictionary, Natools.Smaz."=");
+
    package Actions is
       type Enum is
         (Nothing,
@@ -47,7 +51,8 @@ procedure Smaz is
    package Dict_Sources is
       type Enum is
         (S_Expression,
-         Text_List);
+         Text_List,
+         Unoptimized_Text_List);
    end Dict_Sources;
 
    package Options is
@@ -67,6 +72,7 @@ procedure Smaz is
          Stat_Output,
          No_Stat_Output,
          Text_List_Input,
+         Fast_Text_Input,
          Max_Word_Size,
          Sx_Output,
          No_Sx_Output);
@@ -113,6 +119,26 @@ procedure Smaz is
 
    function Getopt_Config return Getopt.Configuration;
       --  Build the configuration object
+
+   procedure Optimization_Round
+     (Dict : in out Holders.Holder;
+      Score : in out Ada.Streams.Stream_Element_Count;
+      Counts : in out Natools.Smaz.Tools.Dictionary_Counts;
+      Pending_Words : in out Natools.Smaz.Tools.String_Lists.List;
+      Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
+      Job_Count : in Natural;
+      Updated : out Boolean);
+      --  Try to improve on Dict by replacing a single entry from it with
+      --  one of the substring in Pending_Words.
+
+   function Optimize_Dictionary
+     (Base : in Natools.Smaz.Dictionary;
+      Pending_Words : in Natools.Smaz.Tools.String_Lists.List;
+      Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
+      Job_Count : in Natural)
+     return Natools.Smaz.Dictionary;
+      --  Optimize the dictionary on Input_Texts, starting with Base and
+      --  adding substrings from Pending_Words.
 
    procedure Parallel_Evaluate_Dictionary
      (Job_Count : in Positive;
@@ -200,6 +226,9 @@ procedure Smaz is
          when Options.Text_List_Input =>
             Handler.Dict_Source := Dict_Sources.Text_List;
 
+         when Options.Fast_Text_Input =>
+            Handler.Dict_Source := Dict_Sources.Unoptimized_Text_List;
+
          when Options.Sx_Dict_Output =>
             Handler.Need_Dictionary := True;
             Handler.Sx_Dict_Output := True;
@@ -279,12 +308,63 @@ procedure Smaz is
       R.Add_Option ("stats",         's', No_Argument,       Stat_Output);
       R.Add_Option ("no-stats",      'S', No_Argument,       No_Stat_Output);
       R.Add_Option ("text-list",     't', No_Argument,       Text_List_Input);
+      R.Add_Option ("fast-text-list", 'T', No_Argument,       Fast_Text_Input);
       R.Add_Option ("max-word-len",  'W', Required_Argument, Max_Word_Size);
       R.Add_Option ("s-expr",        'x', No_Argument,       Sx_Output);
       R.Add_Option ("no-s-expr",     'X', No_Argument,       No_Sx_Output);
 
       return R;
    end Getopt_Config;
+
+
+   procedure Optimization_Round
+     (Dict : in out Holders.Holder;
+      Score : in out Ada.Streams.Stream_Element_Count;
+      Counts : in out Natools.Smaz.Tools.Dictionary_Counts;
+      Pending_Words : in out Natools.Smaz.Tools.String_Lists.List;
+      Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
+      Job_Count : in Natural;
+      Updated : out Boolean)
+   is
+      pragma Unreferenced (Dict);
+      pragma Unreferenced (Score);
+      pragma Unreferenced (Counts);
+      pragma Unreferenced (Pending_Words);
+      pragma Unreferenced (Input_Texts);
+      pragma Unreferenced (Job_Count);
+   begin
+      Updated := False;
+   end Optimization_Round;
+
+
+   function Optimize_Dictionary
+     (Base : in Natools.Smaz.Dictionary;
+      Pending_Words : in Natools.Smaz.Tools.String_Lists.List;
+      Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
+      Job_Count : in Natural)
+     return Natools.Smaz.Dictionary
+   is
+      Holder : Holders.Holder := Holders.To_Holder (Base);
+      Pending : Natools.Smaz.Tools.String_Lists.List := Pending_Words;
+      Score : Ada.Streams.Stream_Element_Count;
+      Counts : Natools.Smaz.Tools.Dictionary_Counts;
+      Running : Boolean := True;
+   begin
+      Evaluate_Dictionary (Job_Count, Base, Input_Texts, Score, Counts);
+
+      while Running loop
+         Optimization_Round
+           (Holder,
+            Score,
+            Counts,
+            Pending,
+            Input_Texts,
+            Job_Count,
+            Running);
+      end loop;
+
+      return Holder.Element;
+   end Optimize_Dictionary;
 
 
    procedure Parallel_Evaluate_Dictionary
@@ -495,6 +575,12 @@ procedure Smaz is
                  & "Compute dictionary from sample texts"
                  & " in input S-expression");
 
+            when Options.Fast_Text_Input =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Compute dictionary from sample texts"
+                 & " in input S-expression, without optimization");
+
             when Options.Sx_Dict_Output =>
                New_Line (Output);
                Put_Line (Output, Indent & Indent
@@ -535,18 +621,20 @@ procedure Smaz is
       end loop;
    end Print_Help;
 
+
    function To_Dictionary
      (Handler : in Callback'Class;
       Input : in Natools.Smaz.Tools.String_Lists.List)
      return Natools.Smaz.Dictionary
    is
       use type Natools.Smaz.Tools.String_Count;
+      use type Dict_Sources.Enum;
    begin
       case Handler.Dict_Source is
          when Dict_Sources.S_Expression =>
             return Natools.Smaz.Tools.To_Dictionary (Input, True);
 
-         when Dict_Sources.Text_List =>
+         when Dict_Sources.Text_List | Dict_Sources.Unoptimized_Text_List =>
             declare
                Counter : Natools.Smaz.Tools.Word_Counter;
             begin
@@ -566,9 +654,24 @@ procedure Smaz is
                     (Counter, Handler.Filter_Threshold);
                end if;
 
-               return Natools.Smaz.Tools.To_Dictionary
-                 (Natools.Smaz.Tools.Simple_Dictionary (Counter, 254),
-                  True);
+               if Handler.Dict_Source = Dict_Sources.Text_List then
+                  declare
+                     Selected, Pending : Natools.Smaz.Tools.String_Lists.List;
+                  begin
+                     Natools.Smaz.Tools.Simple_Dictionary_And_Pending
+                       (Counter, 254, Selected, Pending);
+
+                     return Optimize_Dictionary
+                       (Natools.Smaz.Tools.To_Dictionary (Selected, True),
+                        Pending,
+                        Input,
+                        Handler.Job_Count);
+                  end;
+               else
+                  return Natools.Smaz.Tools.To_Dictionary
+                    (Natools.Smaz.Tools.Simple_Dictionary (Counter, 254),
+                     True);
+               end if;
             end;
       end case;
    end To_Dictionary;
