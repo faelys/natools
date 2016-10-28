@@ -40,6 +40,8 @@ procedure Smaz is
    package Holders is new Ada.Containers.Indefinite_Holders
      (Natools.Smaz.Dictionary, Natools.Smaz."=");
 
+   type Score_Value is range 0 .. 2 ** 31 - 1;
+
    package Actions is
       type Enum is
         (Nothing,
@@ -131,6 +133,13 @@ procedure Smaz is
       --  Try to improve on Dict by replacing a single entry from it with
       --  one of the substring in Pending_Words.
 
+   function Length
+     (Dictionary : in Natools.Smaz.Dictionary;
+      E : in Ada.Streams.Stream_Element)
+     return Score_Value
+     is (Natools.Smaz.Dict_Entry (Dictionary, E)'Length);
+      --  Length of a dictionary entry
+
    function Optimize_Dictionary
      (Base : in Natools.Smaz.Dictionary;
       Pending_Words : in Natools.Smaz.Tools.String_Lists.List;
@@ -163,6 +172,30 @@ procedure Smaz is
      (Opt : in Getopt.Configuration;
       Output : in Ada.Text_IO.File_Type);
       --  Print the help text to the given file
+
+   function Score_Encoded
+     (Dictionary : in Natools.Smaz.Dictionary;
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
+      E : Ada.Streams.Stream_Element)
+     return Score_Value
+     is (Score_Value (Counts (E)) * Length (Dictionary, E));
+      --  Score value using the amount of encoded data using E
+
+   function Score_Frequency
+     (Dictionary : in Natools.Smaz.Dictionary;
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
+      E : Ada.Streams.Stream_Element)
+     return Score_Value
+     is (Score_Value (Counts (E)));
+      --  Score value using the number of times E was used
+
+   function Score_Gain
+     (Dictionary : in Natools.Smaz.Dictionary;
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
+      E : Ada.Streams.Stream_Element)
+     return Score_Value
+     is (Score_Value (Counts (E)) * (Length (Dictionary, E) - 1));
+      --  Score value using the number of bytes saved using E
 
    function To_Dictionary
      (Handler : in Callback'Class;
@@ -876,22 +909,6 @@ begin
 
                if Handler.Stat_Output then
                   declare
-                     type Score_Value is range 0 .. 2 ** 31 - 1;
-
-                     function Length (E : Ada.Streams.Stream_Element)
-                       return Score_Value
-                       is (Natools.Smaz.Dict_Entry (Dictionary, E)'Length);
-
-                     function Encoded (E : Ada.Streams.Stream_Element)
-                       return Score_Value
-                       is (Score_Value (Counts (E)) * Length (E));
-                     function Frequency (E : Ada.Streams.Stream_Element)
-                       return Score_Value
-                       is (Score_Value (Counts (E)));
-                     function Gain (E : Ada.Streams.Stream_Element)
-                       return Score_Value
-                       is (Score_Value (Counts (E)) * (Length (E) - 1));
-
                      procedure Print
                        (Label : in String;
                         E : in Ada.Streams.Stream_Element;
@@ -900,12 +917,18 @@ begin
                      procedure Print_Min_Max
                        (Label : in String;
                         Score : not null access function
-                          (E : Ada.Streams.Stream_Element) return Score_Value);
+                          (D : in Natools.Smaz.Dictionary;
+                           C : in Natools.Smaz.Tools.Dictionary_Counts;
+                           E : in Ada.Streams.Stream_Element)
+                          return Score_Value);
 
                      procedure Print_Value
                        (Label : in String;
                         Score : not null access function
-                          (E : Ada.Streams.Stream_Element) return Score_Value;
+                          (D : in Natools.Smaz.Dictionary;
+                           C : in Natools.Smaz.Tools.Dictionary_Counts;
+                           E : in Ada.Streams.Stream_Element)
+                          return Score_Value;
                         Ref : in Score_Value);
 
 
@@ -938,13 +961,17 @@ begin
                      procedure Print_Min_Max
                        (Label : in String;
                         Score : not null access function
-                          (E : Ada.Streams.Stream_Element) return Score_Value)
+                          (D : in Natools.Smaz.Dictionary;
+                           C : in Natools.Smaz.Tools.Dictionary_Counts;
+                           E : in Ada.Streams.Stream_Element)
+                          return Score_Value)
                      is
-                        Min_Score, Max_Score : Score_Value := Score (0);
+                        Min_Score, Max_Score : Score_Value
+                          := Score (Dictionary, Counts, 0);
                         S : Score_Value;
                      begin
                         for E in 1 .. Dictionary.Dict_Last loop
-                           S := Score (E);
+                           S := Score (Dictionary, Counts, E);
                            if S < Min_Score then
                               Min_Score := S;
                            end if;
@@ -960,7 +987,10 @@ begin
                      procedure Print_Value
                        (Label : in String;
                         Score : not null access function
-                          (E : Ada.Streams.Stream_Element) return Score_Value;
+                          (D : in Natools.Smaz.Dictionary;
+                           C : in Natools.Smaz.Tools.Dictionary_Counts;
+                           E : in Ada.Streams.Stream_Element)
+                          return Score_Value;
                         Ref : in Score_Value) is
                      begin
                         if Handler.Sx_Output then
@@ -969,7 +999,7 @@ begin
                         end if;
 
                         for E in Dictionary.Offsets'Range loop
-                           if Score (E) = Ref then
+                           if Score (Dictionary, Counts, E) = Ref then
                               Print (Label, E, Ref);
                            end if;
                         end loop;
@@ -979,9 +1009,9 @@ begin
                         end if;
                      end Print_Value;
                   begin
-                     Print_Min_Max ("encoded", Encoded'Access);
-                     Print_Min_Max ("frequency", Frequency'Access);
-                     Print_Min_Max ("gain", Gain'Access);
+                     Print_Min_Max ("encoded", Score_Encoded'Access);
+                     Print_Min_Max ("frequency", Score_Frequency'Access);
+                     Print_Min_Max ("gain", Score_Gain'Access);
                   end;
                end if;
             end;
