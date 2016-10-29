@@ -203,6 +203,12 @@ procedure Smaz is
      return Natools.Smaz.Dictionary;
       --  Convert the input into a dictionary given the option in Handler
 
+   function Worst_Index
+     (Dict : in Natools.Smaz.Dictionary;
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts)
+     return Ada.Streams.Stream_Element;
+      --  Remove the worstly-scored item from Dict
+
 
    overriding procedure Option
      (Handler  : in out Callback;
@@ -359,14 +365,64 @@ procedure Smaz is
       Job_Count : in Natural;
       Updated : out Boolean)
    is
-      pragma Unreferenced (Dict);
-      pragma Unreferenced (Score);
-      pragma Unreferenced (Counts);
-      pragma Unreferenced (Pending_Words);
-      pragma Unreferenced (Input_Texts);
-      pragma Unreferenced (Job_Count);
+      use type Ada.Streams.Stream_Element_Offset;
+
+      New_Value : Ada.Strings.Unbounded.Unbounded_String;
+      New_Position : Natools.Smaz.Tools.String_Lists.Cursor;
+      Worst_Index : constant Ada.Streams.Stream_Element
+        := Smaz.Worst_Index (Dict.Element, Counts);
+      Worst_Value : constant String
+        := Natools.Smaz.Dict_Entry (Dict.Element, Worst_Index);
+      Worst_Count : constant Natools.Smaz.Tools.String_Count
+        := Counts (Worst_Index);
+      Base : constant Natools.Smaz.Dictionary
+        := Natools.Smaz.Tools.Remove_Element (Dict.Element, Worst_Index);
+      Old_Score : constant Ada.Streams.Stream_Element_Count := Score;
    begin
       Updated := False;
+
+      for Position in Pending_Words.Iterate loop
+         declare
+            Word : constant String
+              := Natools.Smaz.Tools.String_Lists.Element (Position);
+            New_Dict : constant Natools.Smaz.Dictionary
+              := Natools.Smaz.Tools.Append_String (Base, Word);
+            New_Score : Ada.Streams.Stream_Element_Count;
+            New_Counts : Natools.Smaz.Tools.Dictionary_Counts;
+         begin
+            Evaluate_Dictionary
+              (Job_Count, New_Dict, Input_Texts, New_Score, New_Counts);
+
+            if New_Score < Score then
+               Dict := Holders.To_Holder (New_Dict);
+               Score := New_Score;
+               Counts := New_Counts;
+               New_Value := Ada.Strings.Unbounded.To_Unbounded_String (Word);
+               New_Position := Position;
+               Updated := True;
+            end if;
+         end;
+      end loop;
+
+      if Updated then
+         Pending_Words.Delete (New_Position);
+         Pending_Words.Append (Worst_Value);
+
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Current_Error,
+            "Removing"
+            & Worst_Count'Img & "x "
+            & Natools.String_Escapes.C_Escape_Hex (Worst_Value, True)
+            & ", adding"
+            & Counts (Dict.Element.Dict_Last)'Img & "x "
+            & Natools.String_Escapes.C_Escape_Hex
+               (Ada.Strings.Unbounded.To_String (New_Value), True)
+            & ", size"
+            & Score'Img
+            & " ("
+            & Ada.Streams.Stream_Element_Offset'Image (Score - Old_Score)
+            & ')');
+      end if;
    end Optimization_Round;
 
 
@@ -708,6 +764,29 @@ procedure Smaz is
             end;
       end case;
    end To_Dictionary;
+
+
+   function Worst_Index
+     (Dict : in Natools.Smaz.Dictionary;
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts)
+     return Ada.Streams.Stream_Element
+   is
+      Result : Ada.Streams.Stream_Element := 0;
+      Worst_Score : Score_Value := Score_Encoded (Dict, Counts, 0);
+      S : Score_Value;
+   begin
+      for I in 1 .. Dict.Dict_Last loop
+         S := Score_Encoded (Dict, Counts, I);
+
+         if S < Worst_Score then
+            Result := I;
+            Worst_Score := S;
+         end if;
+      end loop;
+
+      return Result;
+   end Worst_Index;
+
 
    Opt_Config : constant Getopt.Configuration := Getopt_Config;
    Handler : Callback;
