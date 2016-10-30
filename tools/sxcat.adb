@@ -103,7 +103,8 @@ procedure Sxcat is
          Verbatim,
          Width,
          Upper_Hex,
-         Lower_Hex);
+         Lower_Hex,
+         Atom_List);
 
       type Action is
         (Error,
@@ -111,6 +112,7 @@ procedure Sxcat is
          Run,
          Run_Base64,
          Print_Atom,
+         Print_Atom_List,
          Print_Config);
    end Options;
 
@@ -251,6 +253,8 @@ procedure Sxcat is
         ("upper-hex",    'X', No_Argument,       Options.Upper_Hex);
       Result.Add_Option
         ("lower-hex",    'x', No_Argument,       Options.Lower_Hex);
+      Result.Add_Option
+        ("atom-list",         No_Argument,       Options.Atom_List);
       return Result;
    end Getopt_Config;
 
@@ -269,6 +273,11 @@ procedure Sxcat is
          when Options.Atom =>
             if Handler.Action in Options.Run .. Options.Print_Config then
                Handler.Action := Options.Print_Atom;
+            end if;
+
+         when Options.Atom_List =>
+            if Handler.Action in Options.Run .. Options.Print_Config then
+               Handler.Action := Options.Print_Atom_List;
             end if;
 
          when Options.Base64_Atom =>
@@ -534,6 +543,7 @@ procedure Sxcat is
    Printer_Direct : SE.Printers.Pretty.Stream_Printer (Output_Stream);
    Base64_Output : aliased Base64_Stream (Output_Stream);
    Printer_Base64 : SE.Printers.Pretty.Stream_Printer (Base64_Output'Access);
+   First_Atom_In_List : Boolean := True;
 
    procedure Process
      (Handler : in Callback'Class;
@@ -555,6 +565,15 @@ procedure Sxcat is
             Process (Printer_Base64, Input, True);
 
          when Options.Print_Atom =>
+            Printer_Direct.Set_Parameters (Param);
+            Process (Printer_Direct, Input, False);
+
+         when Options.Print_Atom_List =>
+            if First_Atom_In_List then
+               Printer_Direct.Open_List;
+               First_Atom_In_List := False;
+            end if;
+
             Printer_Direct.Set_Parameters (Param);
             Process (Printer_Direct, Input, False);
       end case;
@@ -629,6 +648,11 @@ procedure Sxcat is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Treat intputs as individual atoms");
+
+            when Options.Atom_List =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Treat intputs as a list of individual atoms");
 
             when Options.Base64_Expr =>
                New_Line (Output);
@@ -857,12 +881,17 @@ begin
       when Options.Print_Config =>
          Printer_Direct.Set_Parameters (Param);
          SE.Printers.Pretty.Config.Print (Printer_Direct, To_Print);
-      when Options.Run .. Options.Print_Atom =>
+      when Options.Run .. Options.Print_Atom_List =>
          if Handler.Arg_Count = 0 then
             Handler.Argument ("-");
          end if;
          if Options."=" (Handler.Action, Options.Run_Base64) then
             Close (Base64_Output);
+         elsif Options."=" (Handler.Action, Options.Print_Atom_List) then
+            if First_Atom_In_List then
+               Printer_Direct.Open_List;
+            end if;
+            Printer_Direct.Close_List;
          end if;
    end case;
 end Sxcat;
