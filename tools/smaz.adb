@@ -57,6 +57,10 @@ procedure Smaz is
          Unoptimized_Text_List);
    end Dict_Sources;
 
+   package Methods is
+      type Enum is (Encoded, Frequency, Gain);
+   end Methods;
+
    package Options is
       type Id is
         (Output_Ada_Dict,
@@ -77,7 +81,8 @@ procedure Smaz is
          Fast_Text_Input,
          Max_Word_Size,
          Sx_Output,
-         No_Sx_Output);
+         No_Sx_Output,
+         Score_Method);
    end Options;
 
    package Getopt is new Natools.Getopt_Long (Options.Id);
@@ -93,6 +98,7 @@ procedure Smaz is
       Max_Word_Size : Positive := 10;
       Job_Count : Natural := 0;
       Filter_Threshold : Natools.Smaz.Tools.String_Count := 0;
+      Score_Method : Methods.Enum := Methods.Encoded;
       Action : Actions.Enum := Actions.Nothing;
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
       Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
@@ -122,17 +128,6 @@ procedure Smaz is
    function Getopt_Config return Getopt.Configuration;
       --  Build the configuration object
 
-   procedure Optimization_Round
-     (Dict : in out Holders.Holder;
-      Score : in out Ada.Streams.Stream_Element_Count;
-      Counts : in out Natools.Smaz.Tools.Dictionary_Counts;
-      Pending_Words : in out Natools.Smaz.Tools.String_Lists.List;
-      Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
-      Job_Count : in Natural;
-      Updated : out Boolean);
-      --  Try to improve on Dict by replacing a single entry from it with
-      --  one of the substring in Pending_Words.
-
    function Length
      (Dictionary : in Natools.Smaz.Dictionary;
       E : in Ada.Streams.Stream_Element)
@@ -140,11 +135,24 @@ procedure Smaz is
      is (Natools.Smaz.Dict_Entry (Dictionary, E)'Length);
       --  Length of a dictionary entry
 
+   procedure Optimization_Round
+     (Dict : in out Holders.Holder;
+      Score : in out Ada.Streams.Stream_Element_Count;
+      Counts : in out Natools.Smaz.Tools.Dictionary_Counts;
+      Pending_Words : in out Natools.Smaz.Tools.String_Lists.List;
+      Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
+      Job_Count : in Natural;
+      Method : in Methods.Enum;
+      Updated : out Boolean);
+      --  Try to improve on Dict by replacing a single entry from it with
+      --  one of the substring in Pending_Words.
+
    function Optimize_Dictionary
      (Base : in Natools.Smaz.Dictionary;
       Pending_Words : in Natools.Smaz.Tools.String_Lists.List;
       Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
-      Job_Count : in Natural)
+      Job_Count : in Natural;
+      Method : in Methods.Enum)
      return Natools.Smaz.Dictionary;
       --  Optimize the dictionary on Input_Texts, starting with Base and
       --  adding substrings from Pending_Words.
@@ -197,6 +205,18 @@ procedure Smaz is
      is (Score_Value (Counts (E)) * (Length (Dictionary, E) - 1));
       --  Score value using the number of bytes saved using E
 
+   function Score
+     (Dictionary : in Natools.Smaz.Dictionary;
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
+      E : in Ada.Streams.Stream_Element;
+      Method : in Methods.Enum)
+     return Score_Value
+     is (case Method is
+         when Methods.Encoded => Score_Encoded (Dictionary, Counts, E),
+         when Methods.Frequency => Score_Frequency (Dictionary, Counts, E),
+         when Methods.Gain => Score_Gain (Dictionary, Counts, E));
+      --  Scare value with dynamically chosen method
+
    function To_Dictionary
      (Handler : in Callback'Class;
       Input : in Natools.Smaz.Tools.String_Lists.List)
@@ -205,7 +225,8 @@ procedure Smaz is
 
    function Worst_Index
      (Dict : in Natools.Smaz.Dictionary;
-      Counts : in Natools.Smaz.Tools.Dictionary_Counts)
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
+      Method : in Methods.Enum)
      return Ada.Streams.Stream_Element;
       --  Remove the worstly-scored item from Dict
 
@@ -287,6 +308,9 @@ procedure Smaz is
          when Options.Filter_Threshold =>
             Handler.Filter_Threshold
               := Natools.Smaz.Tools.String_Count'Value (Argument);
+
+         when Options.Score_Method =>
+            Handler.Score_Method := Methods.Enum'Value (Argument);
       end case;
    end Option;
 
@@ -351,6 +375,7 @@ procedure Smaz is
       R.Add_Option ("max-word-len",  'W', Required_Argument, Max_Word_Size);
       R.Add_Option ("s-expr",        'x', No_Argument,       Sx_Output);
       R.Add_Option ("no-s-expr",     'X', No_Argument,       No_Sx_Output);
+      R.Add_Option ("score-method",       Required_Argument, Score_Method);
 
       return R;
    end Getopt_Config;
@@ -363,6 +388,7 @@ procedure Smaz is
       Pending_Words : in out Natools.Smaz.Tools.String_Lists.List;
       Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
       Job_Count : in Natural;
+      Method : in Methods.Enum;
       Updated : out Boolean)
    is
       use type Ada.Streams.Stream_Element_Offset;
@@ -370,7 +396,7 @@ procedure Smaz is
       New_Value : Ada.Strings.Unbounded.Unbounded_String;
       New_Position : Natools.Smaz.Tools.String_Lists.Cursor;
       Worst_Index : constant Ada.Streams.Stream_Element
-        := Smaz.Worst_Index (Dict.Element, Counts);
+        := Smaz.Worst_Index (Dict.Element, Counts, Method);
       Worst_Value : constant String
         := Natools.Smaz.Dict_Entry (Dict.Element, Worst_Index);
       Worst_Count : constant Natools.Smaz.Tools.String_Count
@@ -430,7 +456,8 @@ procedure Smaz is
      (Base : in Natools.Smaz.Dictionary;
       Pending_Words : in Natools.Smaz.Tools.String_Lists.List;
       Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
-      Job_Count : in Natural)
+      Job_Count : in Natural;
+      Method : in Methods.Enum)
      return Natools.Smaz.Dictionary
    is
       Holder : Holders.Holder := Holders.To_Holder (Base);
@@ -449,6 +476,7 @@ procedure Smaz is
             Pending,
             Input_Texts,
             Job_Count,
+            Method,
             Running);
       end loop;
 
@@ -706,6 +734,12 @@ procedure Smaz is
                  & "Before building a dictionary from substrings, remove");
                Put_Line (Output, Indent & Indent
                  & "substrings whose count is below the threshold.");
+
+            when Options.Score_Method =>
+               Put_Line (Output, " <method>");
+               Put_Line (Output, Indent & Indent
+                 & "Select heuristic method to replace dictionary items"
+                 & " during optimization");
          end case;
       end loop;
    end Print_Help;
@@ -754,7 +788,8 @@ procedure Smaz is
                        (Natools.Smaz.Tools.To_Dictionary (Selected, True),
                         Pending,
                         Input,
-                        Handler.Job_Count);
+                        Handler.Job_Count,
+                        Handler.Score_Method);
                   end;
                else
                   return Natools.Smaz.Tools.To_Dictionary
@@ -768,7 +803,8 @@ procedure Smaz is
 
    function Worst_Index
      (Dict : in Natools.Smaz.Dictionary;
-      Counts : in Natools.Smaz.Tools.Dictionary_Counts)
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
+      Method : in Methods.Enum)
      return Ada.Streams.Stream_Element
    is
       Result : Ada.Streams.Stream_Element := 0;
@@ -776,7 +812,7 @@ procedure Smaz is
       S : Score_Value;
    begin
       for I in 1 .. Dict.Dict_Last loop
-         S := Score_Encoded (Dict, Counts, I);
+         S := Score (Dict, Counts, I, Method);
 
          if S < Worst_Score then
             Result := I;
