@@ -658,14 +658,14 @@ procedure Smaz is
                  & "Do not output filtered results in a S-expression");
 
             when Options.Output_Ada_Dict =>
-               Put_Line (Output, "=[filename]");
+               Put_Line (Output, " [filename]");
                Put_Line (Output, Indent & Indent
                  & "Output the current dictionary as Ada code in the given");
                Put_Line (Output, Indent & Indent
-                 & "file, or standard output if filename is ""-""");
+                 & "file, or standard output if filename is empty or ""-""");
 
             when Options.Output_Hash =>
-               Put_Line (Output, " <Hash Package Name>");
+               Put_Line (Output, " <Hash_Package_Name>");
                Put_Line (Output, Indent & Indent
                  & "Build a package with a perfect hash function for the");
                Put_Line (Output, Indent & Indent
@@ -704,17 +704,17 @@ procedure Smaz is
                  & "Output the dictionary as a S-expression");
 
             when Options.Min_Sub_Size =>
-               New_Line (Output);
+               Put_Line (Output, " <length>");
                Put_Line (Output, Indent & Indent
                  & "Minimum substring size when building a dictionary");
 
             when Options.Max_Sub_Size =>
-               New_Line (Output);
+               Put_Line (Output, " <length>");
                Put_Line (Output, Indent & Indent
                  & "Maximum substring size when building a dictionary");
 
             when Options.Max_Word_Size =>
-               New_Line (Output);
+               Put_Line (Output, " <length>");
                Put_Line (Output, Indent & Indent
                  & "Maximum word size when building a dictionary");
 
@@ -724,7 +724,7 @@ procedure Smaz is
                  & "Evaluate the dictionary on the input given corpus");
 
             when Options.Job_Count =>
-               New_Line (Output);
+               Put_Line (Output, " <number>");
                Put_Line (Output, Indent & Indent
                  & "Number of parallel jobs in long calculations");
 
