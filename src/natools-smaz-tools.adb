@@ -805,7 +805,9 @@ package body Natools.Smaz.Tools is
      (Counter : in Word_Counter;
       Word_Count : in Natural;
       Selected : out String_Lists.List;
-      Pending : out String_Lists.List)
+      Pending : out String_Lists.List;
+      Max_Pending_Count : in Ada.Containers.Count_Type
+        := Ada.Containers.Count_Type'Last)
    is
       use type Ada.Containers.Count_Type;
       Target_Count : constant Ada.Containers.Count_Type
@@ -824,6 +826,7 @@ package body Natools.Smaz.Tools is
             Selected.Append (Scored_Word_Sets.Element (Cursor).Word);
          else
             Pending.Append (Scored_Word_Sets.Element (Cursor).Word);
+            exit when String_Lists.Length (Selected) >= Max_Pending_Count;
          end if;
       end loop;
    end Simple_Dictionary_And_Pending;

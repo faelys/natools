@@ -162,7 +162,9 @@ package Natools.Smaz.Tools is
      (Counter : in Word_Counter;
       Word_Count : in Natural;
       Selected : out String_Lists.List;
-      Pending : out String_Lists.List);
+      Pending : out String_Lists.List;
+      Max_Pending_Count : in Ada.Containers.Count_Type
+        := Ada.Containers.Count_Type'Last);
       --  Return in Selected the Word_Count words in Counter that have the
       --  highest score, and in Pending the remaining words,
       --  the score being count * length.
