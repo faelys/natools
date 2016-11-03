@@ -75,6 +75,7 @@ procedure Smaz is
          Sx_Dict_Output,
          Min_Sub_Size,
          Max_Sub_Size,
+         Max_Pending,
          Stat_Output,
          No_Stat_Output,
          Text_List_Input,
@@ -96,6 +97,8 @@ procedure Smaz is
       Min_Sub_Size : Positive := 1;
       Max_Sub_Size : Positive := 3;
       Max_Word_Size : Positive := 10;
+      Max_Pending : Ada.Containers.Count_Type
+        := Ada.Containers.Count_Type'Last;
       Job_Count : Natural := 0;
       Filter_Threshold : Natools.Smaz.Tools.String_Count := 0;
       Score_Method : Methods.Enum := Methods.Encoded;
@@ -311,6 +314,9 @@ procedure Smaz is
 
          when Options.Score_Method =>
             Handler.Score_Method := Methods.Enum'Value (Argument);
+
+         when Options.Max_Pending =>
+            Handler.Max_Pending := Ada.Containers.Count_Type'Value (Argument);
       end case;
    end Option;
 
@@ -368,6 +374,7 @@ procedure Smaz is
       R.Add_Option ("sx-dict",       'L', No_Argument,       Sx_Dict_Output);
       R.Add_Option ("min-substring", 'm', Required_Argument, Min_Sub_Size);
       R.Add_Option ("max-substring", 'M', Required_Argument, Max_Sub_Size);
+      R.Add_Option ("max-pending",   'M', Required_Argument, Max_Pending);
       R.Add_Option ("stats",         's', No_Argument,       Stat_Output);
       R.Add_Option ("no-stats",      'S', No_Argument,       No_Stat_Output);
       R.Add_Option ("text-list",     't', No_Argument,       Text_List_Input);
@@ -740,6 +747,12 @@ procedure Smaz is
                Put_Line (Output, Indent & Indent
                  & "Select heuristic method to replace dictionary items"
                  & " during optimization");
+
+            when Options.Max_Pending =>
+               Put_Line (Output, " <count>");
+               Put_Line (Output, Indent & Indent
+                 & "Maximum size of candidate list"
+                 & " when building a dictionary");
          end case;
       end loop;
    end Print_Help;
@@ -782,7 +795,7 @@ procedure Smaz is
                      Selected, Pending : Natools.Smaz.Tools.String_Lists.List;
                   begin
                      Natools.Smaz.Tools.Simple_Dictionary_And_Pending
-                       (Counter, 254, Selected, Pending);
+                       (Counter, 254, Selected, Pending, Handler.Max_Pending);
 
                      return Optimize_Dictionary
                        (Natools.Smaz.Tools.To_Dictionary (Selected, True),
