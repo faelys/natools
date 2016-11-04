@@ -374,7 +374,7 @@ procedure Smaz is
       R.Add_Option ("sx-dict",       'L', No_Argument,       Sx_Dict_Output);
       R.Add_Option ("min-substring", 'm', Required_Argument, Min_Sub_Size);
       R.Add_Option ("max-substring", 'M', Required_Argument, Max_Sub_Size);
-      R.Add_Option ("max-pending",   'M', Required_Argument, Max_Pending);
+      R.Add_Option ("max-pending",   'N', Required_Argument, Max_Pending);
       R.Add_Option ("stats",         's', No_Argument,       Stat_Output);
       R.Add_Option ("no-stats",      'S', No_Argument,       No_Stat_Output);
       R.Add_Option ("text-list",     't', No_Argument,       Text_List_Input);
