@@ -84,7 +84,9 @@ procedure Smaz is
          Max_Word_Size,
          Sx_Output,
          No_Sx_Output,
-         Score_Method);
+         No_Vlen_Verbatim,
+         Score_Method,
+         Vlen_Verbatim);
    end Options;
 
    package Getopt is new Natools.Getopt_Long (Options.Id);
@@ -99,6 +101,7 @@ procedure Smaz is
       Max_Sub_Size : Positive := 3;
       Max_Word_Size : Positive := 10;
       Dict_Size : Positive := 254;
+      Vlen_Verbatim : Boolean := True;
       Max_Pending : Ada.Containers.Count_Type
         := Ada.Containers.Count_Type'Last;
       Job_Count : Natural := 0;
@@ -322,6 +325,12 @@ procedure Smaz is
 
          when Options.Dict_Size =>
             Handler.Dict_Size := Positive'Value (Argument);
+
+         when Options.Vlen_Verbatim =>
+            Handler.Vlen_Verbatim := True;
+
+         when Options.No_Vlen_Verbatim =>
+            Handler.Vlen_Verbatim := False;
       end case;
    end Option;
 
@@ -388,7 +397,9 @@ procedure Smaz is
       R.Add_Option ("max-word-len",  'W', Required_Argument, Max_Word_Size);
       R.Add_Option ("s-expr",        'x', No_Argument,       Sx_Output);
       R.Add_Option ("no-s-expr",     'X', No_Argument,       No_Sx_Output);
+      R.Add_Option ("no-vlen-verbatim",   No_Argument,       No_Vlen_Verbatim);
       R.Add_Option ("score-method",       Required_Argument, Score_Method);
+      R.Add_Option ("vlen-verbatim",      No_Argument,       Vlen_Verbatim);
 
       return R;
    end Getopt_Config;
@@ -764,6 +775,16 @@ procedure Smaz is
                Put_Line (Output, " <count>");
                Put_Line (Output, Indent & Indent
                  & "Number of words in the dictionary to build");
+
+            when Options.Vlen_Verbatim =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Enable variable-length verbatim in built dictionary");
+
+            when Options.No_Vlen_Verbatim =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Disable variable-length verbatim in built dictionary");
          end case;
       end loop;
    end Print_Help;
@@ -822,7 +843,7 @@ procedure Smaz is
                else
                   return Natools.Smaz.Tools.To_Dictionary
                     (Natools.Smaz.Tools.Simple_Dictionary (Counter, 254),
-                     True);
+                     Handler.Vlen_Verbatim);
                end if;
             end;
       end case;
