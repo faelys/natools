@@ -843,4 +843,27 @@ package body Natools.Smaz.Tools is
          Score => Score_Value (Word_Maps.Element (Cursor)) * Word'Length);
    end To_Scored_Word;
 
+
+   function Worst_Index
+     (Dict : in Dictionary;
+      Counts : in Dictionary_Counts;
+      Method : in Methods.Enum)
+     return Ada.Streams.Stream_Element
+   is
+      Result : Ada.Streams.Stream_Element := 0;
+      Worst_Score : Score_Value := Score_Encoded (Dict, Counts, 0);
+      S : Score_Value;
+   begin
+      for I in 1 .. Dict.Dict_Last loop
+         S := Score (Dict, Counts, I, Method);
+
+         if S < Worst_Score then
+            Result := I;
+            Worst_Score := S;
+         end if;
+      end loop;
+
+      return Result;
+   end Worst_Index;
+
 end Natools.Smaz.Tools;

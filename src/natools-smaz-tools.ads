@@ -120,6 +120,11 @@ package Natools.Smaz.Tools is
    type String_Count is range 0 .. 2 ** 31 - 1;
       --  Type for a number of substring occurrences
 
+   package Methods is
+      type Enum is (Encoded, Frequency, Gain);
+   end Methods;
+      --  Evaluation methods to select words to remove or include
+
    type Word_Counter is private;
       --  Accumulate frequency/occurrence counts for a set of strings
 
@@ -186,6 +191,59 @@ package Natools.Smaz.Tools is
       --  compressed bytes and the number of uses for each dictionary
       --  element.
 
+   function Worst_Index
+     (Dict : in Dictionary;
+      Counts : in Dictionary_Counts;
+      Method : in Methods.Enum)
+     return Ada.Streams.Stream_Element;
+      --  Return the element with worst score
+
+
+   type Score_Value is range 0 .. 2 ** 31 - 1;
+
+   function Length
+     (Dict : in Dictionary;
+      E : in Ada.Streams.Stream_Element)
+     return Score_Value
+     is (Natools.Smaz.Dict_Entry (Dict, E)'Length);
+      --  Length of a dictionary entry
+
+   function Score_Encoded
+     (Dict : in Dictionary;
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
+      E : Ada.Streams.Stream_Element)
+     return Score_Value
+     is (Score_Value (Counts (E)) * Length (Dict, E));
+      --  Score value using the amount of encoded data using E
+
+   function Score_Frequency
+     (Dict : in Dictionary;
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
+      E : Ada.Streams.Stream_Element)
+     return Score_Value
+     is (Score_Value (Counts (E)));
+      --  Score value using the number of times E was used
+
+   function Score_Gain
+     (Dict : in Dictionary;
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
+      E : Ada.Streams.Stream_Element)
+     return Score_Value
+     is (Score_Value (Counts (E)) * (Length (Dict, E) - 1));
+      --  Score value using the number of bytes saved using E
+
+   function Score
+     (Dict : in Dictionary;
+      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
+      E : in Ada.Streams.Stream_Element;
+      Method : in Methods.Enum)
+     return Score_Value
+     is (case Method is
+         when Methods.Encoded => Score_Encoded (Dict, Counts, E),
+         when Methods.Frequency => Score_Frequency (Dict, Counts, E),
+         when Methods.Gain => Score_Gain (Dict, Counts, E));
+      --  Scare value with dynamically chosen method
+
 private
 
    package Word_Maps is new Ada.Containers.Indefinite_Ordered_Maps
@@ -195,8 +253,6 @@ private
       Map : Word_Maps.Map;
    end record;
 
-
-   type Score_Value is range 0 .. 2 ** 31 - 1;
 
    type Scored_Word (Size : Natural) is record
       Word : String (1 .. Size);
