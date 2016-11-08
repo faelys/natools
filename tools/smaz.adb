@@ -40,7 +40,7 @@ procedure Smaz is
    package Holders is new Ada.Containers.Indefinite_Holders
      (Natools.Smaz.Dictionary, Natools.Smaz."=");
 
-   type Score_Value is range 0 .. 2 ** 31 - 1;
+   package Methods renames Natools.Smaz.Tools.Methods;
 
    package Actions is
       type Enum is
@@ -56,10 +56,6 @@ procedure Smaz is
          Text_List,
          Unoptimized_Text_List);
    end Dict_Sources;
-
-   package Methods is
-      type Enum is (Encoded, Frequency, Gain);
-   end Methods;
 
    package Options is
       type Id is
@@ -136,13 +132,6 @@ procedure Smaz is
    function Getopt_Config return Getopt.Configuration;
       --  Build the configuration object
 
-   function Length
-     (Dictionary : in Natools.Smaz.Dictionary;
-      E : in Ada.Streams.Stream_Element)
-     return Score_Value
-     is (Natools.Smaz.Dict_Entry (Dictionary, E)'Length);
-      --  Length of a dictionary entry
-
    procedure Optimization_Round
      (Dict : in out Holders.Holder;
       Score : in out Ada.Streams.Stream_Element_Count;
@@ -189,54 +178,11 @@ procedure Smaz is
       Output : in Ada.Text_IO.File_Type);
       --  Print the help text to the given file
 
-   function Score_Encoded
-     (Dictionary : in Natools.Smaz.Dictionary;
-      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
-      E : Ada.Streams.Stream_Element)
-     return Score_Value
-     is (Score_Value (Counts (E)) * Length (Dictionary, E));
-      --  Score value using the amount of encoded data using E
-
-   function Score_Frequency
-     (Dictionary : in Natools.Smaz.Dictionary;
-      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
-      E : Ada.Streams.Stream_Element)
-     return Score_Value
-     is (Score_Value (Counts (E)));
-      --  Score value using the number of times E was used
-
-   function Score_Gain
-     (Dictionary : in Natools.Smaz.Dictionary;
-      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
-      E : Ada.Streams.Stream_Element)
-     return Score_Value
-     is (Score_Value (Counts (E)) * (Length (Dictionary, E) - 1));
-      --  Score value using the number of bytes saved using E
-
-   function Score
-     (Dictionary : in Natools.Smaz.Dictionary;
-      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
-      E : in Ada.Streams.Stream_Element;
-      Method : in Methods.Enum)
-     return Score_Value
-     is (case Method is
-         when Methods.Encoded => Score_Encoded (Dictionary, Counts, E),
-         when Methods.Frequency => Score_Frequency (Dictionary, Counts, E),
-         when Methods.Gain => Score_Gain (Dictionary, Counts, E));
-      --  Scare value with dynamically chosen method
-
    function To_Dictionary
      (Handler : in Callback'Class;
       Input : in Natools.Smaz.Tools.String_Lists.List)
      return Natools.Smaz.Dictionary;
       --  Convert the input into a dictionary given the option in Handler
-
-   function Worst_Index
-     (Dict : in Natools.Smaz.Dictionary;
-      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
-      Method : in Methods.Enum)
-     return Ada.Streams.Stream_Element;
-      --  Remove the worstly-scored item from Dict
 
 
    overriding procedure Option
@@ -420,7 +366,7 @@ procedure Smaz is
       New_Value : Ada.Strings.Unbounded.Unbounded_String;
       New_Position : Natools.Smaz.Tools.String_Lists.Cursor;
       Worst_Index : constant Ada.Streams.Stream_Element
-        := Smaz.Worst_Index (Dict.Element, Counts, Method);
+        := Natools.Smaz.Tools.Worst_Index (Dict.Element, Counts, Method);
       Worst_Value : constant String
         := Natools.Smaz.Dict_Entry (Dict.Element, Worst_Index);
       Worst_Count : constant Natools.Smaz.Tools.String_Count
@@ -850,29 +796,6 @@ procedure Smaz is
    end To_Dictionary;
 
 
-   function Worst_Index
-     (Dict : in Natools.Smaz.Dictionary;
-      Counts : in Natools.Smaz.Tools.Dictionary_Counts;
-      Method : in Methods.Enum)
-     return Ada.Streams.Stream_Element
-   is
-      Result : Ada.Streams.Stream_Element := 0;
-      Worst_Score : Score_Value := Score_Encoded (Dict, Counts, 0);
-      S : Score_Value;
-   begin
-      for I in 1 .. Dict.Dict_Last loop
-         S := Score (Dict, Counts, I, Method);
-
-         if S < Worst_Score then
-            Result := I;
-            Worst_Score := S;
-         end if;
-      end loop;
-
-      return Result;
-   end Worst_Index;
-
-
    Opt_Config : constant Getopt.Configuration := Getopt_Config;
    Handler : Callback;
    Input_List, Input_Data : Natools.Smaz.Tools.String_Lists.List;
@@ -1076,7 +999,7 @@ begin
                      procedure Print
                        (Label : in String;
                         E : in Ada.Streams.Stream_Element;
-                        Score : in Score_Value);
+                        Score : in Natools.Smaz.Tools.Score_Value);
 
                      procedure Print_Min_Max
                        (Label : in String;
@@ -1084,7 +1007,7 @@ begin
                           (D : in Natools.Smaz.Dictionary;
                            C : in Natools.Smaz.Tools.Dictionary_Counts;
                            E : in Ada.Streams.Stream_Element)
-                          return Score_Value);
+                          return Natools.Smaz.Tools.Score_Value);
 
                      procedure Print_Value
                        (Label : in String;
@@ -1092,14 +1015,14 @@ begin
                           (D : in Natools.Smaz.Dictionary;
                            C : in Natools.Smaz.Tools.Dictionary_Counts;
                            E : in Ada.Streams.Stream_Element)
-                          return Score_Value;
-                        Ref : in Score_Value);
+                          return Natools.Smaz.Tools.Score_Value;
+                        Ref : in Natools.Smaz.Tools.Score_Value);
 
 
                      procedure Print
                        (Label : in String;
                         E : in Ada.Streams.Stream_Element;
-                        Score : in Score_Value) is
+                        Score : in Natools.Smaz.Tools.Score_Value) is
                      begin
                         if Handler.Sx_Output then
                            Sx_Output.Open_List;
@@ -1107,7 +1030,7 @@ begin
                            Sx_Output.Append_String
                              (Natools.Smaz.Dict_Entry (Dictionary, E));
                            Sx_Output.Append_String (Ada.Strings.Fixed.Trim
-                             (Score_Value'Image (Score), Ada.Strings.Both));
+                             (Score'Img, Ada.Strings.Both));
                            Sx_Output.Close_List;
                         else
                            Ada.Text_IO.Put_Line
@@ -1118,7 +1041,7 @@ begin
                               & Natools.String_Escapes.C_Escape_Hex
                                 (Natools.Smaz.Dict_Entry (Dictionary, E), True)
                               & Ada.Characters.Latin_1.HT
-                              & Score_Value'Image (Score));
+                              & Score'Img);
                         end if;
                      end Print;
 
@@ -1128,11 +1051,12 @@ begin
                           (D : in Natools.Smaz.Dictionary;
                            C : in Natools.Smaz.Tools.Dictionary_Counts;
                            E : in Ada.Streams.Stream_Element)
-                          return Score_Value)
+                          return Natools.Smaz.Tools.Score_Value)
                      is
-                        Min_Score, Max_Score : Score_Value
+                        use type Natools.Smaz.Tools.Score_Value;
+                        Min_Score, Max_Score : Natools.Smaz.Tools.Score_Value
                           := Score (Dictionary, Counts, 0);
-                        S : Score_Value;
+                        S : Natools.Smaz.Tools.Score_Value;
                      begin
                         for E in 1 .. Dictionary.Dict_Last loop
                            S := Score (Dictionary, Counts, E);
@@ -1154,8 +1078,10 @@ begin
                           (D : in Natools.Smaz.Dictionary;
                            C : in Natools.Smaz.Tools.Dictionary_Counts;
                            E : in Ada.Streams.Stream_Element)
-                          return Score_Value;
-                        Ref : in Score_Value) is
+                          return Natools.Smaz.Tools.Score_Value;
+                        Ref : in Natools.Smaz.Tools.Score_Value)
+                     is
+                        use type Natools.Smaz.Tools.Score_Value;
                      begin
                         if Handler.Sx_Output then
                            Sx_Output.Open_List;
@@ -1173,9 +1099,12 @@ begin
                         end if;
                      end Print_Value;
                   begin
-                     Print_Min_Max ("encoded", Score_Encoded'Access);
-                     Print_Min_Max ("frequency", Score_Frequency'Access);
-                     Print_Min_Max ("gain", Score_Gain'Access);
+                     Print_Min_Max ("encoded",
+                       Natools.Smaz.Tools.Score_Encoded'Access);
+                     Print_Min_Max ("frequency",
+                       Natools.Smaz.Tools.Score_Frequency'Access);
+                     Print_Min_Max ("gain",
+                       Natools.Smaz.Tools.Score_Gain'Access);
                   end;
                end if;
             end;
