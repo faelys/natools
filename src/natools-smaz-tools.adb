@@ -776,7 +776,8 @@ package body Natools.Smaz.Tools is
 
    function Simple_Dictionary
      (Counter : in Word_Counter;
-      Word_Count : in Natural)
+      Word_Count : in Natural;
+      Method : in Methods.Enum := Methods.Encoded)
      return String_Lists.List
    is
       use type Ada.Containers.Count_Type;
@@ -786,7 +787,7 @@ package body Natools.Smaz.Tools is
       Result : String_Lists.List;
    begin
       for Cursor in Word_Maps.Iterate (Counter.Map) loop
-         Scored_Word_Sets.Include (Set, To_Scored_Word (Cursor));
+         Scored_Word_Sets.Include (Set, To_Scored_Word (Cursor, Method));
 
          if Scored_Word_Sets.Length (Set) > Target_Count then
             Scored_Word_Sets.Delete_Last (Set);
@@ -806,6 +807,7 @@ package body Natools.Smaz.Tools is
       Word_Count : in Natural;
       Selected : out String_Lists.List;
       Pending : out String_Lists.List;
+      Method : in Methods.Enum := Methods.Encoded;
       Max_Pending_Count : in Ada.Containers.Count_Type
         := Ada.Containers.Count_Type'Last)
    is
@@ -815,7 +817,7 @@ package body Natools.Smaz.Tools is
       Set : Scored_Word_Sets.Set;
    begin
       for Cursor in Word_Maps.Iterate (Counter.Map) loop
-         Scored_Word_Sets.Insert (Set, To_Scored_Word (Cursor));
+         Scored_Word_Sets.Insert (Set, To_Scored_Word (Cursor, Method));
       end loop;
 
       Selected := String_Lists.Empty_List;
@@ -832,15 +834,24 @@ package body Natools.Smaz.Tools is
    end Simple_Dictionary_And_Pending;
 
 
-   function To_Scored_Word (Cursor : in Word_Maps.Cursor)
+   function To_Scored_Word
+     (Cursor : in Word_Maps.Cursor;
+      Method : in Methods.Enum)
      return Scored_Word
    is
       Word : constant String := Word_Maps.Key (Cursor);
+      Factor : Score_Value;
    begin
+      case Method is
+         when Methods.Encoded => Factor := Word'Length;
+         when Methods.Frequency => Factor := 1;
+         when Methods.Gain => Factor := Word'Length - 1;
+      end case;
+
       return Scored_Word'
         (Size => Word'Length,
          Word => Word,
-         Score => Score_Value (Word_Maps.Element (Cursor)) * Word'Length);
+         Score => Score_Value (Word_Maps.Element (Cursor)) * Factor);
    end To_Scored_Word;
 
 

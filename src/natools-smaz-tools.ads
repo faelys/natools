@@ -158,7 +158,8 @@ package Natools.Smaz.Tools is
 
    function Simple_Dictionary
      (Counter : in Word_Counter;
-      Word_Count : in Natural)
+      Word_Count : in Natural;
+      Method : in Methods.Enum := Methods.Encoded)
      return String_Lists.List;
       --  Return the Word_Count words in Counter that have the highest score,
       --  the score being count * length.
@@ -168,6 +169,7 @@ package Natools.Smaz.Tools is
       Word_Count : in Natural;
       Selected : out String_Lists.List;
       Pending : out String_Lists.List;
+      Method : in Methods.Enum := Methods.Encoded;
       Max_Pending_Count : in Ada.Containers.Count_Type
         := Ada.Containers.Count_Type'Last);
       --  Return in Selected the Word_Count words in Counter that have the
@@ -263,7 +265,9 @@ private
      is (Left.Score > Right.Score
          or else (Left.Score = Right.Score and then Left.Word < Right.Word));
 
-   function To_Scored_Word (Cursor : in Word_Maps.Cursor)
+   function To_Scored_Word
+     (Cursor : in Word_Maps.Cursor;
+      Method : in Methods.Enum)
      return Scored_Word;
 
    package Scored_Word_Sets is new Ada.Containers.Indefinite_Ordered_Sets
