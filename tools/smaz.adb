@@ -777,6 +777,7 @@ procedure Smaz is
                         Handler.Dict_Size,
                         Selected,
                         Pending,
+                        Handler.Score_Method,
                         Handler.Max_Pending);
 
                      return Optimize_Dictionary
@@ -788,7 +789,8 @@ procedure Smaz is
                   end;
                else
                   return Natools.Smaz.Tools.To_Dictionary
-                    (Natools.Smaz.Tools.Simple_Dictionary (Counter, 254),
+                    (Natools.Smaz.Tools.Simple_Dictionary
+                       (Counter, 254, Handler.Score_Method),
                      Handler.Vlen_Verbatim);
                end if;
             end;
