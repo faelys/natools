@@ -790,7 +790,7 @@ procedure Smaz is
                else
                   return Natools.Smaz.Tools.To_Dictionary
                     (Natools.Smaz.Tools.Simple_Dictionary
-                       (Counter, 254, Handler.Score_Method),
+                       (Counter, Handler.Dict_Size, Handler.Score_Method),
                      Handler.Vlen_Verbatim);
                end if;
             end;
