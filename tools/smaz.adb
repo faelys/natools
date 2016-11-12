@@ -781,7 +781,8 @@ procedure Smaz is
                         Handler.Max_Pending);
 
                      return Optimize_Dictionary
-                       (Natools.Smaz.Tools.To_Dictionary (Selected, True),
+                       (Natools.Smaz.Tools.To_Dictionary
+                          (Selected, Handler.Vlen_Verbatim),
                         Pending,
                         Input,
                         Handler.Job_Count,
