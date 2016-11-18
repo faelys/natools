@@ -203,10 +203,38 @@ package Natools.Smaz.Tools is
 
    type Score_Value is range 0 .. 2 ** 31 - 1;
 
+   function Score_Encoded
+     (Count : in String_Count; Length : in Positive) return Score_Value
+     is (Score_Value (Count) * Score_Value (Length));
+      --  Score value using the amount of encoded data by the element
+
+   function Score_Frequency
+     (Count : in String_Count; Length : in Positive) return Score_Value
+     is (Score_Value (Count));
+      --  Score value using the number of times the element was used
+
+   function Score_Gain
+     (Count : in String_Count; Length : in Positive) return Score_Value
+     is (Score_Value (Count) * (Score_Value (Length) - 1));
+      --  Score value using the number of bytes saved using the element
+
+   function Score
+     (Count : in String_Count;
+      Length : in Positive;
+      Method : in Methods.Enum)
+     return Score_Value
+     is (case Method is
+         when Methods.Encoded => Score_Encoded (Count, Length),
+         when Methods.Frequency => Score_Frequency (Count, Length),
+         when Methods.Gain => Score_Gain (Count, Length));
+      --  Scare value with dynamically chosen method
+
+
+
    function Length
      (Dict : in Dictionary;
       E : in Ada.Streams.Stream_Element)
-     return Score_Value
+     return Positive
      is (Natools.Smaz.Dict_Entry (Dict, E)'Length);
       --  Length of a dictionary entry
 
@@ -215,7 +243,7 @@ package Natools.Smaz.Tools is
       Counts : in Natools.Smaz.Tools.Dictionary_Counts;
       E : Ada.Streams.Stream_Element)
      return Score_Value
-     is (Score_Value (Counts (E)) * Length (Dict, E));
+     is (Score_Encoded (Counts (E), Length (Dict, E)));
       --  Score value using the amount of encoded data using E
 
    function Score_Frequency
@@ -223,7 +251,7 @@ package Natools.Smaz.Tools is
       Counts : in Natools.Smaz.Tools.Dictionary_Counts;
       E : Ada.Streams.Stream_Element)
      return Score_Value
-     is (Score_Value (Counts (E)));
+     is (Score_Frequency (Counts (E), Length (Dict, E)));
       --  Score value using the number of times E was used
 
    function Score_Gain
@@ -231,7 +259,7 @@ package Natools.Smaz.Tools is
       Counts : in Natools.Smaz.Tools.Dictionary_Counts;
       E : Ada.Streams.Stream_Element)
      return Score_Value
-     is (Score_Value (Counts (E)) * (Length (Dict, E) - 1));
+     is (Score_Gain (Counts (E), Length (Dict, E)));
       --  Score value using the number of bytes saved using E
 
    function Score
@@ -240,10 +268,7 @@ package Natools.Smaz.Tools is
       E : in Ada.Streams.Stream_Element;
       Method : in Methods.Enum)
      return Score_Value
-     is (case Method is
-         when Methods.Encoded => Score_Encoded (Dict, Counts, E),
-         when Methods.Frequency => Score_Frequency (Dict, Counts, E),
-         when Methods.Gain => Score_Gain (Dict, Counts, E));
+     is (Score (Counts (E), Length (Dict, E), Method));
       --  Scare value with dynamically chosen method
 
 private
