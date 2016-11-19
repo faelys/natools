@@ -840,18 +840,11 @@ package body Natools.Smaz.Tools is
      return Scored_Word
    is
       Word : constant String := Word_Maps.Key (Cursor);
-      Factor : Score_Value;
    begin
-      case Method is
-         when Methods.Encoded => Factor := Word'Length;
-         when Methods.Frequency => Factor := 1;
-         when Methods.Gain => Factor := Word'Length - 1;
-      end case;
-
       return Scored_Word'
         (Size => Word'Length,
          Word => Word,
-         Score => Score_Value (Word_Maps.Element (Cursor)) * Factor);
+         Score => Score (Word_Maps.Element (Cursor), Word'Length, Method));
    end To_Scored_Word;
 
 
