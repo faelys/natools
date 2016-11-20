@@ -855,7 +855,7 @@ package body Natools.Smaz.Tools is
      return Ada.Streams.Stream_Element
    is
       Result : Ada.Streams.Stream_Element := 0;
-      Worst_Score : Score_Value := Score_Encoded (Dict, Counts, 0);
+      Worst_Score : Score_Value := Score (Dict, Counts, 0, Method);
       S : Score_Value;
    begin
       for I in 1 .. Dict.Dict_Last loop
