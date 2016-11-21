@@ -746,7 +746,9 @@ procedure Smaz is
    begin
       case Handler.Dict_Source is
          when Dict_Sources.S_Expression =>
-            return Natools.Smaz.Tools.To_Dictionary (Input, True);
+            return Natools.Smaz.Tools.To_Dictionary
+              (Input,
+               Handler.Vlen_Verbatim);
 
          when Dict_Sources.Text_List | Dict_Sources.Unoptimized_Text_List =>
             declare
