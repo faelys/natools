@@ -14,9 +14,114 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
+with Ada.Unchecked_Deallocation;
+
 package body Natools.Smaz_Tools is
 
    package Sx renames Natools.S_Expressions;
+
+   function Build_Node
+     (Map : Dictionary_Maps.Map;
+      Empty_Value : Natural)
+     return Trie_Node;
+
+   procedure Set_Map
+     (Map : in out Dictionary_Maps.Map;
+      List : in String_Lists.List);
+      --  Set Map contents to match List by index number
+
+   procedure Free is new Ada.Unchecked_Deallocation
+     (Trie_Node, Trie_Node_Access);
+
+
+   ------------------------------
+   -- Local Helper Subprograms --
+   ------------------------------
+
+   function Build_Node
+     (Map : Dictionary_Maps.Map;
+      Empty_Value : Natural)
+     return Trie_Node
+   is
+      function First_Character (S : String) return Character
+        is (S (S'First));
+      function Is_Current (Cursor : Dictionary_Maps.Cursor; C : Character)
+        return Boolean
+        is (Dictionary_Maps.Has_Element (Cursor)
+            and then First_Character (Dictionary_Maps.Key (Cursor)) = C);
+
+      function Suffix (S : String) return String;
+
+      function Suffix (S : String) return String is
+      begin
+         return S (S'First + 1 .. S'Last);
+      end Suffix;
+
+      use type Ada.Containers.Count_Type;
+      Cursor : Dictionary_Maps.Cursor;
+      Result : Trie_Node
+        := (Ada.Finalization.Controlled with
+            Is_Leaf => False,
+            Index => Empty_Value,
+            Children => (others => null));
+   begin
+      pragma Assert (Dictionary_Maps.Length (Map) >= 1);
+
+      Cursor := Dictionary_Maps.Find (Map, "");
+
+      if Dictionary_Maps.Has_Element (Cursor) then
+         Result.Index := Dictionary_Maps.Element (Cursor);
+      end if;
+
+      for C in Character'Range loop
+         Cursor := Dictionary_Maps.Ceiling (Map, (1 => C));
+
+         if Is_Current (Cursor, C) then
+            if not Is_Current (Dictionary_Maps.Next (Cursor), C)
+              and then Dictionary_Maps.Key (Cursor) = (1 => C)
+            then
+               Result.Children (C)
+                 := new Trie_Node'(Ada.Finalization.Controlled with
+                     Is_Leaf => True,
+                     Index => Dictionary_Maps.Element (Cursor));
+            else
+               declare
+                  New_Map : Dictionary_Maps.Map;
+               begin
+                  loop
+                     Dictionary_Maps.Insert
+                       (New_Map,
+                        Suffix (Dictionary_Maps.Key (Cursor)),
+                        Dictionary_Maps.Element (Cursor));
+                     Dictionary_Maps.Next (Cursor);
+                     exit when not Is_Current (Cursor, C);
+                  end loop;
+
+                  Result.Children (C)
+                    := new Trie_Node'(Build_Node (New_Map, Empty_Value));
+               end;
+            end if;
+         end if;
+      end loop;
+
+      return Result;
+   end Build_Node;
+
+
+   procedure Set_Map
+     (Map : in out Dictionary_Maps.Map;
+      List : in String_Lists.List)
+   is
+      I : Natural := 0;
+   begin
+      Dictionary_Maps.Clear (Map);
+
+      for S of List loop
+         Dictionary_Maps.Insert (Map, S, I);
+         I := I + 1;
+      end loop;
+   end Set_Map;
+
 
 
    ----------------------
@@ -52,6 +157,117 @@ package body Natools.Smaz_Tools is
          Descriptor.Next (Event);
       end loop Read_Loop;
    end Read_List;
+
+
+
+   ---------------------------------
+   -- Dynamic Dictionary Searches --
+   ---------------------------------
+
+   overriding procedure Adjust (Node : in out Trie_Node) is
+   begin
+      if not Node.Is_Leaf then
+         for C in Node.Children'Range loop
+            if Node.Children (C) /= null then
+               Node.Children (C) := new Trie_Node'(Node.Children (C).all);
+            end if;
+         end loop;
+      end if;
+   end Adjust;
+
+
+   overriding procedure Finalize (Node : in out Trie_Node) is
+   begin
+      if not Node.Is_Leaf then
+         for C in Node.Children'Range loop
+            Free (Node.Children (C));
+         end loop;
+      end if;
+   end Finalize;
+
+
+   procedure Initialize
+     (Trie : out Search_Trie;
+      List : in String_Lists.List)
+   is
+      Map : Dictionary_Maps.Map;
+      Not_Found : constant Natural := Natural (String_Lists.Length (List));
+   begin
+      Set_Map (Map, List);
+
+      Trie := (Not_Found => Not_Found,
+               Root => Build_Node (Map, Not_Found));
+   end Initialize;
+
+
+   function Linear_Search (Value : String) return Natural is
+      Result : Natural := 0;
+   begin
+      for S of List_For_Linear_Search loop
+         exit when S = Value;
+         Result := Result + 1;
+      end loop;
+
+      return Result;
+   end Linear_Search;
+
+
+   function Map_Search (Value : String) return Natural is
+      Cursor : constant Dictionary_Maps.Cursor
+        := Dictionary_Maps.Find (Search_Map, Value);
+   begin
+      if Dictionary_Maps.Has_Element (Cursor) then
+         return Natural (Dictionary_Maps.Element (Cursor));
+      else
+         return Natural (Dictionary_Maps.Length (Search_Map));
+      end if;
+   end Map_Search;
+
+
+   function Search (Trie : in Search_Trie; Value : in String) return Natural is
+      Index : Positive := Value'First;
+      Position : Trie_Node_Access;
+   begin
+      if Value'Length = 0 then
+         return Trie.Not_Found;
+      end if;
+
+      Position := Trie.Root.Children (Value (Index));
+
+      loop
+         if Position = null then
+            return Trie.Not_Found;
+         end if;
+
+         Index := Index + 1;
+
+         if Index not in Value'Range then
+            return Position.Index;
+         elsif Position.Is_Leaf then
+            return Trie.Not_Found;
+         end if;
+
+         Position := Position.Children (Value (Index));
+      end loop;
+   end Search;
+
+
+   procedure Set_Dictionary_For_Map_Search (List : in String_Lists.List) is
+   begin
+      Set_Map (Search_Map, List);
+   end Set_Dictionary_For_Map_Search;
+
+
+   procedure Set_Dictionary_For_Trie_Search (List : in String_Lists.List) is
+   begin
+      Initialize (Trie_For_Search, List);
+   end Set_Dictionary_For_Trie_Search;
+
+
+   function Trie_Search (Value : String) return Natural is
+   begin
+      return Search (Trie_For_Search, Value);
+   end Trie_Search;
 
 
 
