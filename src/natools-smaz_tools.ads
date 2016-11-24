@@ -61,6 +61,9 @@ package Natools.Smaz_Tools is
       --  Function and data source for trie-based search that can be
       --  used with Dictionary.Hash.
 
+   function Dummy_Hash (Value : String) return Natural;
+      --  Placeholder for Hash dictionary member, always raises Program_Error
+
 
    type String_Count is range 0 .. 2 ** 31 - 1;
       --  Type for a number of substring occurrences

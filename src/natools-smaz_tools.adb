@@ -108,6 +108,14 @@ package body Natools.Smaz_Tools is
    end Build_Node;
 
 
+   function Dummy_Hash (Value : String) return Natural is
+      pragma Unreferenced (Value);
+   begin
+      raise Program_Error with "Dummy_Hash called";
+      return 0;
+   end Dummy_Hash;
+
+
    procedure Set_Map
      (Map : in out Dictionary_Maps.Map;
       List : in String_Lists.List)
