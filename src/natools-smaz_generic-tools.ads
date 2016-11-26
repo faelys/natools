@@ -96,6 +96,28 @@ package Natools.Smaz_Generic.Tools is
    type Dictionary_Counts is
      array (Dictionary_Code) of Smaz_Tools.String_Count;
 
+   procedure Evaluate_Dictionary
+     (Dict : in Dictionary;
+      Corpus : in String_Lists.List;
+      Compressed_Size : out Ada.Streams.Stream_Element_Count;
+      Counts : out Dictionary_Counts);
+   procedure Evaluate_Dictionary_Partial
+     (Dict : in Dictionary;
+      Corpus_Entry : in String;
+      Compressed_Size : in out Ada.Streams.Stream_Element_Count;
+      Counts : in out Dictionary_Counts);
+      --  Compress all strings of Corpus, returning the total number of
+      --  compressed bytes and the number of uses for each dictionary
+      --  element.
+
+   function Worst_Index
+     (Dict : in Dictionary;
+      Counts : in Dictionary_Counts;
+      Method : in Smaz_Tools.Methods.Enum)
+     return Dictionary_Code;
+      --  Return the element with worst score
+
+
    function Score_Encoded
      (Dict : in Dictionary;
       Counts : in Dictionary_Counts;

@@ -376,4 +376,85 @@ package body Natools.Smaz_Generic.Tools is
       end;
    end To_Dictionary;
 
+
+
+   ---------------------------
+   -- Dictionary Evaluation --
+   ---------------------------
+
+   procedure Evaluate_Dictionary
+     (Dict : in Dictionary;
+      Corpus : in String_Lists.List;
+      Compressed_Size : out Ada.Streams.Stream_Element_Count;
+      Counts : out Dictionary_Counts) is
+   begin
+      Compressed_Size := 0;
+      Counts := (others => 0);
+
+      for S of Corpus loop
+         Evaluate_Dictionary_Partial
+           (Dict, S, Compressed_Size, Counts);
+      end loop;
+   end Evaluate_Dictionary;
+
+
+   procedure Evaluate_Dictionary_Partial
+     (Dict : in Dictionary;
+      Corpus_Entry : in String;
+      Compressed_Size : in out Ada.Streams.Stream_Element_Count;
+      Counts : in out Dictionary_Counts)
+   is
+      use type Ada.Streams.Stream_Element_Offset;
+      use type Smaz_Tools.String_Count;
+
+      Verbatim_Length : Natural;
+      Code : Dictionary_Code;
+      Compressed : constant Ada.Streams.Stream_Element_Array
+        := Compress (Dict, Corpus_Entry);
+      Index : Ada.Streams.Stream_Element_Offset := Compressed'First;
+   begin
+      Compressed_Size := Compressed_Size + Compressed'Length;
+
+      while Index in Compressed'Range loop
+         Read_Code
+           (Compressed, Index,
+            Code, Verbatim_Length,
+            Dict.Last_Code, Dict.Variable_Length_Verbatim);
+
+         if Verbatim_Length > 0 then
+            Skip_Verbatim (Compressed, Index, Verbatim_Length);
+         else
+            Counts (Code) := Counts (Code) + 1;
+         end if;
+      end loop;
+   end Evaluate_Dictionary_Partial;
+
+
+   function Worst_Index
+     (Dict : in Dictionary;
+      Counts : in Dictionary_Counts;
+      Method : in Smaz_Tools.Methods.Enum)
+     return Dictionary_Code
+   is
+      use type Smaz_Tools.Score_Value;
+
+      Result : Dictionary_Code := Dictionary_Code'First;
+      Worst_Score : Smaz_Tools.Score_Value
+        := Score (Dict, Counts, Result, Method);
+      S : Smaz_Tools.Score_Value;
+   begin
+      for I in Dictionary_Code'Succ (Dictionary_Code'First)
+               .. Dict.Last_Code
+      loop
+         S := Score (Dict, Counts, I, Method);
+
+         if S < Worst_Score then
+            Result := I;
+            Worst_Score := S;
+         end if;
+      end loop;
+
+      return Result;
+   end Worst_Index;
+
 end Natools.Smaz_Generic.Tools;
