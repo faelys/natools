@@ -376,6 +376,16 @@ package body Natools.Smaz_Generic.Tools is
       end;
    end To_Dictionary;
 
+   function To_String_List (Dict : in Dictionary) return String_Lists.List is
+      Result : String_Lists.List;
+   begin
+      for Code in Dictionary_Code'First .. Dict.Last_Code loop
+         String_Lists.Append (Result, Dict_Entry (Dict, Code));
+      end loop;
+
+      return Result;
+   end To_String_List;
+
 
 
    ---------------------------

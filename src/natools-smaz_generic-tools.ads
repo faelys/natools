@@ -41,6 +41,9 @@ package Natools.Smaz_Generic.Tools is
       --  Note that Hash is set to a placeholder which unconditionnally
       --  raises Program_Error when called.
 
+   function To_String_List (Dict : in Dictionary) return String_Lists.List;
+      --  Convert a dictionary back to the corresponding list of words
+
    generic
       with procedure Put_Line (Line : String);
    procedure Print_Dictionary_In_Ada
