@@ -29,8 +29,10 @@ with Natools.Getopt_Long;
 with Natools.Parallelism;
 with Natools.S_Expressions.Parsers;
 with Natools.S_Expressions.Printers;
-with Natools.Smaz.Tools;
-with Natools.Smaz.Tools.GNAT;
+with Natools.Smaz_256;
+with Natools.Smaz_Generic.Tools;
+with Natools.Smaz_Tools;
+with Natools.Smaz_Tools.GNAT;
 with Natools.String_Escapes;
 
 procedure Smaz is
@@ -38,9 +40,11 @@ procedure Smaz is
      renames Natools.S_Expressions.To_Atom;
 
    package Holders is new Ada.Containers.Indefinite_Holders
-     (Natools.Smaz.Dictionary, Natools.Smaz."=");
+     (Natools.Smaz_256.Dictionary, Natools.Smaz_256."=");
 
-   package Methods renames Natools.Smaz.Tools.Methods;
+   package Tools_256 is new Natools.Smaz_256.Tools;
+
+   package Methods renames Natools.Smaz_Tools.Methods;
 
    package Actions is
       type Enum is
@@ -101,7 +105,7 @@ procedure Smaz is
       Max_Pending : Ada.Containers.Count_Type
         := Ada.Containers.Count_Type'Last;
       Job_Count : Natural := 0;
-      Filter_Threshold : Natools.Smaz.Tools.String_Count := 0;
+      Filter_Threshold : Natools.Smaz_Tools.String_Count := 0;
       Score_Method : Methods.Enum := Methods.Encoded;
       Action : Actions.Enum := Actions.Nothing;
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
@@ -122,10 +126,10 @@ procedure Smaz is
 
    procedure Evaluate_Dictionary
      (Job_Count : in Natural;
-      Dict : in Natools.Smaz.Dictionary;
-      Corpus : in Natools.Smaz.Tools.String_Lists.List;
+      Dict : in Natools.Smaz_256.Dictionary;
+      Corpus : in Natools.Smaz_Tools.String_Lists.List;
       Compressed_Size : out Ada.Streams.Stream_Element_Count;
-      Counts : out Natools.Smaz.Tools.Dictionary_Counts);
+      Counts : out Tools_256.Dictionary_Counts);
       --  Dispatch to parallel or non-parallel version of Evaluate_Dictionary
       --  depending on Job_Count.
 
@@ -135,9 +139,9 @@ procedure Smaz is
    procedure Optimization_Round
      (Dict : in out Holders.Holder;
       Score : in out Ada.Streams.Stream_Element_Count;
-      Counts : in out Natools.Smaz.Tools.Dictionary_Counts;
-      Pending_Words : in out Natools.Smaz.Tools.String_Lists.List;
-      Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
+      Counts : in out Tools_256.Dictionary_Counts;
+      Pending_Words : in out Natools.Smaz_Tools.String_Lists.List;
+      Input_Texts : in Natools.Smaz_Tools.String_Lists.List;
       Job_Count : in Natural;
       Method : in Methods.Enum;
       Updated : out Boolean);
@@ -145,31 +149,31 @@ procedure Smaz is
       --  one of the substring in Pending_Words.
 
    function Optimize_Dictionary
-     (Base : in Natools.Smaz.Dictionary;
-      Pending_Words : in Natools.Smaz.Tools.String_Lists.List;
-      Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
+     (Base : in Natools.Smaz_256.Dictionary;
+      Pending_Words : in Natools.Smaz_Tools.String_Lists.List;
+      Input_Texts : in Natools.Smaz_Tools.String_Lists.List;
       Job_Count : in Natural;
       Method : in Methods.Enum)
-     return Natools.Smaz.Dictionary;
+     return Natools.Smaz_256.Dictionary;
       --  Optimize the dictionary on Input_Texts, starting with Base and
       --  adding substrings from Pending_Words.
 
    procedure Parallel_Evaluate_Dictionary
      (Job_Count : in Positive;
-      Dict : in Natools.Smaz.Dictionary;
-      Corpus : in Natools.Smaz.Tools.String_Lists.List;
+      Dict : in Natools.Smaz_256.Dictionary;
+      Corpus : in Natools.Smaz_Tools.String_Lists.List;
       Compressed_Size : out Ada.Streams.Stream_Element_Count;
-      Counts : out Natools.Smaz.Tools.Dictionary_Counts);
+      Counts : out Tools_256.Dictionary_Counts);
       --  Return the same results as Natools.Smaz.Tools.Evaluate_Dictionary,
       --  but hopefully more quickly, using Job_Count tasks.
 
    procedure Print_Dictionary
      (Filename : in String;
-      Dictionary : in Natools.Smaz.Dictionary;
+      Dictionary : in Natools.Smaz_256.Dictionary;
       Hash_Package_Name : in String := "");
    procedure Print_Dictionary
      (Output : in Ada.Text_IO.File_Type;
-      Dictionary : in Natools.Smaz.Dictionary;
+      Dictionary : in Natools.Smaz_256.Dictionary;
       Hash_Package_Name : in String := "");
       --  print the given dictionary in the given file
 
@@ -180,8 +184,8 @@ procedure Smaz is
 
    function To_Dictionary
      (Handler : in Callback'Class;
-      Input : in Natools.Smaz.Tools.String_Lists.List)
-     return Natools.Smaz.Dictionary;
+      Input : in Natools.Smaz_Tools.String_Lists.List)
+     return Natools.Smaz_256.Dictionary;
       --  Convert the input into a dictionary given the option in Handler
 
 
@@ -261,7 +265,7 @@ procedure Smaz is
 
          when Options.Filter_Threshold =>
             Handler.Filter_Threshold
-              := Natools.Smaz.Tools.String_Count'Value (Argument);
+              := Natools.Smaz_Tools.String_Count'Value (Argument);
 
          when Options.Score_Method =>
             Handler.Score_Method := Methods.Enum'Value (Argument);
@@ -283,27 +287,28 @@ procedure Smaz is
 
    procedure Evaluate_Dictionary
      (Job_Count : in Natural;
-      Dict : in Natools.Smaz.Dictionary;
-      Corpus : in Natools.Smaz.Tools.String_Lists.List;
+      Dict : in Natools.Smaz_256.Dictionary;
+      Corpus : in Natools.Smaz_Tools.String_Lists.List;
       Compressed_Size : out Ada.Streams.Stream_Element_Count;
-      Counts : out Natools.Smaz.Tools.Dictionary_Counts)
+      Counts : out Tools_256.Dictionary_Counts)
    is
-      Actual_Dict : Natools.Smaz.Dictionary := Dict;
+      Actual_Dict : Natools.Smaz_256.Dictionary := Dict;
    begin
-      Natools.Smaz.Tools.Set_Dictionary_For_Trie_Search (Actual_Dict);
-      Actual_Dict.Hash := Natools.Smaz.Tools.Trie_Search'Access;
+      Natools.Smaz_Tools.Set_Dictionary_For_Trie_Search
+        (Tools_256.To_String_List (Actual_Dict));
+      Actual_Dict.Hash := Natools.Smaz_Tools.Trie_Search'Access;
 
       for I in Actual_Dict.Offsets'Range loop
-         if Natools.Smaz.Tools.Trie_Search (Natools.Smaz.Dict_Entry
+         if Natools.Smaz_Tools.Trie_Search (Natools.Smaz_256.Dict_Entry
            (Actual_Dict, I)) /= Natural (I)
          then
             Ada.Text_IO.Put_Line
               (Ada.Text_IO.Current_Error,
                "Fail at" & Ada.Streams.Stream_Element'Image (I)
                & " -> " & Natools.String_Escapes.C_Escape_Hex
-                  (Natools.Smaz.Dict_Entry (Actual_Dict, I), True)
-               & " ->" & Natural'Image (Natools.Smaz.Tools.Trie_Search
-                  (Natools.Smaz.Dict_Entry (Actual_Dict, I))));
+                  (Natools.Smaz_256.Dict_Entry (Actual_Dict, I), True)
+               & " ->" & Natural'Image (Natools.Smaz_Tools.Trie_Search
+                  (Natools.Smaz_256.Dict_Entry (Actual_Dict, I))));
          end if;
       end loop;
 
@@ -311,7 +316,7 @@ procedure Smaz is
          Parallel_Evaluate_Dictionary (Job_Count,
             Actual_Dict, Corpus, Compressed_Size, Counts);
       else
-         Natools.Smaz.Tools.Evaluate_Dictionary
+         Tools_256.Evaluate_Dictionary
            (Actual_Dict, Corpus, Compressed_Size, Counts);
       end if;
    end Evaluate_Dictionary;
@@ -354,9 +359,9 @@ procedure Smaz is
    procedure Optimization_Round
      (Dict : in out Holders.Holder;
       Score : in out Ada.Streams.Stream_Element_Count;
-      Counts : in out Natools.Smaz.Tools.Dictionary_Counts;
-      Pending_Words : in out Natools.Smaz.Tools.String_Lists.List;
-      Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
+      Counts : in out Tools_256.Dictionary_Counts;
+      Pending_Words : in out Natools.Smaz_Tools.String_Lists.List;
+      Input_Texts : in Natools.Smaz_Tools.String_Lists.List;
       Job_Count : in Natural;
       Method : in Methods.Enum;
       Updated : out Boolean)
@@ -364,15 +369,15 @@ procedure Smaz is
       use type Ada.Streams.Stream_Element_Offset;
 
       New_Value : Ada.Strings.Unbounded.Unbounded_String;
-      New_Position : Natools.Smaz.Tools.String_Lists.Cursor;
+      New_Position : Natools.Smaz_Tools.String_Lists.Cursor;
       Worst_Index : constant Ada.Streams.Stream_Element
-        := Natools.Smaz.Tools.Worst_Index (Dict.Element, Counts, Method);
+        := Tools_256.Worst_Index (Dict.Element, Counts, Method);
       Worst_Value : constant String
-        := Natools.Smaz.Dict_Entry (Dict.Element, Worst_Index);
-      Worst_Count : constant Natools.Smaz.Tools.String_Count
+        := Natools.Smaz_256.Dict_Entry (Dict.Element, Worst_Index);
+      Worst_Count : constant Natools.Smaz_Tools.String_Count
         := Counts (Worst_Index);
-      Base : constant Natools.Smaz.Dictionary
-        := Natools.Smaz.Tools.Remove_Element (Dict.Element, Worst_Index);
+      Base : constant Natools.Smaz_256.Dictionary
+        := Tools_256.Remove_Element (Dict.Element, Worst_Index);
       Old_Score : constant Ada.Streams.Stream_Element_Count := Score;
    begin
       Updated := False;
@@ -380,11 +385,11 @@ procedure Smaz is
       for Position in Pending_Words.Iterate loop
          declare
             Word : constant String
-              := Natools.Smaz.Tools.String_Lists.Element (Position);
-            New_Dict : constant Natools.Smaz.Dictionary
-              := Natools.Smaz.Tools.Append_String (Base, Word);
+              := Natools.Smaz_Tools.String_Lists.Element (Position);
+            New_Dict : constant Natools.Smaz_256.Dictionary
+              := Tools_256.Append_String (Base, Word);
             New_Score : Ada.Streams.Stream_Element_Count;
-            New_Counts : Natools.Smaz.Tools.Dictionary_Counts;
+            New_Counts : Tools_256.Dictionary_Counts;
          begin
             Evaluate_Dictionary
               (Job_Count, New_Dict, Input_Texts, New_Score, New_Counts);
@@ -410,7 +415,7 @@ procedure Smaz is
             & Worst_Count'Img & "x "
             & Natools.String_Escapes.C_Escape_Hex (Worst_Value, True)
             & ", adding"
-            & Counts (Dict.Element.Dict_Last)'Img & "x "
+            & Counts (Dict.Element.Last_Code)'Img & "x "
             & Natools.String_Escapes.C_Escape_Hex
                (Ada.Strings.Unbounded.To_String (New_Value), True)
             & ", size"
@@ -423,17 +428,17 @@ procedure Smaz is
 
 
    function Optimize_Dictionary
-     (Base : in Natools.Smaz.Dictionary;
-      Pending_Words : in Natools.Smaz.Tools.String_Lists.List;
-      Input_Texts : in Natools.Smaz.Tools.String_Lists.List;
+     (Base : in Natools.Smaz_256.Dictionary;
+      Pending_Words : in Natools.Smaz_Tools.String_Lists.List;
+      Input_Texts : in Natools.Smaz_Tools.String_Lists.List;
       Job_Count : in Natural;
       Method : in Methods.Enum)
-     return Natools.Smaz.Dictionary
+     return Natools.Smaz_256.Dictionary
    is
       Holder : Holders.Holder := Holders.To_Holder (Base);
-      Pending : Natools.Smaz.Tools.String_Lists.List := Pending_Words;
+      Pending : Natools.Smaz_Tools.String_Lists.List := Pending_Words;
       Score : Ada.Streams.Stream_Element_Count;
-      Counts : Natools.Smaz.Tools.Dictionary_Counts;
+      Counts : Tools_256.Dictionary_Counts;
       Running : Boolean := True;
    begin
       Evaluate_Dictionary (Job_Count, Base, Input_Texts, Score, Counts);
@@ -456,16 +461,16 @@ procedure Smaz is
 
    procedure Parallel_Evaluate_Dictionary
      (Job_Count : in Positive;
-      Dict : in Natools.Smaz.Dictionary;
-      Corpus : in Natools.Smaz.Tools.String_Lists.List;
+      Dict : in Natools.Smaz_256.Dictionary;
+      Corpus : in Natools.Smaz_Tools.String_Lists.List;
       Compressed_Size : out Ada.Streams.Stream_Element_Count;
-      Counts : out Natools.Smaz.Tools.Dictionary_Counts)
+      Counts : out Tools_256.Dictionary_Counts)
    is
-      package String_Lists renames Natools.Smaz.Tools.String_Lists;
+      package String_Lists renames Natools.Smaz_Tools.String_Lists;
 
       type Result_Values is record
          Compressed_Size : Ada.Streams.Stream_Element_Count;
-         Counts : Natools.Smaz.Tools.Dictionary_Counts;
+         Counts : Tools_256.Dictionary_Counts;
       end record;
 
       procedure Initialize (Result : in out Result_Values);
@@ -508,7 +513,7 @@ procedure Smaz is
         (Result : in out Result_Values;
          Job : in String_Lists.Cursor) is
       begin
-         Natools.Smaz.Tools.Evaluate_Dictionary_Partial
+         Tools_256.Evaluate_Dictionary_Partial
            (Dict,
             String_Lists.Element (Job),
             Result.Compressed_Size,
@@ -522,7 +527,7 @@ procedure Smaz is
       is
          pragma Unreferenced (Global);
          use type Ada.Streams.Stream_Element_Count;
-         use type Natools.Smaz.Tools.String_Count;
+         use type Natools.Smaz_Tools.String_Count;
       begin
          Compressed_Size := Compressed_Size + Partial.Compressed_Size;
 
@@ -546,7 +551,7 @@ procedure Smaz is
 
    procedure Print_Dictionary
      (Filename : in String;
-      Dictionary : in Natools.Smaz.Dictionary;
+      Dictionary : in Natools.Smaz_256.Dictionary;
       Hash_Package_Name : in String := "") is
    begin
       if Filename = "-" then
@@ -566,7 +571,7 @@ procedure Smaz is
 
    procedure Print_Dictionary
      (Output : in Ada.Text_IO.File_Type;
-      Dictionary : in Natools.Smaz.Dictionary;
+      Dictionary : in Natools.Smaz_256.Dictionary;
       Hash_Package_Name : in String := "")
    is
       procedure Put_Line (Line : in String);
@@ -577,7 +582,7 @@ procedure Smaz is
       end Put_Line;
 
       procedure Print_Dictionary_In_Ada is
-        new Natools.Smaz.Tools.Print_Dictionary_In_Ada (Put_Line);
+        new Tools_256.Print_Dictionary_In_Ada (Put_Line);
    begin
       if Hash_Package_Name'Length > 0 then
          Print_Dictionary_In_Ada
@@ -738,43 +743,41 @@ procedure Smaz is
 
    function To_Dictionary
      (Handler : in Callback'Class;
-      Input : in Natools.Smaz.Tools.String_Lists.List)
-     return Natools.Smaz.Dictionary
+      Input : in Natools.Smaz_Tools.String_Lists.List)
+     return Natools.Smaz_256.Dictionary
    is
-      use type Natools.Smaz.Tools.String_Count;
+      use type Natools.Smaz_Tools.String_Count;
       use type Dict_Sources.Enum;
    begin
       case Handler.Dict_Source is
          when Dict_Sources.S_Expression =>
-            return Natools.Smaz.Tools.To_Dictionary
-              (Input,
-               Handler.Vlen_Verbatim);
+            return Tools_256.To_Dictionary (Input, Handler.Vlen_Verbatim);
 
          when Dict_Sources.Text_List | Dict_Sources.Unoptimized_Text_List =>
             declare
-               Counter : Natools.Smaz.Tools.Word_Counter;
+               Counter : Natools.Smaz_Tools.Word_Counter;
             begin
                for S of Input loop
-                  Natools.Smaz.Tools.Add_Substrings
+                  Natools.Smaz_Tools.Add_Substrings
                     (Counter, S, Handler.Min_Sub_Size, Handler.Max_Sub_Size);
 
                   if Handler.Max_Word_Size > Handler.Max_Sub_Size then
-                     Natools.Smaz.Tools.Add_Words
+                     Natools.Smaz_Tools.Add_Words
                        (Counter, S,
                         Handler.Max_Sub_Size + 1, Handler.Max_Word_Size);
                   end if;
                end loop;
 
                if Handler.Filter_Threshold > 0 then
-                  Natools.Smaz.Tools.Filter_By_Count
+                  Natools.Smaz_Tools.Filter_By_Count
                     (Counter, Handler.Filter_Threshold);
                end if;
 
                if Handler.Dict_Source = Dict_Sources.Text_List then
                   declare
-                     Selected, Pending : Natools.Smaz.Tools.String_Lists.List;
+                     Selected, Pending : Natools.Smaz_Tools.String_Lists.List;
                   begin
-                     Natools.Smaz.Tools.Simple_Dictionary_And_Pending
+                     Natools.Smaz_Tools.Simple_Dictionary_And_Pending
                        (Counter,
                         Handler.Dict_Size,
                         Selected,
@@ -783,7 +786,7 @@ procedure Smaz is
                         Handler.Max_Pending);
 
                      return Optimize_Dictionary
-                       (Natools.Smaz.Tools.To_Dictionary
+                       (Tools_256.To_Dictionary
                           (Selected, Handler.Vlen_Verbatim),
                         Pending,
                         Input,
@@ -791,8 +794,8 @@ procedure Smaz is
                         Handler.Score_Method);
                   end;
                else
-                  return Natools.Smaz.Tools.To_Dictionary
-                    (Natools.Smaz.Tools.Simple_Dictionary
+                  return Tools_256.To_Dictionary
+                    (Natools.Smaz_Tools.Simple_Dictionary
                        (Counter, Handler.Dict_Size, Handler.Score_Method),
                      Handler.Vlen_Verbatim);
                end if;
@@ -803,7 +806,7 @@ procedure Smaz is
 
    Opt_Config : constant Getopt.Configuration := Getopt_Config;
    Handler : Callback;
-   Input_List, Input_Data : Natools.Smaz.Tools.String_Lists.List;
+   Input_List, Input_Data : Natools.Smaz_Tools.String_Lists.List;
 begin
    Process_Command_Line :
    begin
@@ -836,18 +839,18 @@ begin
       Parser : Natools.S_Expressions.Parsers.Stream_Parser (Input);
    begin
       Parser.Next;
-      Natools.Smaz.Tools.Read_List (Input_List, Parser);
+      Natools.Smaz_Tools.Read_List (Input_List, Parser);
 
       if Handler.Action /= Actions.Nothing then
          Parser.Next;
-         Natools.Smaz.Tools.Read_List (Input_Data, Parser);
+         Natools.Smaz_Tools.Read_List (Input_Data, Parser);
       end if;
    end Read_Input_List;
 
 
    Build_Dictionary :
    declare
-      Dictionary : Natools.Smaz.Dictionary
+      Dictionary : Natools.Smaz_256.Dictionary
         := To_Dictionary (Handler, Input_List);
       Sx_Output : Natools.S_Expressions.Printers.Canonical
         (Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Output));
@@ -856,22 +859,22 @@ begin
       Hash_Package : constant String
         := Ada.Strings.Unbounded.To_String (Handler.Hash_Package);
    begin
-      Dictionary.Hash := Natools.Smaz.Tools.Linear_Search'Access;
-      Natools.Smaz.Tools.List_For_Linear_Search := Input_List;
+      Dictionary.Hash := Natools.Smaz_Tools.Linear_Search'Access;
+      Natools.Smaz_Tools.List_For_Linear_Search := Input_List;
 
       if Ada_Dictionary'Length > 0 then
          Print_Dictionary (Ada_Dictionary, Dictionary, Hash_Package);
       end if;
 
       if Hash_Package'Length > 0 then
-         Natools.Smaz.Tools.GNAT.Build_Perfect_Hash (Input_List, Hash_Package);
+         Natools.Smaz_Tools.GNAT.Build_Perfect_Hash (Input_List, Hash_Package);
       end if;
 
       if Handler.Sx_Dict_Output then
          Sx_Output.Open_List;
          for I in Dictionary.Offsets'Range loop
             Sx_Output.Append_String
-              (Natools.Smaz.Dict_Entry (Dictionary, I));
+              (Natools.Smaz_256.Dict_Entry (Dictionary, I));
          end loop;
          Sx_Output.Close_List;
       end if;
@@ -884,7 +887,7 @@ begin
                Sx_Output.Open_List;
                for S of Input_Data loop
                   Sx_Output.Append_String
-                    (Natools.Smaz.Decompress (Dictionary, To_SEA (S)));
+                    (Natools.Smaz_256.Decompress (Dictionary, To_SEA (S)));
                end loop;
                Sx_Output.Close_List;
             end if;
@@ -909,7 +912,7 @@ begin
                      declare
                         Original_Size : constant Natural := S'Length;
                         Output_Size : constant Natural
-                          := Natools.Smaz.Decompress
+                          := Natools.Smaz_256.Decompress
                              (Dictionary, To_SEA (S))'Length;
                      begin
                         Print_Line (Original_Size, Output_Size);
@@ -927,7 +930,7 @@ begin
                Sx_Output.Open_List;
                for S of Input_Data loop
                   Sx_Output.Append_Atom
-                    (Natools.Smaz.Compress (Dictionary, S));
+                    (Natools.Smaz_256.Compress (Dictionary, S));
                end loop;
                Sx_Output.Close_List;
             end if;
@@ -957,7 +960,7 @@ begin
                      declare
                         Original_Size : constant Natural := S'Length;
                         Output_Size : constant Natural
-                          := Natools.Smaz.Compress (Dictionary, S)'Length;
+                          := Natools.Smaz_256.Compress (Dictionary, S)'Length;
                         Base64_Size : constant Natural
                           := ((Output_Size + 2) / 3) * 4;
                      begin
@@ -975,7 +978,7 @@ begin
          when Actions.Evaluate =>
             declare
                Total_Size : Ada.Streams.Stream_Element_Count;
-               Counts : Natools.Smaz.Tools.Dictionary_Counts;
+               Counts : Tools_256.Dictionary_Counts;
             begin
                Evaluate_Dictionary (Handler.Job_Count,
                   Dictionary, Input_Data, Total_Size, Counts);
@@ -990,9 +993,9 @@ begin
                      Sx_Output.Open_List;
                      Sx_Output.Append_Atom ((0 => E));
                      Sx_Output.Append_String
-                       (Natools.Smaz.Dict_Entry (Dictionary, E));
+                       (Natools.Smaz_256.Dict_Entry (Dictionary, E));
                      Sx_Output.Append_String (Ada.Strings.Fixed.Trim
-                       (Natools.Smaz.Tools.String_Count'Image (Counts (E)),
+                       (Natools.Smaz_Tools.String_Count'Image (Counts (E)),
                         Ada.Strings.Both));
                      Sx_Output.Close_List;
                   end loop;
@@ -1004,36 +1007,36 @@ begin
                      procedure Print
                        (Label : in String;
                         E : in Ada.Streams.Stream_Element;
-                        Score : in Natools.Smaz.Tools.Score_Value);
+                        Score : in Natools.Smaz_Tools.Score_Value);
 
                      procedure Print_Min_Max
                        (Label : in String;
                         Score : not null access function
-                          (D : in Natools.Smaz.Dictionary;
-                           C : in Natools.Smaz.Tools.Dictionary_Counts;
+                          (D : in Natools.Smaz_256.Dictionary;
+                           C : in Tools_256.Dictionary_Counts;
                            E : in Ada.Streams.Stream_Element)
-                          return Natools.Smaz.Tools.Score_Value);
+                          return Natools.Smaz_Tools.Score_Value);
 
                      procedure Print_Value
                        (Label : in String;
                         Score : not null access function
-                          (D : in Natools.Smaz.Dictionary;
-                           C : in Natools.Smaz.Tools.Dictionary_Counts;
+                          (D : in Natools.Smaz_256.Dictionary;
+                           C : in Tools_256.Dictionary_Counts;
                            E : in Ada.Streams.Stream_Element)
-                          return Natools.Smaz.Tools.Score_Value;
-                        Ref : in Natools.Smaz.Tools.Score_Value);
+                          return Natools.Smaz_Tools.Score_Value;
+                        Ref : in Natools.Smaz_Tools.Score_Value);
 
 
                      procedure Print
                        (Label : in String;
                         E : in Ada.Streams.Stream_Element;
-                        Score : in Natools.Smaz.Tools.Score_Value) is
+                        Score : in Natools.Smaz_Tools.Score_Value) is
                      begin
                         if Handler.Sx_Output then
                            Sx_Output.Open_List;
                            Sx_Output.Append_Atom ((0 => E));
                            Sx_Output.Append_String
-                             (Natools.Smaz.Dict_Entry (Dictionary, E));
+                             (Natools.Smaz_256.Dict_Entry (Dictionary, E));
                            Sx_Output.Append_String (Ada.Strings.Fixed.Trim
                              (Score'Img, Ada.Strings.Both));
                            Sx_Output.Close_List;
@@ -1044,7 +1047,8 @@ begin
                               & Ada.Streams.Stream_Element'Image (E)
                               & Ada.Characters.Latin_1.HT
                               & Natools.String_Escapes.C_Escape_Hex
-                                (Natools.Smaz.Dict_Entry (Dictionary, E), True)
+                                (Natools.Smaz_256.Dict_Entry (Dictionary, E),
+                                 True)
                               & Ada.Characters.Latin_1.HT
                               & Score'Img);
                         end if;
@@ -1053,17 +1057,17 @@ begin
                      procedure Print_Min_Max
                        (Label : in String;
                         Score : not null access function
-                          (D : in Natools.Smaz.Dictionary;
-                           C : in Natools.Smaz.Tools.Dictionary_Counts;
+                          (D : in Natools.Smaz_256.Dictionary;
+                           C : in Tools_256.Dictionary_Counts;
                            E : in Ada.Streams.Stream_Element)
-                          return Natools.Smaz.Tools.Score_Value)
+                          return Natools.Smaz_Tools.Score_Value)
                      is
-                        use type Natools.Smaz.Tools.Score_Value;
-                        Min_Score, Max_Score : Natools.Smaz.Tools.Score_Value
+                        use type Natools.Smaz_Tools.Score_Value;
+                        Min_Score, Max_Score : Natools.Smaz_Tools.Score_Value
                           := Score (Dictionary, Counts, 0);
-                        S : Natools.Smaz.Tools.Score_Value;
+                        S : Natools.Smaz_Tools.Score_Value;
                      begin
-                        for E in 1 .. Dictionary.Dict_Last loop
+                        for E in 1 .. Dictionary.Last_Code loop
                            S := Score (Dictionary, Counts, E);
                            if S < Min_Score then
                               Min_Score := S;
@@ -1080,13 +1084,13 @@ begin
                      procedure Print_Value
                        (Label : in String;
                         Score : not null access function
-                          (D : in Natools.Smaz.Dictionary;
-                           C : in Natools.Smaz.Tools.Dictionary_Counts;
+                          (D : in Natools.Smaz_256.Dictionary;
+                           C : in Tools_256.Dictionary_Counts;
                            E : in Ada.Streams.Stream_Element)
-                          return Natools.Smaz.Tools.Score_Value;
-                        Ref : in Natools.Smaz.Tools.Score_Value)
+                          return Natools.Smaz_Tools.Score_Value;
+                        Ref : in Natools.Smaz_Tools.Score_Value)
                      is
-                        use type Natools.Smaz.Tools.Score_Value;
+                        use type Natools.Smaz_Tools.Score_Value;
                      begin
                         if Handler.Sx_Output then
                            Sx_Output.Open_List;
@@ -1105,11 +1109,11 @@ begin
                      end Print_Value;
                   begin
                      Print_Min_Max ("encoded",
-                       Natools.Smaz.Tools.Score_Encoded'Access);
+                       Tools_256.Score_Encoded'Access);
                      Print_Min_Max ("frequency",
-                       Natools.Smaz.Tools.Score_Frequency'Access);
+                       Tools_256.Score_Frequency'Access);
                      Print_Min_Max ("gain",
-                       Natools.Smaz.Tools.Score_Gain'Access);
+                       Tools_256.Score_Gain'Access);
                   end;
                end if;
             end;
