@@ -1,5 +1,5 @@
 project Natools is
-   type Build_Type is ("Release", "Coverage");
+   type Build_Type is ("Release", "Coverage", "Profiling");
    Mode : Build_Type := external ("MODE", "Release");
 
    type Task_Safety is ("None", "Portable", "Intel");
@@ -14,6 +14,8 @@ project Natools is
          Prefix := "";
       when "Coverage" =>
          Prefix := "coverage/";
+      when "Profiling" =>
+         Prefix := "profiling/";
    end case;
 
    --  Source_Dirs is left to default "."
@@ -27,6 +29,8 @@ project Natools is
       when "Coverage" =>
          Extra_Switches :=
            ("-g", "-O0", "-fprofile-arcs", "-ftest-coverage");
+      when "Profiling" =>
+         Extra_Switches := ("-O3", "-g", "-pg");
    end case;
 
 
