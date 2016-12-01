@@ -182,6 +182,12 @@ procedure Smaz is
       Output : in Ada.Text_IO.File_Type);
       --  Print the help text to the given file
 
+   procedure Process
+     (Handler : in Callback'Class;
+      Word_List : in Natools.Smaz_Tools.String_Lists.List;
+      Data_List : in Natools.Smaz_Tools.String_Lists.List);
+      --  Perform the requested operations
+
    function To_Dictionary
      (Handler : in Callback'Class;
       Input : in Natools.Smaz_Tools.String_Lists.List)
@@ -741,117 +747,13 @@ procedure Smaz is
    end Print_Help;
 
 
-   function To_Dictionary
+   procedure Process
      (Handler : in Callback'Class;
-      Input : in Natools.Smaz_Tools.String_Lists.List)
-     return Natools.Smaz_256.Dictionary
+      Word_List : in Natools.Smaz_Tools.String_Lists.List;
+      Data_List : in Natools.Smaz_Tools.String_Lists.List)
    is
-      use type Natools.Smaz_Tools.String_Count;
-      use type Dict_Sources.Enum;
-   begin
-      case Handler.Dict_Source is
-         when Dict_Sources.S_Expression =>
-            return Tools_256.To_Dictionary (Input, Handler.Vlen_Verbatim);
-
-         when Dict_Sources.Text_List | Dict_Sources.Unoptimized_Text_List =>
-            declare
-               Counter : Natools.Smaz_Tools.Word_Counter;
-            begin
-               for S of Input loop
-                  Natools.Smaz_Tools.Add_Substrings
-                    (Counter, S, Handler.Min_Sub_Size, Handler.Max_Sub_Size);
-
-                  if Handler.Max_Word_Size > Handler.Max_Sub_Size then
-                     Natools.Smaz_Tools.Add_Words
-                       (Counter, S,
-                        Handler.Max_Sub_Size + 1, Handler.Max_Word_Size);
-                  end if;
-               end loop;
-
-               if Handler.Filter_Threshold > 0 then
-                  Natools.Smaz_Tools.Filter_By_Count
-                    (Counter, Handler.Filter_Threshold);
-               end if;
-
-               if Handler.Dict_Source = Dict_Sources.Text_List then
-                  declare
-                     Selected, Pending : Natools.Smaz_Tools.String_Lists.List;
-                  begin
-                     Natools.Smaz_Tools.Simple_Dictionary_And_Pending
-                       (Counter,
-                        Handler.Dict_Size,
-                        Selected,
-                        Pending,
-                        Handler.Score_Method,
-                        Handler.Max_Pending);
-
-                     return Optimize_Dictionary
-                       (Tools_256.To_Dictionary
-                          (Selected, Handler.Vlen_Verbatim),
-                        Pending,
-                        Input,
-                        Handler.Job_Count,
-                        Handler.Score_Method);
-                  end;
-               else
-                  return Tools_256.To_Dictionary
-                    (Natools.Smaz_Tools.Simple_Dictionary
-                       (Counter, Handler.Dict_Size, Handler.Score_Method),
-                     Handler.Vlen_Verbatim);
-               end if;
-            end;
-      end case;
-   end To_Dictionary;
-
-
-   Opt_Config : constant Getopt.Configuration := Getopt_Config;
-   Handler : Callback;
-   Input_List, Input_Data : Natools.Smaz_Tools.String_Lists.List;
-begin
-   Process_Command_Line :
-   begin
-      Opt_Config.Process (Handler);
-   exception
-      when Getopt.Option_Error =>
-         Print_Help (Opt_Config, Ada.Text_IO.Current_Error);
-         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         return;
-   end Process_Command_Line;
-
-   if Handler.Display_Help then
-      Print_Help (Opt_Config, Ada.Text_IO.Current_Output);
-   end if;
-
-   if not Handler.Need_Dictionary then
-      return;
-   end if;
-
-   if not (Handler.Stat_Output or Handler.Sx_Output) then
-      Handler.Sx_Output := True;
-   end if;
-
-   Read_Input_List :
-   declare
-      use type Actions.Enum;
-
-      Input : constant access Ada.Streams.Root_Stream_Type'Class
-        := Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Input);
-      Parser : Natools.S_Expressions.Parsers.Stream_Parser (Input);
-   begin
-      Parser.Next;
-      Natools.Smaz_Tools.Read_List (Input_List, Parser);
-
-      if Handler.Action /= Actions.Nothing then
-         Parser.Next;
-         Natools.Smaz_Tools.Read_List (Input_Data, Parser);
-      end if;
-   end Read_Input_List;
-
-
-   Build_Dictionary :
-   declare
       Dictionary : Natools.Smaz_256.Dictionary
-        := To_Dictionary (Handler, Input_List);
+        := To_Dictionary (Handler, Word_List);
       Sx_Output : Natools.S_Expressions.Printers.Canonical
         (Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Output));
       Ada_Dictionary : constant String
@@ -860,14 +762,14 @@ begin
         := Ada.Strings.Unbounded.To_String (Handler.Hash_Package);
    begin
       Dictionary.Hash := Natools.Smaz_Tools.Linear_Search'Access;
-      Natools.Smaz_Tools.List_For_Linear_Search := Input_List;
+      Natools.Smaz_Tools.List_For_Linear_Search := Word_List;
 
       if Ada_Dictionary'Length > 0 then
          Print_Dictionary (Ada_Dictionary, Dictionary, Hash_Package);
       end if;
 
       if Hash_Package'Length > 0 then
-         Natools.Smaz_Tools.GNAT.Build_Perfect_Hash (Input_List, Hash_Package);
+         Natools.Smaz_Tools.GNAT.Build_Perfect_Hash (Word_List, Hash_Package);
       end if;
 
       if Handler.Sx_Dict_Output then
@@ -885,7 +787,7 @@ begin
          when Actions.Decode =>
             if Handler.Sx_Output then
                Sx_Output.Open_List;
-               for S of Input_Data loop
+               for S of Data_List loop
                   Sx_Output.Append_String
                     (Natools.Smaz_256.Decompress (Dictionary, To_SEA (S)));
                end loop;
@@ -908,7 +810,7 @@ begin
                   Original_Total : Natural := 0;
                   Output_Total : Natural := 0;
                begin
-                  for S of Input_Data loop
+                  for S of Data_List loop
                      declare
                         Original_Size : constant Natural := S'Length;
                         Output_Size : constant Natural
@@ -928,7 +830,7 @@ begin
          when Actions.Encode =>
             if Handler.Sx_Output then
                Sx_Output.Open_List;
-               for S of Input_Data loop
+               for S of Data_List loop
                   Sx_Output.Append_Atom
                     (Natools.Smaz_256.Compress (Dictionary, S));
                end loop;
@@ -956,7 +858,7 @@ begin
                   Output_Total : Natural := 0;
                   Base64_Total : Natural := 0;
                begin
-                  for S of Input_Data loop
+                  for S of Data_List loop
                      declare
                         Original_Size : constant Natural := S'Length;
                         Output_Size : constant Natural
@@ -981,7 +883,7 @@ begin
                Counts : Tools_256.Dictionary_Counts;
             begin
                Evaluate_Dictionary (Handler.Job_Count,
-                  Dictionary, Input_Data, Total_Size, Counts);
+                  Dictionary, Data_List, Total_Size, Counts);
 
                if Handler.Sx_Output then
                   Sx_Output.Open_List;
@@ -1118,5 +1020,115 @@ begin
                end if;
             end;
       end case;
-   end Build_Dictionary;
+   end Process;
+
+
+   function To_Dictionary
+     (Handler : in Callback'Class;
+      Input : in Natools.Smaz_Tools.String_Lists.List)
+     return Natools.Smaz_256.Dictionary
+   is
+      use type Natools.Smaz_Tools.String_Count;
+      use type Dict_Sources.Enum;
+   begin
+      case Handler.Dict_Source is
+         when Dict_Sources.S_Expression =>
+            return Tools_256.To_Dictionary (Input, Handler.Vlen_Verbatim);
+
+         when Dict_Sources.Text_List | Dict_Sources.Unoptimized_Text_List =>
+            declare
+               Counter : Natools.Smaz_Tools.Word_Counter;
+            begin
+               for S of Input loop
+                  Natools.Smaz_Tools.Add_Substrings
+                    (Counter, S, Handler.Min_Sub_Size, Handler.Max_Sub_Size);
+
+                  if Handler.Max_Word_Size > Handler.Max_Sub_Size then
+                     Natools.Smaz_Tools.Add_Words
+                       (Counter, S,
+                        Handler.Max_Sub_Size + 1, Handler.Max_Word_Size);
+                  end if;
+               end loop;
+
+               if Handler.Filter_Threshold > 0 then
+                  Natools.Smaz_Tools.Filter_By_Count
+                    (Counter, Handler.Filter_Threshold);
+               end if;
+
+               if Handler.Dict_Source = Dict_Sources.Text_List then
+                  declare
+                     Selected, Pending : Natools.Smaz_Tools.String_Lists.List;
+                  begin
+                     Natools.Smaz_Tools.Simple_Dictionary_And_Pending
+                       (Counter,
+                        Handler.Dict_Size,
+                        Selected,
+                        Pending,
+                        Handler.Score_Method,
+                        Handler.Max_Pending);
+
+                     return Optimize_Dictionary
+                       (Tools_256.To_Dictionary
+                          (Selected, Handler.Vlen_Verbatim),
+                        Pending,
+                        Input,
+                        Handler.Job_Count,
+                        Handler.Score_Method);
+                  end;
+               else
+                  return Tools_256.To_Dictionary
+                    (Natools.Smaz_Tools.Simple_Dictionary
+                       (Counter, Handler.Dict_Size, Handler.Score_Method),
+                     Handler.Vlen_Verbatim);
+               end if;
+            end;
+      end case;
+   end To_Dictionary;
+
+
+   Opt_Config : constant Getopt.Configuration := Getopt_Config;
+   Handler : Callback;
+   Input_List, Input_Data : Natools.Smaz_Tools.String_Lists.List;
+begin
+   Process_Command_Line :
+   begin
+      Opt_Config.Process (Handler);
+   exception
+      when Getopt.Option_Error =>
+         Print_Help (Opt_Config, Ada.Text_IO.Current_Error);
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         return;
+   end Process_Command_Line;
+
+   if Handler.Display_Help then
+      Print_Help (Opt_Config, Ada.Text_IO.Current_Output);
+   end if;
+
+   if not Handler.Need_Dictionary then
+      return;
+   end if;
+
+   if not (Handler.Stat_Output or Handler.Sx_Output) then
+      Handler.Sx_Output := True;
+   end if;
+
+   Read_Input_List :
+   declare
+      use type Actions.Enum;
+
+      Input : constant access Ada.Streams.Root_Stream_Type'Class
+        := Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Input);
+      Parser : Natools.S_Expressions.Parsers.Stream_Parser (Input);
+   begin
+      Parser.Next;
+      Natools.Smaz_Tools.Read_List (Input_List, Parser);
+
+      if Handler.Action /= Actions.Nothing then
+         Parser.Next;
+         Natools.Smaz_Tools.Read_List (Input_Data, Parser);
+      end if;
+   end Read_Input_List;
+
+   Process (Handler, Input_List, Input_Data);
+
 end Smaz;
