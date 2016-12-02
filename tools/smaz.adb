@@ -20,6 +20,7 @@
 
 with Ada.Characters.Latin_1;
 with Ada.Command_Line;
+with Ada.Containers.Indefinite_Doubly_Linked_Lists;
 with Ada.Containers.Indefinite_Holders;
 with Ada.Streams;
 with Ada.Strings.Fixed;
@@ -158,15 +159,6 @@ procedure Smaz is
       --  Optimize the dictionary on Input_Texts, starting with Base and
       --  adding substrings from Pending_Words.
 
-   procedure Parallel_Evaluate_Dictionary
-     (Job_Count : in Positive;
-      Dict : in Natools.Smaz_256.Dictionary;
-      Corpus : in Natools.Smaz_Tools.String_Lists.List;
-      Compressed_Size : out Ada.Streams.Stream_Element_Count;
-      Counts : out Tools_256.Dictionary_Counts);
-      --  Return the same results as Natools.Smaz.Tools.Evaluate_Dictionary,
-      --  but hopefully more quickly, using Job_Count tasks.
-
    procedure Print_Dictionary
      (Filename : in String;
       Dictionary : in Natools.Smaz_256.Dictionary;
@@ -193,6 +185,137 @@ procedure Smaz is
       Input : in Natools.Smaz_Tools.String_Lists.List)
      return Natools.Smaz_256.Dictionary;
       --  Convert the input into a dictionary given the option in Handler
+
+
+   generic
+      type Dictionary (<>) is private;
+      type Dictionary_Entry is (<>);
+      type String_Count is range <>;
+
+      type Dictionary_Counts is array (Dictionary_Entry) of String_Count;
+
+      with package String_Lists
+        is new Ada.Containers.Indefinite_Doubly_Linked_Lists (String);
+
+      with procedure Evaluate_Dictionary_Partial
+        (Dict : in Dictionary;
+         Corpus_Entry : in String;
+         Compressed_Size : in out Ada.Streams.Stream_Element_Count;
+         Counts : in out Dictionary_Counts);
+
+   package Dictionary_Subprograms is
+
+      procedure Parallel_Evaluate_Dictionary
+        (Job_Count : in Positive;
+         Dict : in Dictionary;
+         Corpus : in String_Lists.List;
+         Compressed_Size : out Ada.Streams.Stream_Element_Count;
+         Counts : out Dictionary_Counts);
+         --  Return the same results as Natools.Smaz.Tools.Evaluate_Dictionary,
+         --  but hopefully more quickly, using Job_Count tasks.
+
+   end Dictionary_Subprograms;
+
+
+   package body Dictionary_Subprograms is
+
+      procedure Parallel_Evaluate_Dictionary
+        (Job_Count : in Positive;
+         Dict : in Dictionary;
+         Corpus : in String_Lists.List;
+         Compressed_Size : out Ada.Streams.Stream_Element_Count;
+         Counts : out Dictionary_Counts)
+      is
+         type Result_Values is record
+            Compressed_Size : Ada.Streams.Stream_Element_Count;
+            Counts : Dictionary_Counts;
+         end record;
+
+         procedure Initialize (Result : in out Result_Values);
+
+         procedure Get_Next_Job
+           (Global : in out String_Lists.Cursor;
+            Job : out String_Lists.Cursor;
+            Terminated : out Boolean);
+
+         procedure Do_Job
+           (Result : in out Result_Values;
+            Job : in String_Lists.Cursor);
+
+         procedure Gather_Result
+           (Global : in out String_Lists.Cursor;
+            Partial : in Result_Values);
+
+
+         procedure Initialize (Result : in out Result_Values) is
+         begin
+            Result := (Compressed_Size => 0,
+                       Counts => (others => 0));
+         end Initialize;
+
+
+         procedure Get_Next_Job
+           (Global : in out String_Lists.Cursor;
+            Job : out String_Lists.Cursor;
+            Terminated : out Boolean) is
+         begin
+            Job := Global;
+            Terminated := not String_Lists.Has_Element (Global);
+            if not Terminated then
+               String_Lists.Next (Global);
+            end if;
+         end Get_Next_Job;
+
+
+         procedure Do_Job
+           (Result : in out Result_Values;
+            Job : in String_Lists.Cursor) is
+         begin
+            Evaluate_Dictionary_Partial
+              (Dict,
+               String_Lists.Element (Job),
+               Result.Compressed_Size,
+               Result.Counts);
+         end Do_Job;
+
+
+         procedure Gather_Result
+           (Global : in out String_Lists.Cursor;
+            Partial : in Result_Values)
+         is
+            pragma Unreferenced (Global);
+            use type Ada.Streams.Stream_Element_Count;
+            use type Natools.Smaz_Tools.String_Count;
+         begin
+            Compressed_Size := Compressed_Size + Partial.Compressed_Size;
+
+            for I in Counts'Range loop
+               Counts (I) := Counts (I) + Partial.Counts (I);
+            end loop;
+         end Gather_Result;
+
+
+         procedure Parallel_Run
+           is new Natools.Parallelism.Per_Task_Accumulator_Run
+              (String_Lists.Cursor, Result_Values, String_Lists.Cursor);
+
+         Cursor : String_Lists.Cursor := String_Lists.First (Corpus);
+      begin
+         Compressed_Size := 0;
+         Counts := (others => 0);
+         Parallel_Run (Cursor, Job_Count);
+      end Parallel_Evaluate_Dictionary;
+
+   end Dictionary_Subprograms;
+
+
+   package Dict_256 is new Dictionary_Subprograms
+     (Dictionary => Natools.Smaz_256.Dictionary,
+      Dictionary_Entry => Ada.Streams.Stream_Element,
+      String_Count => Natools.Smaz_Tools.String_Count,
+      Dictionary_Counts => Tools_256.Dictionary_Counts,
+      String_Lists => Natools.Smaz_Tools.String_Lists,
+      Evaluate_Dictionary_Partial => Tools_256.Evaluate_Dictionary_Partial);
 
 
    overriding procedure Option
@@ -319,7 +442,7 @@ procedure Smaz is
       end loop;
 
       if Job_Count > 0 then
-         Parallel_Evaluate_Dictionary (Job_Count,
+         Dict_256.Parallel_Evaluate_Dictionary (Job_Count,
             Actual_Dict, Corpus, Compressed_Size, Counts);
       else
          Tools_256.Evaluate_Dictionary
@@ -463,96 +586,6 @@ procedure Smaz is
 
       return Holder.Element;
    end Optimize_Dictionary;
-
-
-   procedure Parallel_Evaluate_Dictionary
-     (Job_Count : in Positive;
-      Dict : in Natools.Smaz_256.Dictionary;
-      Corpus : in Natools.Smaz_Tools.String_Lists.List;
-      Compressed_Size : out Ada.Streams.Stream_Element_Count;
-      Counts : out Tools_256.Dictionary_Counts)
-   is
-      package String_Lists renames Natools.Smaz_Tools.String_Lists;
-
-      type Result_Values is record
-         Compressed_Size : Ada.Streams.Stream_Element_Count;
-         Counts : Tools_256.Dictionary_Counts;
-      end record;
-
-      procedure Initialize (Result : in out Result_Values);
-
-      procedure Get_Next_Job
-        (Global : in out String_Lists.Cursor;
-         Job : out String_Lists.Cursor;
-         Terminated : out Boolean);
-
-      procedure Do_Job
-        (Result : in out Result_Values;
-         Job : in String_Lists.Cursor);
-
-      procedure Gather_Result
-        (Global : in out String_Lists.Cursor;
-         Partial : in Result_Values);
-
-
-      procedure Initialize (Result : in out Result_Values) is
-      begin
-         Result := (Compressed_Size => 0,
-                    Counts => (others => 0));
-      end Initialize;
-
-
-      procedure Get_Next_Job
-        (Global : in out String_Lists.Cursor;
-         Job : out String_Lists.Cursor;
-         Terminated : out Boolean) is
-      begin
-         Job := Global;
-         Terminated := not String_Lists.Has_Element (Global);
-         if not Terminated then
-            String_Lists.Next (Global);
-         end if;
-      end Get_Next_Job;
-
-
-      procedure Do_Job
-        (Result : in out Result_Values;
-         Job : in String_Lists.Cursor) is
-      begin
-         Tools_256.Evaluate_Dictionary_Partial
-           (Dict,
-            String_Lists.Element (Job),
-            Result.Compressed_Size,
-            Result.Counts);
-      end Do_Job;
-
-
-      procedure Gather_Result
-        (Global : in out String_Lists.Cursor;
-         Partial : in Result_Values)
-      is
-         pragma Unreferenced (Global);
-         use type Ada.Streams.Stream_Element_Count;
-         use type Natools.Smaz_Tools.String_Count;
-      begin
-         Compressed_Size := Compressed_Size + Partial.Compressed_Size;
-
-         for I in Counts'Range loop
-            Counts (I) := Counts (I) + Partial.Counts (I);
-         end loop;
-      end Gather_Result;
-
-
-      procedure Parallel_Run
-        is new Natools.Parallelism.Per_Task_Accumulator_Run
-           (String_Lists.Cursor, Result_Values, String_Lists.Cursor);
-
-      Cursor : String_Lists.Cursor := String_Lists.First (Corpus);
-   begin
-      Compressed_Size := 0;
-      Counts := (others => 0);
-      Parallel_Run (Cursor, Job_Count);
-   end Parallel_Evaluate_Dictionary;
 
 
    procedure Print_Dictionary
@@ -761,8 +794,8 @@ procedure Smaz is
       Hash_Package : constant String
         := Ada.Strings.Unbounded.To_String (Handler.Hash_Package);
    begin
-      Dictionary.Hash := Natools.Smaz_Tools.Linear_Search'Access;
-      Natools.Smaz_Tools.List_For_Linear_Search := Word_List;
+      Natools.Smaz_Tools.Set_Dictionary_For_Trie_Search (Word_List);
+      Dictionary.Hash := Natools.Smaz_Tools.Trie_Search'Access;
 
       if Ada_Dictionary'Length > 0 then
          Print_Dictionary (Ada_Dictionary, Dictionary, Hash_Package);
