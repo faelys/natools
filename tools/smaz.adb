@@ -125,15 +125,6 @@ procedure Smaz is
      is null;
 
 
-   procedure Evaluate_Dictionary
-     (Job_Count : in Natural;
-      Dict : in Natools.Smaz_256.Dictionary;
-      Corpus : in Natools.Smaz_Tools.String_Lists.List;
-      Compressed_Size : out Ada.Streams.Stream_Element_Count;
-      Counts : out Tools_256.Dictionary_Counts);
-      --  Dispatch to parallel or non-parallel version of Evaluate_Dictionary
-      --  depending on Job_Count.
-
    function Getopt_Config return Getopt.Configuration;
       --  Build the configuration object
 
@@ -186,6 +177,10 @@ procedure Smaz is
      return Natools.Smaz_256.Dictionary;
       --  Convert the input into a dictionary given the option in Handler
 
+   procedure Use_Dictionary (Dict : in out Natools.Smaz_256.Dictionary);
+      --  Update Dictionary.Hash so that it can be actually used
+
+
 
    generic
       type Dictionary (<>) is private;
@@ -197,13 +192,30 @@ procedure Smaz is
       with package String_Lists
         is new Ada.Containers.Indefinite_Doubly_Linked_Lists (String);
 
+      with procedure Evaluate_Dictionary
+        (Dict : in Dictionary;
+         Corpus : in String_Lists.List;
+         Compressed_Size : out Ada.Streams.Stream_Element_Count;
+         Counts : out Dictionary_Counts);
+
       with procedure Evaluate_Dictionary_Partial
         (Dict : in Dictionary;
          Corpus_Entry : in String;
          Compressed_Size : in out Ada.Streams.Stream_Element_Count;
          Counts : in out Dictionary_Counts);
 
+      with procedure Use_Dictionary (Dict : in out Dictionary) is <>;
+
    package Dictionary_Subprograms is
+
+      procedure Evaluate_Dictionary
+        (Job_Count : in Natural;
+         Dict : in Dictionary;
+         Corpus : in String_Lists.List;
+         Compressed_Size : out Ada.Streams.Stream_Element_Count;
+         Counts : out Dictionary_Counts);
+         --  Dispatch to parallel or non-parallel version of
+         --  Evaluate_Dictionary depending on Job_Count.
 
       procedure Parallel_Evaluate_Dictionary
         (Job_Count : in Positive;
@@ -217,7 +229,29 @@ procedure Smaz is
    end Dictionary_Subprograms;
 
 
+
    package body Dictionary_Subprograms is
+
+      procedure Evaluate_Dictionary
+        (Job_Count : in Natural;
+         Dict : in Dictionary;
+         Corpus : in String_Lists.List;
+         Compressed_Size : out Ada.Streams.Stream_Element_Count;
+         Counts : out Dictionary_Counts)
+      is
+         Actual_Dict : Dictionary := Dict;
+      begin
+         Use_Dictionary (Actual_Dict);
+
+         if Job_Count > 0 then
+            Parallel_Evaluate_Dictionary (Job_Count,
+               Actual_Dict, Corpus, Compressed_Size, Counts);
+         else
+            Evaluate_Dictionary
+              (Actual_Dict, Corpus, Compressed_Size, Counts);
+         end if;
+      end Evaluate_Dictionary;
+
 
       procedure Parallel_Evaluate_Dictionary
         (Job_Count : in Positive;
@@ -309,13 +343,16 @@ procedure Smaz is
    end Dictionary_Subprograms;
 
 
+
    package Dict_256 is new Dictionary_Subprograms
      (Dictionary => Natools.Smaz_256.Dictionary,
       Dictionary_Entry => Ada.Streams.Stream_Element,
       String_Count => Natools.Smaz_Tools.String_Count,
       Dictionary_Counts => Tools_256.Dictionary_Counts,
       String_Lists => Natools.Smaz_Tools.String_Lists,
+      Evaluate_Dictionary => Tools_256.Evaluate_Dictionary,
       Evaluate_Dictionary_Partial => Tools_256.Evaluate_Dictionary_Partial);
+
 
 
    overriding procedure Option
@@ -414,43 +451,6 @@ procedure Smaz is
    end Option;
 
 
-   procedure Evaluate_Dictionary
-     (Job_Count : in Natural;
-      Dict : in Natools.Smaz_256.Dictionary;
-      Corpus : in Natools.Smaz_Tools.String_Lists.List;
-      Compressed_Size : out Ada.Streams.Stream_Element_Count;
-      Counts : out Tools_256.Dictionary_Counts)
-   is
-      Actual_Dict : Natools.Smaz_256.Dictionary := Dict;
-   begin
-      Natools.Smaz_Tools.Set_Dictionary_For_Trie_Search
-        (Tools_256.To_String_List (Actual_Dict));
-      Actual_Dict.Hash := Natools.Smaz_Tools.Trie_Search'Access;
-
-      for I in Actual_Dict.Offsets'Range loop
-         if Natools.Smaz_Tools.Trie_Search (Natools.Smaz_256.Dict_Entry
-           (Actual_Dict, I)) /= Natural (I)
-         then
-            Ada.Text_IO.Put_Line
-              (Ada.Text_IO.Current_Error,
-               "Fail at" & Ada.Streams.Stream_Element'Image (I)
-               & " -> " & Natools.String_Escapes.C_Escape_Hex
-                  (Natools.Smaz_256.Dict_Entry (Actual_Dict, I), True)
-               & " ->" & Natural'Image (Natools.Smaz_Tools.Trie_Search
-                  (Natools.Smaz_256.Dict_Entry (Actual_Dict, I))));
-         end if;
-      end loop;
-
-      if Job_Count > 0 then
-         Dict_256.Parallel_Evaluate_Dictionary (Job_Count,
-            Actual_Dict, Corpus, Compressed_Size, Counts);
-      else
-         Tools_256.Evaluate_Dictionary
-           (Actual_Dict, Corpus, Compressed_Size, Counts);
-      end if;
-   end Evaluate_Dictionary;
-
-
    function Getopt_Config return Getopt.Configuration is
       use Getopt;
       use Options;
@@ -520,7 +520,7 @@ procedure Smaz is
             New_Score : Ada.Streams.Stream_Element_Count;
             New_Counts : Tools_256.Dictionary_Counts;
          begin
-            Evaluate_Dictionary
+            Dict_256.Evaluate_Dictionary
               (Job_Count, New_Dict, Input_Texts, New_Score, New_Counts);
 
             if New_Score < Score then
@@ -570,7 +570,8 @@ procedure Smaz is
       Counts : Tools_256.Dictionary_Counts;
       Running : Boolean := True;
    begin
-      Evaluate_Dictionary (Job_Count, Base, Input_Texts, Score, Counts);
+      Dict_256.Evaluate_Dictionary
+        (Job_Count, Base, Input_Texts, Score, Counts);
 
       while Running loop
          Optimization_Round
@@ -915,7 +916,7 @@ procedure Smaz is
                Total_Size : Ada.Streams.Stream_Element_Count;
                Counts : Tools_256.Dictionary_Counts;
             begin
-               Evaluate_Dictionary (Handler.Job_Count,
+               Dict_256.Evaluate_Dictionary (Handler.Job_Count,
                   Dictionary, Data_List, Total_Size, Counts);
 
                if Handler.Sx_Output then
@@ -1117,6 +1118,28 @@ procedure Smaz is
             end;
       end case;
    end To_Dictionary;
+
+
+   procedure Use_Dictionary (Dict : in out Natools.Smaz_256.Dictionary) is
+   begin
+      Natools.Smaz_Tools.Set_Dictionary_For_Trie_Search
+        (Tools_256.To_String_List (Dict));
+      Dict.Hash := Natools.Smaz_Tools.Trie_Search'Access;
+
+      for I in Dict.Offsets'Range loop
+         if Natools.Smaz_Tools.Trie_Search (Natools.Smaz_256.Dict_Entry
+           (Dict, I)) /= Natural (I)
+         then
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Current_Error,
+               "Fail at" & Ada.Streams.Stream_Element'Image (I)
+               & " -> " & Natools.String_Escapes.C_Escape_Hex
+                  (Natools.Smaz_256.Dict_Entry (Dict, I), True)
+               & " ->" & Natural'Image (Natools.Smaz_Tools.Trie_Search
+                  (Natools.Smaz_256.Dict_Entry (Dict, I))));
+         end if;
+      end loop;
+   end Use_Dictionary;
 
 
    Opt_Config : constant Getopt.Configuration := Getopt_Config;
