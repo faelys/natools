@@ -128,27 +128,10 @@ procedure Smaz is
    function Getopt_Config return Getopt.Configuration;
       --  Build the configuration object
 
-   procedure Optimization_Round
-     (Dict : in out Holders.Holder;
-      Score : in out Ada.Streams.Stream_Element_Count;
-      Counts : in out Tools_256.Dictionary_Counts;
-      Pending_Words : in out Natools.Smaz_Tools.String_Lists.List;
-      Input_Texts : in Natools.Smaz_Tools.String_Lists.List;
-      Job_Count : in Natural;
-      Method : in Methods.Enum;
-      Updated : out Boolean);
-      --  Try to improve on Dict by replacing a single entry from it with
-      --  one of the substring in Pending_Words.
-
-   function Optimize_Dictionary
-     (Base : in Natools.Smaz_256.Dictionary;
-      Pending_Words : in Natools.Smaz_Tools.String_Lists.List;
-      Input_Texts : in Natools.Smaz_Tools.String_Lists.List;
-      Job_Count : in Natural;
-      Method : in Methods.Enum)
-     return Natools.Smaz_256.Dictionary;
-      --  Optimize the dictionary on Input_Texts, starting with Base and
-      --  adding substrings from Pending_Words.
+   function Last_Code (Dict : in Natools.Smaz_256.Dictionary)
+     return Ada.Streams.Stream_Element
+     is (Dict.Last_Code);
+      --  Return the last valid entry
 
    procedure Print_Dictionary
      (Filename : in String;
@@ -185,12 +168,25 @@ procedure Smaz is
    generic
       type Dictionary (<>) is private;
       type Dictionary_Entry is (<>);
+      type Methods is (<>);
       type String_Count is range <>;
 
       type Dictionary_Counts is array (Dictionary_Entry) of String_Count;
 
+      with package Holders
+        is new Ada.Containers.Indefinite_Holders (Dictionary);
       with package String_Lists
         is new Ada.Containers.Indefinite_Doubly_Linked_Lists (String);
+
+      with function Append_String
+        (Dict : in Dictionary;
+         Element : in String)
+        return Dictionary;
+
+      with function Dict_Entry
+        (Dict : in Dictionary;
+         Element : in Dictionary_Entry)
+        return String;
 
       with procedure Evaluate_Dictionary
         (Dict : in Dictionary;
@@ -204,7 +200,20 @@ procedure Smaz is
          Compressed_Size : in out Ada.Streams.Stream_Element_Count;
          Counts : in out Dictionary_Counts);
 
+      with function Last_Code (Dict : in Dictionary) return Dictionary_Entry;
+
+      with function Remove_Element
+        (Dict : in Dictionary;
+         Element : in Dictionary_Entry)
+        return Dictionary;
+
       with procedure Use_Dictionary (Dict : in out Dictionary) is <>;
+
+      with function Worst_Element
+        (Dict : in Dictionary;
+         Counts : in Dictionary_Counts;
+         Method : in Methods)
+        return Dictionary_Entry;
 
    package Dictionary_Subprograms is
 
@@ -216,6 +225,28 @@ procedure Smaz is
          Counts : out Dictionary_Counts);
          --  Dispatch to parallel or non-parallel version of
          --  Evaluate_Dictionary depending on Job_Count.
+
+         procedure Optimization_Round
+           (Dict : in out Holders.Holder;
+            Score : in out Ada.Streams.Stream_Element_Count;
+            Counts : in out Dictionary_Counts;
+            Pending_Words : in out String_Lists.List;
+            Input_Texts : in String_Lists.List;
+            Job_Count : in Natural;
+            Method : in Methods;
+            Updated : out Boolean);
+         --  Try to improve on Dict by replacing a single entry from it with
+         --  one of the substring in Pending_Words.
+
+         function Optimize_Dictionary
+           (Base : in Dictionary;
+            Pending_Words : in String_Lists.List;
+            Input_Texts : in String_Lists.List;
+            Job_Count : in Natural;
+            Method : in Methods)
+           return Dictionary;
+         --  Optimize the dictionary on Input_Texts, starting with Base and
+         --  adding substrings from Pending_Words.
 
       procedure Parallel_Evaluate_Dictionary
         (Job_Count : in Positive;
@@ -251,6 +282,108 @@ procedure Smaz is
               (Actual_Dict, Corpus, Compressed_Size, Counts);
          end if;
       end Evaluate_Dictionary;
+
+
+      procedure Optimization_Round
+        (Dict : in out Holders.Holder;
+         Score : in out Ada.Streams.Stream_Element_Count;
+         Counts : in out Dictionary_Counts;
+         Pending_Words : in out String_Lists.List;
+         Input_Texts : in String_Lists.List;
+         Job_Count : in Natural;
+         Method : in Methods;
+         Updated : out Boolean)
+      is
+         use type Ada.Streams.Stream_Element_Offset;
+
+         New_Value : Ada.Strings.Unbounded.Unbounded_String;
+         New_Position : String_Lists.Cursor;
+         Worst_Index : constant Dictionary_Entry
+           := Worst_Element (Dict.Element, Counts, Method);
+         Worst_Value : constant String
+           := Dict_Entry (Dict.Element, Worst_Index);
+         Worst_Count : constant String_Count := Counts (Worst_Index);
+         Base : constant Dictionary
+           := Remove_Element (Dict.Element, Worst_Index);
+         Old_Score : constant Ada.Streams.Stream_Element_Count := Score;
+      begin
+         Updated := False;
+
+         for Position in Pending_Words.Iterate loop
+            declare
+               Word : constant String := String_Lists.Element (Position);
+               New_Dict : constant Dictionary := Append_String (Base, Word);
+               New_Score : Ada.Streams.Stream_Element_Count;
+               New_Counts : Dictionary_Counts;
+            begin
+               Evaluate_Dictionary
+                 (Job_Count, New_Dict, Input_Texts, New_Score, New_Counts);
+
+               if New_Score < Score then
+                  Dict := Holders.To_Holder (New_Dict);
+                  Score := New_Score;
+                  Counts := New_Counts;
+                  New_Value
+                    := Ada.Strings.Unbounded.To_Unbounded_String (Word);
+                  New_Position := Position;
+                  Updated := True;
+               end if;
+            end;
+         end loop;
+
+         if Updated then
+            Pending_Words.Delete (New_Position);
+            Pending_Words.Append (Worst_Value);
+
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Current_Error,
+               "Removing"
+               & Worst_Count'Img & "x "
+               & Natools.String_Escapes.C_Escape_Hex (Worst_Value, True)
+               & ", adding"
+               & Counts (Last_Code (Dict.Element))'Img & "x "
+               & Natools.String_Escapes.C_Escape_Hex
+                  (Ada.Strings.Unbounded.To_String (New_Value), True)
+               & ", size"
+               & Score'Img
+               & " ("
+               & Ada.Streams.Stream_Element_Offset'Image (Score - Old_Score)
+               & ')');
+         end if;
+      end Optimization_Round;
+
+
+      function Optimize_Dictionary
+        (Base : in Dictionary;
+         Pending_Words : in String_Lists.List;
+         Input_Texts : in String_Lists.List;
+         Job_Count : in Natural;
+         Method : in Methods)
+        return Dictionary
+      is
+         Holder : Holders.Holder := Holders.To_Holder (Base);
+         Pending : String_Lists.List := Pending_Words;
+         Score : Ada.Streams.Stream_Element_Count;
+         Counts : Dictionary_Counts;
+         Running : Boolean := True;
+      begin
+         Evaluate_Dictionary
+           (Job_Count, Base, Input_Texts, Score, Counts);
+
+         while Running loop
+            Optimization_Round
+              (Holder,
+               Score,
+               Counts,
+               Pending,
+               Input_Texts,
+               Job_Count,
+               Method,
+               Running);
+         end loop;
+
+         return Holder.Element;
+      end Optimize_Dictionary;
 
 
       procedure Parallel_Evaluate_Dictionary
@@ -347,11 +480,18 @@ procedure Smaz is
    package Dict_256 is new Dictionary_Subprograms
      (Dictionary => Natools.Smaz_256.Dictionary,
       Dictionary_Entry => Ada.Streams.Stream_Element,
+      Methods => Natools.Smaz_Tools.Methods.Enum,
       String_Count => Natools.Smaz_Tools.String_Count,
       Dictionary_Counts => Tools_256.Dictionary_Counts,
+      Holders => Holders,
       String_Lists => Natools.Smaz_Tools.String_Lists,
+      Append_String => Tools_256.Append_String,
+      Dict_Entry => Natools.Smaz_256.Dict_Entry,
       Evaluate_Dictionary => Tools_256.Evaluate_Dictionary,
-      Evaluate_Dictionary_Partial => Tools_256.Evaluate_Dictionary_Partial);
+      Evaluate_Dictionary_Partial => Tools_256.Evaluate_Dictionary_Partial,
+      Last_Code => Last_Code,
+      Remove_Element => Tools_256.Remove_Element,
+      Worst_Element => Tools_256.Worst_Index);
 
 
 
@@ -483,110 +623,6 @@ procedure Smaz is
 
       return R;
    end Getopt_Config;
-
-
-   procedure Optimization_Round
-     (Dict : in out Holders.Holder;
-      Score : in out Ada.Streams.Stream_Element_Count;
-      Counts : in out Tools_256.Dictionary_Counts;
-      Pending_Words : in out Natools.Smaz_Tools.String_Lists.List;
-      Input_Texts : in Natools.Smaz_Tools.String_Lists.List;
-      Job_Count : in Natural;
-      Method : in Methods.Enum;
-      Updated : out Boolean)
-   is
-      use type Ada.Streams.Stream_Element_Offset;
-
-      New_Value : Ada.Strings.Unbounded.Unbounded_String;
-      New_Position : Natools.Smaz_Tools.String_Lists.Cursor;
-      Worst_Index : constant Ada.Streams.Stream_Element
-        := Tools_256.Worst_Index (Dict.Element, Counts, Method);
-      Worst_Value : constant String
-        := Natools.Smaz_256.Dict_Entry (Dict.Element, Worst_Index);
-      Worst_Count : constant Natools.Smaz_Tools.String_Count
-        := Counts (Worst_Index);
-      Base : constant Natools.Smaz_256.Dictionary
-        := Tools_256.Remove_Element (Dict.Element, Worst_Index);
-      Old_Score : constant Ada.Streams.Stream_Element_Count := Score;
-   begin
-      Updated := False;
-
-      for Position in Pending_Words.Iterate loop
-         declare
-            Word : constant String
-              := Natools.Smaz_Tools.String_Lists.Element (Position);
-            New_Dict : constant Natools.Smaz_256.Dictionary
-              := Tools_256.Append_String (Base, Word);
-            New_Score : Ada.Streams.Stream_Element_Count;
-            New_Counts : Tools_256.Dictionary_Counts;
-         begin
-            Dict_256.Evaluate_Dictionary
-              (Job_Count, New_Dict, Input_Texts, New_Score, New_Counts);
-
-            if New_Score < Score then
-               Dict := Holders.To_Holder (New_Dict);
-               Score := New_Score;
-               Counts := New_Counts;
-               New_Value := Ada.Strings.Unbounded.To_Unbounded_String (Word);
-               New_Position := Position;
-               Updated := True;
-            end if;
-         end;
-      end loop;
-
-      if Updated then
-         Pending_Words.Delete (New_Position);
-         Pending_Words.Append (Worst_Value);
-
-         Ada.Text_IO.Put_Line
-           (Ada.Text_IO.Current_Error,
-            "Removing"
-            & Worst_Count'Img & "x "
-            & Natools.String_Escapes.C_Escape_Hex (Worst_Value, True)
-            & ", adding"
-            & Counts (Dict.Element.Last_Code)'Img & "x "
-            & Natools.String_Escapes.C_Escape_Hex
-               (Ada.Strings.Unbounded.To_String (New_Value), True)
-            & ", size"
-            & Score'Img
-            & " ("
-            & Ada.Streams.Stream_Element_Offset'Image (Score - Old_Score)
-            & ')');
-      end if;
-   end Optimization_Round;
-
-
-   function Optimize_Dictionary
-     (Base : in Natools.Smaz_256.Dictionary;
-      Pending_Words : in Natools.Smaz_Tools.String_Lists.List;
-      Input_Texts : in Natools.Smaz_Tools.String_Lists.List;
-      Job_Count : in Natural;
-      Method : in Methods.Enum)
-     return Natools.Smaz_256.Dictionary
-   is
-      Holder : Holders.Holder := Holders.To_Holder (Base);
-      Pending : Natools.Smaz_Tools.String_Lists.List := Pending_Words;
-      Score : Ada.Streams.Stream_Element_Count;
-      Counts : Tools_256.Dictionary_Counts;
-      Running : Boolean := True;
-   begin
-      Dict_256.Evaluate_Dictionary
-        (Job_Count, Base, Input_Texts, Score, Counts);
-
-      while Running loop
-         Optimization_Round
-           (Holder,
-            Score,
-            Counts,
-            Pending,
-            Input_Texts,
-            Job_Count,
-            Method,
-            Running);
-      end loop;
-
-      return Holder.Element;
-   end Optimize_Dictionary;
 
 
    procedure Print_Dictionary
@@ -1101,7 +1137,7 @@ procedure Smaz is
                         Handler.Score_Method,
                         Handler.Max_Pending);
 
-                     return Optimize_Dictionary
+                     return Dict_256.Optimize_Dictionary
                        (Tools_256.To_Dictionary
                           (Selected, Handler.Vlen_Verbatim),
                         Pending,
