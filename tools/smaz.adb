@@ -154,12 +154,6 @@ procedure Smaz is
       Data_List : in Natools.Smaz_Tools.String_Lists.List);
       --  Perform the requested operations
 
-   function To_Dictionary
-     (Handler : in Callback'Class;
-      Input : in Natools.Smaz_Tools.String_Lists.List)
-     return Natools.Smaz_256.Dictionary;
-      --  Convert the input into a dictionary given the option in Handler
-
    procedure Use_Dictionary (Dict : in out Natools.Smaz_256.Dictionary);
       --  Update Dictionary.Hash so that it can be actually used
 
@@ -170,6 +164,7 @@ procedure Smaz is
       type Dictionary_Entry is (<>);
       type Methods is (<>);
       type String_Count is range <>;
+      type Word_Counter is private;
 
       type Dictionary_Counts is array (Dictionary_Entry) of String_Count;
 
@@ -177,6 +172,18 @@ procedure Smaz is
         is new Ada.Containers.Indefinite_Holders (Dictionary);
       with package String_Lists
         is new Ada.Containers.Indefinite_Doubly_Linked_Lists (String);
+
+      with procedure Add_Substrings
+        (Counter : in out Word_Counter;
+         Phrase : in String;
+         Min_Size : in Positive;
+         Max_Size : in Positive);
+
+      with procedure Add_Words
+        (Counter : in out Word_Counter;
+         Phrase : in String;
+         Min_Size : in Positive;
+         Max_Size : in Positive);
 
       with function Append_String
         (Dict : in Dictionary;
@@ -200,11 +207,34 @@ procedure Smaz is
          Compressed_Size : in out Ada.Streams.Stream_Element_Count;
          Counts : in out Dictionary_Counts);
 
+      with procedure Filter_By_Count
+        (Counter : in out Word_Counter;
+         Threshold_Count : in String_Count);
+
       with function Last_Code (Dict : in Dictionary) return Dictionary_Entry;
 
       with function Remove_Element
         (Dict : in Dictionary;
          Element : in Dictionary_Entry)
+        return Dictionary;
+
+      with function Simple_Dictionary
+        (Counter : in Word_Counter;
+         Word_Count : in Natural;
+         Method : in Methods)
+        return String_Lists.List;
+
+      with procedure Simple_Dictionary_And_Pending
+        (Counter : in Word_Counter;
+         Word_Count : in Natural;
+         Selected : out String_Lists.List;
+         Pending : out String_Lists.List;
+         Method : in Methods;
+         Max_Pending_Count : in Ada.Containers.Count_Type);
+
+      with function To_Dictionary
+        (List : in String_Lists.List;
+         Variable_Length_Verbatim : in Boolean)
         return Dictionary;
 
       with procedure Use_Dictionary (Dict : in out Dictionary) is <>;
@@ -226,27 +256,27 @@ procedure Smaz is
          --  Dispatch to parallel or non-parallel version of
          --  Evaluate_Dictionary depending on Job_Count.
 
-         procedure Optimization_Round
-           (Dict : in out Holders.Holder;
-            Score : in out Ada.Streams.Stream_Element_Count;
-            Counts : in out Dictionary_Counts;
-            Pending_Words : in out String_Lists.List;
-            Input_Texts : in String_Lists.List;
-            Job_Count : in Natural;
-            Method : in Methods;
-            Updated : out Boolean);
-         --  Try to improve on Dict by replacing a single entry from it with
-         --  one of the substring in Pending_Words.
+      procedure Optimization_Round
+        (Dict : in out Holders.Holder;
+         Score : in out Ada.Streams.Stream_Element_Count;
+         Counts : in out Dictionary_Counts;
+         Pending_Words : in out String_Lists.List;
+         Input_Texts : in String_Lists.List;
+         Job_Count : in Natural;
+         Method : in Methods;
+         Updated : out Boolean);
+      --  Try to improve on Dict by replacing a single entry from it with
+      --  one of the substring in Pending_Words.
 
-         function Optimize_Dictionary
-           (Base : in Dictionary;
-            Pending_Words : in String_Lists.List;
-            Input_Texts : in String_Lists.List;
-            Job_Count : in Natural;
-            Method : in Methods)
-           return Dictionary;
-         --  Optimize the dictionary on Input_Texts, starting with Base and
-         --  adding substrings from Pending_Words.
+      function Optimize_Dictionary
+        (Base : in Dictionary;
+         Pending_Words : in String_Lists.List;
+         Input_Texts : in String_Lists.List;
+         Job_Count : in Natural;
+         Method : in Methods)
+        return Dictionary;
+      --  Optimize the dictionary on Input_Texts, starting with Base and
+      --  adding substrings from Pending_Words.
 
       procedure Parallel_Evaluate_Dictionary
         (Job_Count : in Positive;
@@ -256,6 +286,13 @@ procedure Smaz is
          Counts : out Dictionary_Counts);
          --  Return the same results as Natools.Smaz.Tools.Evaluate_Dictionary,
          --  but hopefully more quickly, using Job_Count tasks.
+
+      function To_Dictionary
+        (Handler : in Callback'Class;
+         Input : in String_Lists.List;
+         Method : in Methods)
+        return Dictionary;
+         --  Convert the input into a dictionary given the option in Handler
 
    end Dictionary_Subprograms;
 
@@ -473,6 +510,69 @@ procedure Smaz is
          Parallel_Run (Cursor, Job_Count);
       end Parallel_Evaluate_Dictionary;
 
+
+      function To_Dictionary
+        (Handler : in Callback'Class;
+         Input : in String_Lists.List;
+         Method : in Methods)
+        return Dictionary
+      is
+         use type Natools.Smaz_Tools.String_Count;
+         use type Dict_Sources.Enum;
+      begin
+         case Handler.Dict_Source is
+            when Dict_Sources.S_Expression =>
+               return To_Dictionary (Input, Handler.Vlen_Verbatim);
+
+            when Dict_Sources.Text_List | Dict_Sources.Unoptimized_Text_List =>
+               declare
+                  Counter : Word_Counter;
+               begin
+                  for S of Input loop
+                     Add_Substrings
+                       (Counter, S,
+                        Handler.Min_Sub_Size, Handler.Max_Sub_Size);
+
+                     if Handler.Max_Word_Size > Handler.Max_Sub_Size then
+                        Add_Words
+                          (Counter, S,
+                           Handler.Max_Sub_Size + 1, Handler.Max_Word_Size);
+                     end if;
+                  end loop;
+
+                  if Handler.Filter_Threshold > 0 then
+                     Filter_By_Count
+                       (Counter, String_Count (Handler.Filter_Threshold));
+                  end if;
+
+                  if Handler.Dict_Source = Dict_Sources.Text_List then
+                     declare
+                        Selected, Pending : String_Lists.List;
+                     begin
+                        Simple_Dictionary_And_Pending
+                          (Counter,
+                           Handler.Dict_Size,
+                           Selected,
+                           Pending,
+                           Method,
+                           Handler.Max_Pending);
+
+                        return Optimize_Dictionary
+                          (To_Dictionary (Selected, Handler.Vlen_Verbatim),
+                           Pending,
+                           Input,
+                           Handler.Job_Count,
+                           Method);
+                     end;
+                  else
+                     return To_Dictionary
+                       (Simple_Dictionary (Counter, Handler.Dict_Size, Method),
+                        Handler.Vlen_Verbatim);
+                  end if;
+               end;
+         end case;
+      end To_Dictionary;
+
    end Dictionary_Subprograms;
 
 
@@ -482,15 +582,23 @@ procedure Smaz is
       Dictionary_Entry => Ada.Streams.Stream_Element,
       Methods => Natools.Smaz_Tools.Methods.Enum,
       String_Count => Natools.Smaz_Tools.String_Count,
+      Word_Counter => Natools.Smaz_Tools.Word_Counter,
       Dictionary_Counts => Tools_256.Dictionary_Counts,
       Holders => Holders,
       String_Lists => Natools.Smaz_Tools.String_Lists,
+      Add_Substrings => Natools.Smaz_Tools.Add_Substrings,
+      Add_Words => Natools.Smaz_Tools.Add_Words,
       Append_String => Tools_256.Append_String,
       Dict_Entry => Natools.Smaz_256.Dict_Entry,
       Evaluate_Dictionary => Tools_256.Evaluate_Dictionary,
       Evaluate_Dictionary_Partial => Tools_256.Evaluate_Dictionary_Partial,
+      Filter_By_Count => Natools.Smaz_Tools.Filter_By_Count,
       Last_Code => Last_Code,
       Remove_Element => Tools_256.Remove_Element,
+      Simple_Dictionary => Natools.Smaz_Tools.Simple_Dictionary,
+      Simple_Dictionary_And_Pending
+        => Natools.Smaz_Tools.Simple_Dictionary_And_Pending,
+      To_Dictionary => Tools_256.To_Dictionary,
       Worst_Element => Tools_256.Worst_Index);
 
 
@@ -823,7 +931,7 @@ procedure Smaz is
       Data_List : in Natools.Smaz_Tools.String_Lists.List)
    is
       Dictionary : Natools.Smaz_256.Dictionary
-        := To_Dictionary (Handler, Word_List);
+        := Dict_256.To_Dictionary (Handler, Word_List, Handler.Score_Method);
       Sx_Output : Natools.S_Expressions.Printers.Canonical
         (Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Output));
       Ada_Dictionary : constant String
@@ -1091,69 +1199,6 @@ procedure Smaz is
             end;
       end case;
    end Process;
-
-
-   function To_Dictionary
-     (Handler : in Callback'Class;
-      Input : in Natools.Smaz_Tools.String_Lists.List)
-     return Natools.Smaz_256.Dictionary
-   is
-      use type Natools.Smaz_Tools.String_Count;
-      use type Dict_Sources.Enum;
-   begin
-      case Handler.Dict_Source is
-         when Dict_Sources.S_Expression =>
-            return Tools_256.To_Dictionary (Input, Handler.Vlen_Verbatim);
-
-         when Dict_Sources.Text_List | Dict_Sources.Unoptimized_Text_List =>
-            declare
-               Counter : Natools.Smaz_Tools.Word_Counter;
-            begin
-               for S of Input loop
-                  Natools.Smaz_Tools.Add_Substrings
-                    (Counter, S, Handler.Min_Sub_Size, Handler.Max_Sub_Size);
-
-                  if Handler.Max_Word_Size > Handler.Max_Sub_Size then
-                     Natools.Smaz_Tools.Add_Words
-                       (Counter, S,
-                        Handler.Max_Sub_Size + 1, Handler.Max_Word_Size);
-                  end if;
-               end loop;
-
-               if Handler.Filter_Threshold > 0 then
-                  Natools.Smaz_Tools.Filter_By_Count
-                    (Counter, Handler.Filter_Threshold);
-               end if;
-
-               if Handler.Dict_Source = Dict_Sources.Text_List then
-                  declare
-                     Selected, Pending : Natools.Smaz_Tools.String_Lists.List;
-                  begin
-                     Natools.Smaz_Tools.Simple_Dictionary_And_Pending
-                       (Counter,
-                        Handler.Dict_Size,
-                        Selected,
-                        Pending,
-                        Handler.Score_Method,
-                        Handler.Max_Pending);
-
-                     return Dict_256.Optimize_Dictionary
-                       (Tools_256.To_Dictionary
-                          (Selected, Handler.Vlen_Verbatim),
-                        Pending,
-                        Input,
-                        Handler.Job_Count,
-                        Handler.Score_Method);
-                  end;
-               else
-                  return Tools_256.To_Dictionary
-                    (Natools.Smaz_Tools.Simple_Dictionary
-                       (Counter, Handler.Dict_Size, Handler.Score_Method),
-                     Handler.Vlen_Verbatim);
-               end if;
-            end;
-      end case;
-   end To_Dictionary;
 
 
    procedure Use_Dictionary (Dict : in out Natools.Smaz_256.Dictionary) is
