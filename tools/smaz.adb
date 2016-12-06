@@ -40,9 +40,6 @@ procedure Smaz is
    function To_SEA (S : String) return Ada.Streams.Stream_Element_Array
      renames Natools.S_Expressions.To_Atom;
 
-   package Holders is new Ada.Containers.Indefinite_Holders
-     (Natools.Smaz_256.Dictionary, Natools.Smaz_256."=");
-
    package Tools_256 is new Natools.Smaz_256.Tools;
 
    package Methods renames Natools.Smaz_Tools.Methods;
@@ -168,8 +165,6 @@ procedure Smaz is
 
       type Dictionary_Counts is array (Dictionary_Entry) of String_Count;
 
-      with package Holders
-        is new Ada.Containers.Indefinite_Holders (Dictionary);
       with package String_Lists
         is new Ada.Containers.Indefinite_Doubly_Linked_Lists (String);
 
@@ -246,6 +241,8 @@ procedure Smaz is
         return Dictionary_Entry;
 
    package Dictionary_Subprograms is
+
+      package Holders is new Ada.Containers.Indefinite_Holders (Dictionary);
 
       procedure Evaluate_Dictionary
         (Job_Count : in Natural;
@@ -584,7 +581,6 @@ procedure Smaz is
       String_Count => Natools.Smaz_Tools.String_Count,
       Word_Counter => Natools.Smaz_Tools.Word_Counter,
       Dictionary_Counts => Tools_256.Dictionary_Counts,
-      Holders => Holders,
       String_Lists => Natools.Smaz_Tools.String_Lists,
       Add_Substrings => Natools.Smaz_Tools.Add_Substrings,
       Add_Words => Natools.Smaz_Tools.Add_Words,
