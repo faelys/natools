@@ -131,10 +131,6 @@ procedure Smaz is
       --  Return the last valid entry
 
    procedure Print_Dictionary
-     (Filename : in String;
-      Dictionary : in Natools.Smaz_256.Dictionary;
-      Hash_Package_Name : in String := "");
-   procedure Print_Dictionary
      (Output : in Ada.Text_IO.File_Type;
       Dictionary : in Natools.Smaz_256.Dictionary;
       Hash_Package_Name : in String := "");
@@ -207,6 +203,12 @@ procedure Smaz is
          Threshold_Count : in String_Count);
 
       with function Last_Code (Dict : in Dictionary) return Dictionary_Entry;
+
+      with procedure Print_Dictionary
+        (Output : in Ada.Text_IO.File_Type;
+         Dict : in Dictionary;
+         Hash_Package_Name : in String := "")
+        is <>;
 
       with function Remove_Element
         (Dict : in Dictionary;
@@ -283,6 +285,12 @@ procedure Smaz is
          Counts : out Dictionary_Counts);
          --  Return the same results as Natools.Smaz.Tools.Evaluate_Dictionary,
          --  but hopefully more quickly, using Job_Count tasks.
+
+      procedure Print_Dictionary
+        (Filename : in String;
+         Dict : in Dictionary;
+         Hash_Package_Name : in String := "");
+         --  print the given dictionary in the given file
 
       function To_Dictionary
         (Handler : in Callback'Class;
@@ -508,6 +516,26 @@ procedure Smaz is
       end Parallel_Evaluate_Dictionary;
 
 
+      procedure Print_Dictionary
+        (Filename : in String;
+         Dict : in Dictionary;
+         Hash_Package_Name : in String := "") is
+      begin
+         if Filename = "-" then
+            Print_Dictionary
+              (Ada.Text_IO.Current_Output, Dict, Hash_Package_Name);
+         elsif Filename'Length > 0 then
+            declare
+               File : Ada.Text_IO.File_Type;
+            begin
+               Ada.Text_IO.Create (File, Name => Filename);
+               Print_Dictionary (File, Dict, Hash_Package_Name);
+               Ada.Text_IO.Close (File);
+            end;
+         end if;
+      end Print_Dictionary;
+
+
       function To_Dictionary
         (Handler : in Callback'Class;
          Input : in String_Lists.List;
@@ -730,26 +758,6 @@ procedure Smaz is
 
 
    procedure Print_Dictionary
-     (Filename : in String;
-      Dictionary : in Natools.Smaz_256.Dictionary;
-      Hash_Package_Name : in String := "") is
-   begin
-      if Filename = "-" then
-         Print_Dictionary
-           (Ada.Text_IO.Current_Output, Dictionary, Hash_Package_Name);
-      elsif Filename'Length > 0 then
-         declare
-            File : Ada.Text_IO.File_Type;
-         begin
-            Ada.Text_IO.Create (File, Name => Filename);
-            Print_Dictionary (File, Dictionary, Hash_Package_Name);
-            Ada.Text_IO.Close (File);
-         end;
-      end if;
-   end Print_Dictionary;
-
-
-   procedure Print_Dictionary
      (Output : in Ada.Text_IO.File_Type;
       Dictionary : in Natools.Smaz_256.Dictionary;
       Hash_Package_Name : in String := "")
@@ -939,7 +947,7 @@ procedure Smaz is
       Dictionary.Hash := Natools.Smaz_Tools.Trie_Search'Access;
 
       if Ada_Dictionary'Length > 0 then
-         Print_Dictionary (Ada_Dictionary, Dictionary, Hash_Package);
+         Dict_256.Print_Dictionary (Ada_Dictionary, Dictionary, Hash_Package);
       end if;
 
       if Hash_Package'Length > 0 then
