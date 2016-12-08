@@ -141,12 +141,6 @@ procedure Smaz is
       Output : in Ada.Text_IO.File_Type);
       --  Print the help text to the given file
 
-   procedure Process
-     (Handler : in Callback'Class;
-      Word_List : in Natools.Smaz_Tools.String_Lists.List;
-      Data_List : in Natools.Smaz_Tools.String_Lists.List);
-      --  Perform the requested operations
-
    procedure Use_Dictionary (Dict : in out Natools.Smaz_256.Dictionary);
       --  Update Dictionary.Hash so that it can be actually used
 
@@ -156,6 +150,7 @@ procedure Smaz is
       type Dictionary (<>) is private;
       type Dictionary_Entry is (<>);
       type Methods is (<>);
+      type Score_Value is range <>;
       type String_Count is range <>;
       type Word_Counter is private;
 
@@ -180,6 +175,20 @@ procedure Smaz is
         (Dict : in Dictionary;
          Element : in String)
         return Dictionary;
+
+      with procedure Build_Perfect_Hash
+        (Word_List : in String_Lists.List;
+         Package_Name : in String);
+
+      with function Compress
+        (Dict : in Dictionary;
+         Input : in String)
+        return Ada.Streams.Stream_Element_Array;
+
+      with function Decompress
+        (Dict : in Dictionary;
+         Input : in Ada.Streams.Stream_Element_Array)
+        return String;
 
       with function Dict_Entry
         (Dict : in Dictionary;
@@ -214,6 +223,12 @@ procedure Smaz is
         (Dict : in Dictionary;
          Element : in Dictionary_Entry)
         return Dictionary;
+
+      Score_Encoded, Score_Frequency, Score_Gain : in access function
+        (D : in Dictionary;
+         C : in Dictionary_Counts;
+         E : in Dictionary_Entry)
+        return Score_Value;
 
       with function Simple_Dictionary
         (Counter : in Word_Counter;
@@ -255,6 +270,12 @@ procedure Smaz is
          --  Dispatch to parallel or non-parallel version of
          --  Evaluate_Dictionary depending on Job_Count.
 
+      function Image
+        (Dict : in Dictionary;
+         Code : in Dictionary_Entry)
+        return Natools.S_Expressions.Atom;
+         --  S-expression image of Code
+
       procedure Optimization_Round
         (Dict : in out Holders.Holder;
          Score : in out Ada.Streams.Stream_Element_Count;
@@ -292,6 +313,13 @@ procedure Smaz is
          Hash_Package_Name : in String := "");
          --  print the given dictionary in the given file
 
+      procedure Process
+        (Handler : in Callback'Class;
+         Word_List : in String_Lists.List;
+         Data_List : in String_Lists.List;
+         Method : in Methods);
+         --  Perform the requested operations
+
       function To_Dictionary
         (Handler : in Callback'Class;
          Input : in String_Lists.List;
@@ -324,6 +352,15 @@ procedure Smaz is
               (Actual_Dict, Corpus, Compressed_Size, Counts);
          end if;
       end Evaluate_Dictionary;
+
+
+      function Image
+        (Dict : in Dictionary;
+         Code : in Dictionary_Entry)
+        return Natools.S_Expressions.Atom is
+      begin
+         return Compress (Dict, Dict_Entry (Dict, Code));
+      end Image;
 
 
       procedure Optimization_Round
@@ -536,6 +573,274 @@ procedure Smaz is
       end Print_Dictionary;
 
 
+      procedure Process
+        (Handler : in Callback'Class;
+         Word_List : in String_Lists.List;
+         Data_List : in String_Lists.List;
+         Method : in Methods)
+      is
+         Dict : Dictionary := To_Dictionary (Handler, Word_List, Method);
+         Sx_Output : Natools.S_Expressions.Printers.Canonical
+           (Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Output));
+         Ada_Dictionary : constant String
+           := Ada.Strings.Unbounded.To_String (Handler.Ada_Dictionary);
+         Hash_Package : constant String
+           := Ada.Strings.Unbounded.To_String (Handler.Hash_Package);
+      begin
+         Use_Dictionary (Dict);
+
+         if Ada_Dictionary'Length > 0 then
+            Print_Dictionary (Ada_Dictionary, Dict, Hash_Package);
+         end if;
+
+         if Hash_Package'Length > 0 then
+            Build_Perfect_Hash (Word_List, Hash_Package);
+         end if;
+
+         if Handler.Sx_Dict_Output then
+            Sx_Output.Open_List;
+            for I in Dictionary_Entry'First .. Last_Code (Dict) loop
+               Sx_Output.Append_String (Dict_Entry (Dict, I));
+            end loop;
+            Sx_Output.Close_List;
+         end if;
+
+         case Handler.Action is
+            when Actions.Nothing => null;
+
+            when Actions.Decode =>
+               if Handler.Sx_Output then
+                  Sx_Output.Open_List;
+                  for S of Data_List loop
+                     Sx_Output.Append_String (Decompress (Dict, To_SEA (S)));
+                  end loop;
+                  Sx_Output.Close_List;
+               end if;
+
+               if Handler.Stat_Output then
+                  declare
+                     procedure Print_Line (Original, Output : Natural);
+
+                     procedure Print_Line (Original, Output : Natural) is
+                     begin
+                        Ada.Text_IO.Put_Line
+                          (Natural'Image (Original)
+                           & Ada.Characters.Latin_1.HT
+                           & Natural'Image (Output)
+                           & Ada.Characters.Latin_1.HT
+                           & Float'Image (Float (Original) / Float (Output)));
+                     end Print_Line;
+                     Original_Total : Natural := 0;
+                     Output_Total : Natural := 0;
+                  begin
+                     for S of Data_List loop
+                        declare
+                           Original_Size : constant Natural := S'Length;
+                           Output_Size : constant Natural
+                             := Decompress (Dict, To_SEA (S))'Length;
+                        begin
+                           Print_Line (Original_Size, Output_Size);
+                           Original_Total := Original_Total + Original_Size;
+                           Output_Total := Output_Total + Output_Size;
+                        end;
+                     end loop;
+
+                     Print_Line (Original_Total, Output_Total);
+                  end;
+               end if;
+
+            when Actions.Encode =>
+               if Handler.Sx_Output then
+                  Sx_Output.Open_List;
+                  for S of Data_List loop
+                     Sx_Output.Append_Atom (Compress (Dict, S));
+                  end loop;
+                  Sx_Output.Close_List;
+               end if;
+
+               if Handler.Stat_Output then
+                  declare
+                     procedure Print_Line (Original, Output, Base64 : Natural);
+
+                     procedure Print_Line
+                       (Original, Output, Base64 : in Natural) is
+                     begin
+                        Ada.Text_IO.Put_Line
+                          (Natural'Image (Original)
+                           & Ada.Characters.Latin_1.HT
+                           & Natural'Image (Output)
+                           & Ada.Characters.Latin_1.HT
+                           & Natural'Image (Base64)
+                           & Ada.Characters.Latin_1.HT
+                           & Float'Image (Float (Output) / Float (Original))
+                           & Ada.Characters.Latin_1.HT
+                           & Float'Image (Float (Base64) / Float (Original)));
+                     end Print_Line;
+                     Original_Total : Natural := 0;
+                     Output_Total : Natural := 0;
+                     Base64_Total : Natural := 0;
+                  begin
+                     for S of Data_List loop
+                        declare
+                           Original_Size : constant Natural := S'Length;
+                           Output_Size : constant Natural
+                             := Compress (Dict, S)'Length;
+                           Base64_Size : constant Natural
+                             := ((Output_Size + 2) / 3) * 4;
+                        begin
+                           Print_Line
+                             (Original_Size, Output_Size, Base64_Size);
+                           Original_Total := Original_Total + Original_Size;
+                           Output_Total := Output_Total + Output_Size;
+                           Base64_Total := Base64_Total + Base64_Size;
+                        end;
+                     end loop;
+
+                     Print_Line (Original_Total, Output_Total, Base64_Total);
+                  end;
+               end if;
+
+            when Actions.Evaluate =>
+               declare
+                  Total_Size : Ada.Streams.Stream_Element_Count;
+                  Counts : Dictionary_Counts;
+               begin
+                  Evaluate_Dictionary (Handler.Job_Count,
+                     Dict, Data_List, Total_Size, Counts);
+
+                  if Handler.Sx_Output then
+                     Sx_Output.Open_List;
+                     Sx_Output.Append_String (Ada.Strings.Fixed.Trim
+                       (Ada.Streams.Stream_Element_Count'Image (Total_Size),
+                        Ada.Strings.Both));
+
+                     for E in Dictionary_Entry'First .. Last_Code (Dict) loop
+                        Sx_Output.Open_List;
+                        Sx_Output.Append_Atom (Image (Dict, E));
+                        Sx_Output.Append_String (Dict_Entry (Dict, E));
+                        Sx_Output.Append_String (Ada.Strings.Fixed.Trim
+                          (String_Count'Image (Counts (E)),
+                           Ada.Strings.Both));
+                        Sx_Output.Close_List;
+                     end loop;
+                     Sx_Output.Close_List;
+                  end if;
+
+                  if Handler.Stat_Output then
+                     declare
+                        procedure Print
+                          (Label : in String;
+                           E : in Dictionary_Entry;
+                           Score : in Score_Value);
+
+                        procedure Print_Min_Max
+                          (Label : in String;
+                           Score : not null access function
+                             (D : in Dictionary;
+                              C : in Dictionary_Counts;
+                              E : in Dictionary_Entry)
+                             return Score_Value);
+
+                        procedure Print_Value
+                          (Label : in String;
+                           Score : not null access function
+                             (D : in Dictionary;
+                              C : in Dictionary_Counts;
+                              E : in Dictionary_Entry)
+                             return Score_Value;
+                           Ref : in Score_Value);
+
+
+                        procedure Print
+                          (Label : in String;
+                           E : in Dictionary_Entry;
+                           Score : in Score_Value) is
+                        begin
+                           if Handler.Sx_Output then
+                              Sx_Output.Open_List;
+                              Sx_Output.Append_Atom (Image (Dict, E));
+                              Sx_Output.Append_String (Dict_Entry (Dict, E));
+                              Sx_Output.Append_String (Ada.Strings.Fixed.Trim
+                                (Score'Img, Ada.Strings.Both));
+                              Sx_Output.Close_List;
+                           else
+                              Ada.Text_IO.Put_Line
+                                (Label
+                                 & Ada.Characters.Latin_1.HT
+                                 & Dictionary_Entry'Image (E)
+                                 & Ada.Characters.Latin_1.HT
+                                 & Natools.String_Escapes.C_Escape_Hex
+                                   (Dict_Entry (Dict, E), True)
+                                 & Ada.Characters.Latin_1.HT
+                                 & Score'Img);
+                           end if;
+                        end Print;
+
+                        procedure Print_Min_Max
+                          (Label : in String;
+                           Score : not null access function
+                             (D : in Dictionary;
+                              C : in Dictionary_Counts;
+                              E : in Dictionary_Entry)
+                             return Score_Value)
+                        is
+                           Min_Score, Max_Score : Score_Value
+                             := Score (Dict, Counts, Dictionary_Entry'First);
+                           S : Score_Value;
+                        begin
+                           for E in Dictionary_Entry'Succ
+                                      (Dictionary_Entry'First)
+                                 .. Last_Code (Dict)
+                           loop
+                              S := Score (Dict, Counts, E);
+                              if S < Min_Score then
+                                 Min_Score := S;
+                              end if;
+                              if S > Max_Score then
+                                 Max_Score := S;
+                              end if;
+                           end loop;
+
+                           Print_Value ("best-" & Label, Score, Max_Score);
+                           Print_Value ("worst-" & Label, Score, Min_Score);
+                        end Print_Min_Max;
+
+                        procedure Print_Value
+                          (Label : in String;
+                           Score : not null access function
+                             (D : in Dictionary;
+                              C : in Dictionary_Counts;
+                              E : in Dictionary_Entry)
+                             return Score_Value;
+                           Ref : in Score_Value) is
+                        begin
+                           if Handler.Sx_Output then
+                              Sx_Output.Open_List;
+                              Sx_Output.Append_String (Label);
+                           end if;
+
+                           for E in Dictionary_Entry'First .. Last_Code (Dict)
+                           loop
+                              if Score (Dict, Counts, E) = Ref then
+                                 Print (Label, E, Ref);
+                              end if;
+                           end loop;
+
+                           if Handler.Sx_Output then
+                              Sx_Output.Close_List;
+                           end if;
+                        end Print_Value;
+                     begin
+                        Print_Min_Max ("encoded", Score_Encoded);
+                        Print_Min_Max ("frequency", Score_Frequency);
+                        Print_Min_Max ("gain", Score_Gain);
+                     end;
+                  end if;
+               end;
+         end case;
+      end Process;
+
+
       function To_Dictionary
         (Handler : in Callback'Class;
          Input : in String_Lists.List;
@@ -606,6 +911,7 @@ procedure Smaz is
      (Dictionary => Natools.Smaz_256.Dictionary,
       Dictionary_Entry => Ada.Streams.Stream_Element,
       Methods => Natools.Smaz_Tools.Methods.Enum,
+      Score_Value => Natools.Smaz_Tools.Score_Value,
       String_Count => Natools.Smaz_Tools.String_Count,
       Word_Counter => Natools.Smaz_Tools.Word_Counter,
       Dictionary_Counts => Tools_256.Dictionary_Counts,
@@ -613,12 +919,18 @@ procedure Smaz is
       Add_Substrings => Natools.Smaz_Tools.Add_Substrings,
       Add_Words => Natools.Smaz_Tools.Add_Words,
       Append_String => Tools_256.Append_String,
+      Build_Perfect_Hash => Natools.Smaz_Tools.GNAT.Build_Perfect_Hash,
+      Compress => Natools.Smaz_256.Compress,
+      Decompress => Natools.Smaz_256.Decompress,
       Dict_Entry => Natools.Smaz_256.Dict_Entry,
       Evaluate_Dictionary => Tools_256.Evaluate_Dictionary,
       Evaluate_Dictionary_Partial => Tools_256.Evaluate_Dictionary_Partial,
       Filter_By_Count => Natools.Smaz_Tools.Filter_By_Count,
       Last_Code => Last_Code,
       Remove_Element => Tools_256.Remove_Element,
+      Score_Encoded => Tools_256.Score_Encoded'Access,
+      Score_Frequency => Tools_256.Score_Frequency'Access,
+      Score_Gain => Tools_256.Score_Gain'Access,
       Simple_Dictionary => Natools.Smaz_Tools.Simple_Dictionary,
       Simple_Dictionary_And_Pending
         => Natools.Smaz_Tools.Simple_Dictionary_And_Pending,
@@ -929,282 +1241,6 @@ procedure Smaz is
    end Print_Help;
 
 
-   procedure Process
-     (Handler : in Callback'Class;
-      Word_List : in Natools.Smaz_Tools.String_Lists.List;
-      Data_List : in Natools.Smaz_Tools.String_Lists.List)
-   is
-      Dictionary : Natools.Smaz_256.Dictionary
-        := Dict_256.To_Dictionary (Handler, Word_List, Handler.Score_Method);
-      Sx_Output : Natools.S_Expressions.Printers.Canonical
-        (Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Output));
-      Ada_Dictionary : constant String
-        := Ada.Strings.Unbounded.To_String (Handler.Ada_Dictionary);
-      Hash_Package : constant String
-        := Ada.Strings.Unbounded.To_String (Handler.Hash_Package);
-   begin
-      Natools.Smaz_Tools.Set_Dictionary_For_Trie_Search (Word_List);
-      Dictionary.Hash := Natools.Smaz_Tools.Trie_Search'Access;
-
-      if Ada_Dictionary'Length > 0 then
-         Dict_256.Print_Dictionary (Ada_Dictionary, Dictionary, Hash_Package);
-      end if;
-
-      if Hash_Package'Length > 0 then
-         Natools.Smaz_Tools.GNAT.Build_Perfect_Hash (Word_List, Hash_Package);
-      end if;
-
-      if Handler.Sx_Dict_Output then
-         Sx_Output.Open_List;
-         for I in Dictionary.Offsets'Range loop
-            Sx_Output.Append_String
-              (Natools.Smaz_256.Dict_Entry (Dictionary, I));
-         end loop;
-         Sx_Output.Close_List;
-      end if;
-
-      case Handler.Action is
-         when Actions.Nothing => null;
-
-         when Actions.Decode =>
-            if Handler.Sx_Output then
-               Sx_Output.Open_List;
-               for S of Data_List loop
-                  Sx_Output.Append_String
-                    (Natools.Smaz_256.Decompress (Dictionary, To_SEA (S)));
-               end loop;
-               Sx_Output.Close_List;
-            end if;
-
-            if Handler.Stat_Output then
-               declare
-                  procedure Print_Line (Original, Output : Natural);
-
-                  procedure Print_Line (Original, Output : Natural) is
-                  begin
-                     Ada.Text_IO.Put_Line
-                       (Natural'Image (Original)
-                        & Ada.Characters.Latin_1.HT
-                        & Natural'Image (Output)
-                        & Ada.Characters.Latin_1.HT
-                        & Float'Image (Float (Original) / Float (Output)));
-                  end Print_Line;
-                  Original_Total : Natural := 0;
-                  Output_Total : Natural := 0;
-               begin
-                  for S of Data_List loop
-                     declare
-                        Original_Size : constant Natural := S'Length;
-                        Output_Size : constant Natural
-                          := Natools.Smaz_256.Decompress
-                             (Dictionary, To_SEA (S))'Length;
-                     begin
-                        Print_Line (Original_Size, Output_Size);
-                        Original_Total := Original_Total + Original_Size;
-                        Output_Total := Output_Total + Output_Size;
-                     end;
-                  end loop;
-
-                  Print_Line (Original_Total, Output_Total);
-               end;
-            end if;
-
-         when Actions.Encode =>
-            if Handler.Sx_Output then
-               Sx_Output.Open_List;
-               for S of Data_List loop
-                  Sx_Output.Append_Atom
-                    (Natools.Smaz_256.Compress (Dictionary, S));
-               end loop;
-               Sx_Output.Close_List;
-            end if;
-
-            if Handler.Stat_Output then
-               declare
-                  procedure Print_Line (Original, Output, Base64 : Natural);
-
-                  procedure Print_Line (Original, Output, Base64 : Natural) is
-                  begin
-                     Ada.Text_IO.Put_Line
-                       (Natural'Image (Original)
-                        & Ada.Characters.Latin_1.HT
-                        & Natural'Image (Output)
-                        & Ada.Characters.Latin_1.HT
-                        & Natural'Image (Base64)
-                        & Ada.Characters.Latin_1.HT
-                        & Float'Image (Float (Output) / Float (Original))
-                        & Ada.Characters.Latin_1.HT
-                        & Float'Image (Float (Base64) / Float (Original)));
-                  end Print_Line;
-                  Original_Total : Natural := 0;
-                  Output_Total : Natural := 0;
-                  Base64_Total : Natural := 0;
-               begin
-                  for S of Data_List loop
-                     declare
-                        Original_Size : constant Natural := S'Length;
-                        Output_Size : constant Natural
-                          := Natools.Smaz_256.Compress (Dictionary, S)'Length;
-                        Base64_Size : constant Natural
-                          := ((Output_Size + 2) / 3) * 4;
-                     begin
-                        Print_Line (Original_Size, Output_Size, Base64_Size);
-                        Original_Total := Original_Total + Original_Size;
-                        Output_Total := Output_Total + Output_Size;
-                        Base64_Total := Base64_Total + Base64_Size;
-                     end;
-                  end loop;
-
-                  Print_Line (Original_Total, Output_Total, Base64_Total);
-               end;
-            end if;
-
-         when Actions.Evaluate =>
-            declare
-               Total_Size : Ada.Streams.Stream_Element_Count;
-               Counts : Tools_256.Dictionary_Counts;
-            begin
-               Dict_256.Evaluate_Dictionary (Handler.Job_Count,
-                  Dictionary, Data_List, Total_Size, Counts);
-
-               if Handler.Sx_Output then
-                  Sx_Output.Open_List;
-                  Sx_Output.Append_String (Ada.Strings.Fixed.Trim
-                    (Ada.Streams.Stream_Element_Count'Image (Total_Size),
-                     Ada.Strings.Both));
-
-                  for E in Dictionary.Offsets'Range loop
-                     Sx_Output.Open_List;
-                     Sx_Output.Append_Atom ((0 => E));
-                     Sx_Output.Append_String
-                       (Natools.Smaz_256.Dict_Entry (Dictionary, E));
-                     Sx_Output.Append_String (Ada.Strings.Fixed.Trim
-                       (Natools.Smaz_Tools.String_Count'Image (Counts (E)),
-                        Ada.Strings.Both));
-                     Sx_Output.Close_List;
-                  end loop;
-                  Sx_Output.Close_List;
-               end if;
-
-               if Handler.Stat_Output then
-                  declare
-                     procedure Print
-                       (Label : in String;
-                        E : in Ada.Streams.Stream_Element;
-                        Score : in Natools.Smaz_Tools.Score_Value);
-
-                     procedure Print_Min_Max
-                       (Label : in String;
-                        Score : not null access function
-                          (D : in Natools.Smaz_256.Dictionary;
-                           C : in Tools_256.Dictionary_Counts;
-                           E : in Ada.Streams.Stream_Element)
-                          return Natools.Smaz_Tools.Score_Value);
-
-                     procedure Print_Value
-                       (Label : in String;
-                        Score : not null access function
-                          (D : in Natools.Smaz_256.Dictionary;
-                           C : in Tools_256.Dictionary_Counts;
-                           E : in Ada.Streams.Stream_Element)
-                          return Natools.Smaz_Tools.Score_Value;
-                        Ref : in Natools.Smaz_Tools.Score_Value);
-
-
-                     procedure Print
-                       (Label : in String;
-                        E : in Ada.Streams.Stream_Element;
-                        Score : in Natools.Smaz_Tools.Score_Value) is
-                     begin
-                        if Handler.Sx_Output then
-                           Sx_Output.Open_List;
-                           Sx_Output.Append_Atom ((0 => E));
-                           Sx_Output.Append_String
-                             (Natools.Smaz_256.Dict_Entry (Dictionary, E));
-                           Sx_Output.Append_String (Ada.Strings.Fixed.Trim
-                             (Score'Img, Ada.Strings.Both));
-                           Sx_Output.Close_List;
-                        else
-                           Ada.Text_IO.Put_Line
-                             (Label
-                              & Ada.Characters.Latin_1.HT
-                              & Ada.Streams.Stream_Element'Image (E)
-                              & Ada.Characters.Latin_1.HT
-                              & Natools.String_Escapes.C_Escape_Hex
-                                (Natools.Smaz_256.Dict_Entry (Dictionary, E),
-                                 True)
-                              & Ada.Characters.Latin_1.HT
-                              & Score'Img);
-                        end if;
-                     end Print;
-
-                     procedure Print_Min_Max
-                       (Label : in String;
-                        Score : not null access function
-                          (D : in Natools.Smaz_256.Dictionary;
-                           C : in Tools_256.Dictionary_Counts;
-                           E : in Ada.Streams.Stream_Element)
-                          return Natools.Smaz_Tools.Score_Value)
-                     is
-                        use type Natools.Smaz_Tools.Score_Value;
-                        Min_Score, Max_Score : Natools.Smaz_Tools.Score_Value
-                          := Score (Dictionary, Counts, 0);
-                        S : Natools.Smaz_Tools.Score_Value;
-                     begin
-                        for E in 1 .. Dictionary.Last_Code loop
-                           S := Score (Dictionary, Counts, E);
-                           if S < Min_Score then
-                              Min_Score := S;
-                           end if;
-                           if S > Max_Score then
-                              Max_Score := S;
-                           end if;
-                        end loop;
-
-                        Print_Value ("best-" & Label, Score, Max_Score);
-                        Print_Value ("worst-" & Label, Score, Min_Score);
-                     end Print_Min_Max;
-
-                     procedure Print_Value
-                       (Label : in String;
-                        Score : not null access function
-                          (D : in Natools.Smaz_256.Dictionary;
-                           C : in Tools_256.Dictionary_Counts;
-                           E : in Ada.Streams.Stream_Element)
-                          return Natools.Smaz_Tools.Score_Value;
-                        Ref : in Natools.Smaz_Tools.Score_Value)
-                     is
-                        use type Natools.Smaz_Tools.Score_Value;
-                     begin
-                        if Handler.Sx_Output then
-                           Sx_Output.Open_List;
-                           Sx_Output.Append_String (Label);
-                        end if;
-
-                        for E in Dictionary.Offsets'Range loop
-                           if Score (Dictionary, Counts, E) = Ref then
-                              Print (Label, E, Ref);
-                           end if;
-                        end loop;
-
-                        if Handler.Sx_Output then
-                           Sx_Output.Close_List;
-                        end if;
-                     end Print_Value;
-                  begin
-                     Print_Min_Max ("encoded",
-                       Tools_256.Score_Encoded'Access);
-                     Print_Min_Max ("frequency",
-                       Tools_256.Score_Frequency'Access);
-                     Print_Min_Max ("gain",
-                       Tools_256.Score_Gain'Access);
-                  end;
-               end if;
-            end;
-      end case;
-   end Process;
-
-
    procedure Use_Dictionary (Dict : in out Natools.Smaz_256.Dictionary) is
    begin
       Natools.Smaz_Tools.Set_Dictionary_For_Trie_Search
@@ -1270,6 +1306,6 @@ begin
       end if;
    end Read_Input_List;
 
-   Process (Handler, Input_List, Input_Data);
+   Dict_256.Process (Handler, Input_List, Input_Data, Handler.Score_Method);
 
 end Smaz;
