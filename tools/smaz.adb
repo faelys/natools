@@ -52,6 +52,12 @@ procedure Smaz is
          Evaluate);
    end Actions;
 
+   package Algorithms is
+      type Enum is
+        (Base_256,
+         Base_256_Retired);
+   end Algorithms;
+
    package Dict_Sources is
       type Enum is
         (S_Expression,
@@ -61,7 +67,8 @@ procedure Smaz is
 
    package Options is
       type Id is
-        (Output_Ada_Dict,
+        (Base_256,
+         Output_Ada_Dict,
          Dictionary_Input,
          Decode,
          Encode,
@@ -75,6 +82,7 @@ procedure Smaz is
          Max_Sub_Size,
          Dict_Size,
          Max_Pending,
+         Base_256_Retired,
          Stat_Output,
          No_Stat_Output,
          Text_List_Input,
@@ -90,6 +98,7 @@ procedure Smaz is
    package Getopt is new Natools.Getopt_Long (Options.Id);
 
    type Callback is new Getopt.Handlers.Callback with record
+      Algorithm : Algorithms.Enum := Algorithms.Base_256;
       Display_Help : Boolean := False;
       Need_Dictionary : Boolean := False;
       Stat_Output : Boolean := False;
@@ -1031,6 +1040,12 @@ procedure Smaz is
 
          when Options.No_Vlen_Verbatim =>
             Handler.Vlen_Verbatim := False;
+
+         when Options.Base_256 =>
+            Handler.Algorithm := Algorithms.Base_256;
+
+         when Options.Base_256_Retired =>
+            Handler.Algorithm := Algorithms.Base_256_Retired;
       end case;
    end Option;
 
@@ -1040,6 +1055,7 @@ procedure Smaz is
       use Options;
       R : Getopt.Configuration;
    begin
+      R.Add_Option ("base-256",      '2', No_Argument,       Base_256);
       R.Add_Option ("ada-dict",      'A', Optional_Argument, Output_Ada_Dict);
       R.Add_Option ("decode",        'd', No_Argument,       Decode);
       R.Add_Option ("dict",          'D', No_Argument,       Dictionary_Input);
@@ -1054,6 +1070,7 @@ procedure Smaz is
       R.Add_Option ("max-substring", 'M', Required_Argument, Max_Sub_Size);
       R.Add_Option ("dict-size",     'n', Required_Argument, Dict_Size);
       R.Add_Option ("max-pending",   'N', Required_Argument, Max_Pending);
+      R.Add_Option ("retired",       'R', No_Argument,       Base_256_Retired);
       R.Add_Option ("stats",         's', No_Argument,       Stat_Output);
       R.Add_Option ("no-stats",      'S', No_Argument,       No_Stat_Output);
       R.Add_Option ("text-list",     't', No_Argument,       Text_List_Input);
@@ -1236,6 +1253,16 @@ procedure Smaz is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Disable variable-length verbatim in built dictionary");
+
+            when Options.Base_256 =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Use base-256 implementation (default)");
+
+            when Options.Base_256_Retired =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Use retired base-256 implementation");
          end case;
       end loop;
    end Print_Help;
@@ -1306,6 +1333,12 @@ begin
       end if;
    end Read_Input_List;
 
-   Dict_256.Process (Handler, Input_List, Input_Data, Handler.Score_Method);
+   case Handler.Algorithm is
+      when Algorithms.Base_256 =>
+         Dict_256.Process
+           (Handler, Input_List, Input_Data, Handler.Score_Method);
+      when Algorithms.Base_256_Retired =>
+         raise Program_Error with "Not implented yet";
+   end case;
 
 end Smaz;
