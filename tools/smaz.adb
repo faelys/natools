@@ -30,6 +30,8 @@ with Natools.Getopt_Long;
 with Natools.Parallelism;
 with Natools.S_Expressions.Parsers;
 with Natools.S_Expressions.Printers;
+with Natools.Smaz;
+with Natools.Smaz.Tools;
 with Natools.Smaz_256;
 with Natools.Smaz_Generic.Tools;
 with Natools.Smaz_Tools;
@@ -131,17 +133,34 @@ procedure Smaz is
      is null;
 
 
+   procedure Build_Perfect_Hash
+     (Word_List : in Natools.Smaz.Tools.String_Lists.List;
+      Package_Name : in String);
+      --  Adapter between Smaz_256 generator and retired Smaz types
+
+   procedure Convert
+     (Input : in Natools.Smaz_Tools.String_Lists.List;
+      Output : out Natools.Smaz.Tools.String_Lists.List);
+      --  Convert between old and new string lists
+
    function Getopt_Config return Getopt.Configuration;
       --  Build the configuration object
 
    function Last_Code (Dict : in Natools.Smaz_256.Dictionary)
      return Ada.Streams.Stream_Element
      is (Dict.Last_Code);
+   function Last_Code (Dict : in Natools.Smaz.Dictionary)
+     return Ada.Streams.Stream_Element
+     is (Dict.Dict_Last);
       --  Return the last valid entry
 
    procedure Print_Dictionary
      (Output : in Ada.Text_IO.File_Type;
       Dictionary : in Natools.Smaz_256.Dictionary;
+      Hash_Package_Name : in String := "");
+   procedure Print_Dictionary
+     (Output : in Ada.Text_IO.File_Type;
+      Dictionary : in Natools.Smaz.Dictionary;
       Hash_Package_Name : in String := "");
       --  print the given dictionary in the given file
 
@@ -151,6 +170,7 @@ procedure Smaz is
       --  Print the help text to the given file
 
    procedure Use_Dictionary (Dict : in out Natools.Smaz_256.Dictionary);
+   procedure Use_Dictionary (Dict : in out Natools.Smaz.Dictionary);
       --  Update Dictionary.Hash so that it can be actually used
 
 
@@ -946,6 +966,37 @@ procedure Smaz is
       To_Dictionary => Tools_256.To_Dictionary,
       Worst_Element => Tools_256.Worst_Index);
 
+   package Dict_Retired is new Dictionary_Subprograms
+     (Dictionary => Natools.Smaz.Dictionary,
+      Dictionary_Entry => Ada.Streams.Stream_Element,
+      Methods => Natools.Smaz.Tools.Methods.Enum,
+      Score_Value => Natools.Smaz.Tools.Score_Value,
+      String_Count => Natools.Smaz.Tools.String_Count,
+      Word_Counter => Natools.Smaz.Tools.Word_Counter,
+      Dictionary_Counts => Natools.Smaz.Tools.Dictionary_Counts,
+      String_Lists => Natools.Smaz.Tools.String_Lists,
+      Add_Substrings => Natools.Smaz.Tools.Add_Substrings,
+      Add_Words => Natools.Smaz.Tools.Add_Words,
+      Append_String => Natools.Smaz.Tools.Append_String,
+      Build_Perfect_Hash => Build_Perfect_Hash,
+      Compress => Natools.Smaz.Compress,
+      Decompress => Natools.Smaz.Decompress,
+      Dict_Entry => Natools.Smaz.Dict_Entry,
+      Evaluate_Dictionary => Natools.Smaz.Tools.Evaluate_Dictionary,
+      Evaluate_Dictionary_Partial
+        => Natools.Smaz.Tools.Evaluate_Dictionary_Partial,
+      Filter_By_Count => Natools.Smaz.Tools.Filter_By_Count,
+      Last_Code => Last_Code,
+      Remove_Element => Natools.Smaz.Tools.Remove_Element,
+      Score_Encoded => Natools.Smaz.Tools.Score_Encoded'Access,
+      Score_Frequency => Natools.Smaz.Tools.Score_Frequency'Access,
+      Score_Gain => Natools.Smaz.Tools.Score_Gain'Access,
+      Simple_Dictionary => Natools.Smaz.Tools.Simple_Dictionary,
+      Simple_Dictionary_And_Pending
+        => Natools.Smaz.Tools.Simple_Dictionary_And_Pending,
+      To_Dictionary => Natools.Smaz.Tools.To_Dictionary,
+      Worst_Element => Natools.Smaz.Tools.Worst_Index);
+
 
 
    overriding procedure Option
@@ -1050,6 +1101,33 @@ procedure Smaz is
    end Option;
 
 
+   procedure Build_Perfect_Hash
+     (Word_List : in Natools.Smaz.Tools.String_Lists.List;
+      Package_Name : in String)
+   is
+      Other_Word_List : Natools.Smaz_Tools.String_Lists.List;
+   begin
+      for S of Word_List loop
+         Natools.Smaz_Tools.String_Lists.Append (Other_Word_List, S);
+      end loop;
+
+      Natools.Smaz_Tools.GNAT.Build_Perfect_Hash
+        (Other_Word_List, Package_Name);
+   end Build_Perfect_Hash;
+
+
+   procedure Convert
+     (Input : in Natools.Smaz_Tools.String_Lists.List;
+      Output : out Natools.Smaz.Tools.String_Lists.List) is
+   begin
+      Natools.Smaz.Tools.String_Lists.Clear (Output);
+
+      for S of Input loop
+         Natools.Smaz.Tools.String_Lists.Append (Output, S);
+      end loop;
+   end Convert;
+
+
    function Getopt_Config return Getopt.Configuration is
       use Getopt;
       use Options;
@@ -1100,6 +1178,31 @@ procedure Smaz is
 
       procedure Print_Dictionary_In_Ada is
         new Tools_256.Print_Dictionary_In_Ada (Put_Line);
+   begin
+      if Hash_Package_Name'Length > 0 then
+         Print_Dictionary_In_Ada
+           (Dictionary,
+            Hash_Image => Hash_Package_Name & ".Hash'Access");
+      else
+         Print_Dictionary_In_Ada (Dictionary);
+      end if;
+   end Print_Dictionary;
+
+
+   procedure Print_Dictionary
+     (Output : in Ada.Text_IO.File_Type;
+      Dictionary : in Natools.Smaz.Dictionary;
+      Hash_Package_Name : in String := "")
+   is
+      procedure Put_Line (Line : in String);
+
+      procedure Put_Line (Line : in String) is
+      begin
+         Ada.Text_IO.Put_Line (Output, Line);
+      end Put_Line;
+
+      procedure Print_Dictionary_In_Ada is
+        new Natools.Smaz.Tools.Print_Dictionary_In_Ada (Put_Line);
    begin
       if Hash_Package_Name'Length > 0 then
          Print_Dictionary_In_Ada
@@ -1290,6 +1393,27 @@ procedure Smaz is
    end Use_Dictionary;
 
 
+   procedure Use_Dictionary (Dict : in out Natools.Smaz.Dictionary) is
+   begin
+      Natools.Smaz.Tools.Set_Dictionary_For_Trie_Search (Dict);
+      Dict.Hash := Natools.Smaz.Tools.Trie_Search'Access;
+
+      for I in Dict.Offsets'Range loop
+         if Natools.Smaz_Tools.Trie_Search (Natools.Smaz.Dict_Entry
+           (Dict, I)) /= Natural (I)
+         then
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Current_Error,
+               "Fail at" & Ada.Streams.Stream_Element'Image (I)
+               & " -> " & Natools.String_Escapes.C_Escape_Hex
+                  (Natools.Smaz.Dict_Entry (Dict, I), True)
+               & " ->" & Natural'Image (Natools.Smaz.Tools.Trie_Search
+                  (Natools.Smaz.Dict_Entry (Dict, I))));
+         end if;
+      end loop;
+   end Use_Dictionary;
+
+
    Opt_Config : constant Getopt.Configuration := Getopt_Config;
    Handler : Callback;
    Input_List, Input_Data : Natools.Smaz_Tools.String_Lists.List;
@@ -1338,7 +1462,17 @@ begin
          Dict_256.Process
            (Handler, Input_List, Input_Data, Handler.Score_Method);
       when Algorithms.Base_256_Retired =>
-         raise Program_Error with "Not implented yet";
+         declare
+            Converted_Input_List : Natools.Smaz.Tools.String_Lists.List;
+            Converted_Input_Data : Natools.Smaz.Tools.String_Lists.List;
+         begin
+            Convert (Input_List, Converted_Input_List);
+            Convert (Input_Data, Converted_Input_Data);
+            Dict_Retired.Process
+              (Handler, Converted_Input_List, Converted_Input_Data,
+               Natools.Smaz.Tools.Methods.Enum'Val
+                 (Natools.Smaz_Tools.Methods.Enum'Pos (Handler.Score_Method)));
+         end;
    end case;
 
 end Smaz;
