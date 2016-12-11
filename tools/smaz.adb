@@ -133,6 +133,12 @@ procedure Smaz is
      is null;
 
 
+   function Activate_Dictionary (Dict : in Natools.Smaz_256.Dictionary)
+     return Natools.Smaz_256.Dictionary;
+   function Activate_Dictionary (Dict : in Natools.Smaz.Dictionary)
+     return Natools.Smaz.Dictionary;
+      --  Update Dictionary.Hash so that it can be actually used
+
    procedure Build_Perfect_Hash
      (Word_List : in Natools.Smaz.Tools.String_Lists.List;
       Package_Name : in String);
@@ -169,10 +175,6 @@ procedure Smaz is
       Output : in Ada.Text_IO.File_Type);
       --  Print the help text to the given file
 
-   procedure Use_Dictionary (Dict : in out Natools.Smaz_256.Dictionary);
-   procedure Use_Dictionary (Dict : in out Natools.Smaz.Dictionary);
-      --  Update Dictionary.Hash so that it can be actually used
-
 
 
    generic
@@ -187,6 +189,9 @@ procedure Smaz is
 
       with package String_Lists
         is new Ada.Containers.Indefinite_Doubly_Linked_Lists (String);
+
+      with function Activate_Dictionary (Dict : in Dictionary)
+        return Dictionary is <>;
 
       with procedure Add_Substrings
         (Counter : in out Word_Counter;
@@ -278,8 +283,6 @@ procedure Smaz is
          Variable_Length_Verbatim : in Boolean)
         return Dictionary;
 
-      with procedure Use_Dictionary (Dict : in out Dictionary) is <>;
-
       with function Worst_Element
         (Dict : in Dictionary;
          Counts : in Dictionary_Counts;
@@ -369,10 +372,8 @@ procedure Smaz is
          Compressed_Size : out Ada.Streams.Stream_Element_Count;
          Counts : out Dictionary_Counts)
       is
-         Actual_Dict : Dictionary := Dict;
+         Actual_Dict : constant Dictionary := Activate_Dictionary (Dict);
       begin
-         Use_Dictionary (Actual_Dict);
-
          if Job_Count > 0 then
             Parallel_Evaluate_Dictionary (Job_Count,
                Actual_Dict, Corpus, Compressed_Size, Counts);
@@ -608,7 +609,8 @@ procedure Smaz is
          Data_List : in String_Lists.List;
          Method : in Methods)
       is
-         Dict : Dictionary := To_Dictionary (Handler, Word_List, Method);
+         Dict : constant Dictionary := Activate_Dictionary
+           (To_Dictionary (Handler, Word_List, Method));
          Sx_Output : Natools.S_Expressions.Printers.Canonical
            (Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Output));
          Ada_Dictionary : constant String
@@ -616,8 +618,6 @@ procedure Smaz is
          Hash_Package : constant String
            := Ada.Strings.Unbounded.To_String (Handler.Hash_Package);
       begin
-         Use_Dictionary (Dict);
-
          if Ada_Dictionary'Length > 0 then
             Print_Dictionary (Ada_Dictionary, Dict, Hash_Package);
          end if;
@@ -1101,6 +1101,59 @@ procedure Smaz is
    end Option;
 
 
+   function Activate_Dictionary (Dict : in Natools.Smaz_256.Dictionary)
+     return Natools.Smaz_256.Dictionary
+   is
+      Result : Natools.Smaz_256.Dictionary := Dict;
+   begin
+      Natools.Smaz_Tools.Set_Dictionary_For_Trie_Search
+        (Tools_256.To_String_List (Result));
+      Result.Hash := Natools.Smaz_Tools.Trie_Search'Access;
+
+      for I in Result.Offsets'Range loop
+         if Natools.Smaz_Tools.Trie_Search (Natools.Smaz_256.Dict_Entry
+           (Result, I)) /= Natural (I)
+         then
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Current_Error,
+               "Fail at" & Ada.Streams.Stream_Element'Image (I)
+               & " -> " & Natools.String_Escapes.C_Escape_Hex
+                  (Natools.Smaz_256.Dict_Entry (Result, I), True)
+               & " ->" & Natural'Image (Natools.Smaz_Tools.Trie_Search
+                  (Natools.Smaz_256.Dict_Entry (Result, I))));
+         end if;
+      end loop;
+
+      return Result;
+   end Activate_Dictionary;
+
+
+   function Activate_Dictionary (Dict : in Natools.Smaz.Dictionary)
+     return Natools.Smaz.Dictionary
+   is
+      Result : Natools.Smaz.Dictionary := Dict;
+   begin
+      Natools.Smaz.Tools.Set_Dictionary_For_Trie_Search (Result);
+      Result.Hash := Natools.Smaz.Tools.Trie_Search'Access;
+
+      for I in Result.Offsets'Range loop
+         if Natools.Smaz_Tools.Trie_Search (Natools.Smaz.Dict_Entry
+           (Result, I)) /= Natural (I)
+         then
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Current_Error,
+               "Fail at" & Ada.Streams.Stream_Element'Image (I)
+               & " -> " & Natools.String_Escapes.C_Escape_Hex
+                  (Natools.Smaz.Dict_Entry (Result, I), True)
+               & " ->" & Natural'Image (Natools.Smaz.Tools.Trie_Search
+                  (Natools.Smaz.Dict_Entry (Result, I))));
+         end if;
+      end loop;
+
+      return Result;
+   end Activate_Dictionary;
+
+
    procedure Build_Perfect_Hash
      (Word_List : in Natools.Smaz.Tools.String_Lists.List;
       Package_Name : in String)
@@ -1369,49 +1422,6 @@ procedure Smaz is
          end case;
       end loop;
    end Print_Help;
-
-
-   procedure Use_Dictionary (Dict : in out Natools.Smaz_256.Dictionary) is
-   begin
-      Natools.Smaz_Tools.Set_Dictionary_For_Trie_Search
-        (Tools_256.To_String_List (Dict));
-      Dict.Hash := Natools.Smaz_Tools.Trie_Search'Access;
-
-      for I in Dict.Offsets'Range loop
-         if Natools.Smaz_Tools.Trie_Search (Natools.Smaz_256.Dict_Entry
-           (Dict, I)) /= Natural (I)
-         then
-            Ada.Text_IO.Put_Line
-              (Ada.Text_IO.Current_Error,
-               "Fail at" & Ada.Streams.Stream_Element'Image (I)
-               & " -> " & Natools.String_Escapes.C_Escape_Hex
-                  (Natools.Smaz_256.Dict_Entry (Dict, I), True)
-               & " ->" & Natural'Image (Natools.Smaz_Tools.Trie_Search
-                  (Natools.Smaz_256.Dict_Entry (Dict, I))));
-         end if;
-      end loop;
-   end Use_Dictionary;
-
-
-   procedure Use_Dictionary (Dict : in out Natools.Smaz.Dictionary) is
-   begin
-      Natools.Smaz.Tools.Set_Dictionary_For_Trie_Search (Dict);
-      Dict.Hash := Natools.Smaz.Tools.Trie_Search'Access;
-
-      for I in Dict.Offsets'Range loop
-         if Natools.Smaz_Tools.Trie_Search (Natools.Smaz.Dict_Entry
-           (Dict, I)) /= Natural (I)
-         then
-            Ada.Text_IO.Put_Line
-              (Ada.Text_IO.Current_Error,
-               "Fail at" & Ada.Streams.Stream_Element'Image (I)
-               & " -> " & Natools.String_Escapes.C_Escape_Hex
-                  (Natools.Smaz.Dict_Entry (Dict, I), True)
-               & " ->" & Natural'Image (Natools.Smaz.Tools.Trie_Search
-                  (Natools.Smaz.Dict_Entry (Dict, I))));
-         end if;
-      end loop;
-   end Use_Dictionary;
 
 
    Opt_Config : constant Getopt.Configuration := Getopt_Config;
