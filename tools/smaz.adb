@@ -1137,7 +1137,7 @@ procedure Smaz is
       Result.Hash := Natools.Smaz.Tools.Trie_Search'Access;
 
       for I in Result.Offsets'Range loop
-         if Natools.Smaz_Tools.Trie_Search (Natools.Smaz.Dict_Entry
+         if Natools.Smaz.Tools.Trie_Search (Natools.Smaz.Dict_Entry
            (Result, I)) /= Natural (I)
          then
             Ada.Text_IO.Put_Line
