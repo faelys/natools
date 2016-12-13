@@ -70,14 +70,7 @@ package Natools.Smaz_Generic is
         (Dictionary_Code'Succ (Dictionary_Code'First) .. Last_Code);
       Values : String (1 .. Values_Last);
       Hash : not null access function (Value : String) return Natural;
-   end record
-     with Dynamic_Predicate =>
-           (for all Code in Dictionary.Offsets'Range
-            => Dictionary.Offsets (Code) in Dictionary.Values'Range)
-        and then (for all Code in Dictionary_Code'First .. Dictionary.Last_Code
-            => Code_Last (Dictionary.Offsets, Code, Dictionary.Values'Last) + 1
-               - Code_First (Dictionary.Offsets, Code, Dictionary.Values'First)
-               in 1 .. Dictionary.Max_Word_Length);
+   end record;
 
 
    function Code_First
