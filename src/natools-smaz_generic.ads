@@ -116,6 +116,19 @@ package Natools.Smaz_Generic is
      with Pre => Is_Valid_Code (Dict, Code);
       --  Return the length of the string for at the given Index in Dict
 
+   function Is_Valid (Dictionary : in Smaz_Generic.Dictionary) return Boolean
+     is ((for all Code in Dictionary.Offsets'Range
+            => Dictionary.Offsets (Code) in Dictionary.Values'Range)
+        and then (for all Code in Dictionary_Code'First .. Dictionary.Last_Code
+            => Code_Last (Dictionary.Offsets, Code, Dictionary.Values'Last) + 1
+               - Code_First (Dictionary.Offsets, Code, Dictionary.Values'First)
+               in 1 .. Dictionary.Max_Word_Length)
+        and then (for all Code in Dictionary_Code'First .. Dictionary.Last_Code
+            => Dictionary_Code'Val (Dictionary.Hash
+                                      (Dict_Entry (Dictionary, Code)))
+               = Code));
+      --  Check all the assumptions made on Dictionary objects.
+
 
    function Compressed_Upper_Bound
      (Dict : in Dictionary;
