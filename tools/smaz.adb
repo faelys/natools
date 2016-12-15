@@ -1110,19 +1110,7 @@ procedure Smaz is
         (Tools_256.To_String_List (Result));
       Result.Hash := Natools.Smaz_Tools.Trie_Search'Access;
 
-      for I in Result.Offsets'Range loop
-         if Natools.Smaz_Tools.Trie_Search (Natools.Smaz_256.Dict_Entry
-           (Result, I)) /= Natural (I)
-         then
-            Ada.Text_IO.Put_Line
-              (Ada.Text_IO.Current_Error,
-               "Fail at" & Ada.Streams.Stream_Element'Image (I)
-               & " -> " & Natools.String_Escapes.C_Escape_Hex
-                  (Natools.Smaz_256.Dict_Entry (Result, I), True)
-               & " ->" & Natural'Image (Natools.Smaz_Tools.Trie_Search
-                  (Natools.Smaz_256.Dict_Entry (Result, I))));
-         end if;
-      end loop;
+      pragma Assert (Natools.Smaz_256.Is_Valid (Result));
 
       return Result;
    end Activate_Dictionary;
