@@ -65,7 +65,9 @@ package body Natools.Smaz_Generic is
          end To_Code;
 
          if Is_Valid
-           and then Dict_Entry (Dict, Code) = Template (Template'First .. Last)
+           and then Template (Template'First .. Last)
+              = Dict.Values (Code_First (Dict.Offsets, Code, Dict.Values'First)
+                          .. Code_Last (Dict.Offsets, Code, Dict.Values'Last))
          then
             Length := 1 + Last - Template'First;
             return;
