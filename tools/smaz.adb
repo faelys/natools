@@ -71,6 +71,7 @@ procedure Smaz is
       type Id is
         (Base_256,
          Output_Ada_Dict,
+         Check_Roundtrip,
          Dictionary_Input,
          Decode,
          Encode,
@@ -120,6 +121,7 @@ procedure Smaz is
       Ada_Dictionary : Ada.Strings.Unbounded.Unbounded_String;
       Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
       Dict_Source : Dict_Sources.Enum := Dict_Sources.S_Expression;
+      Check_Roundtrip : Boolean := False;
    end record;
 
    overriding procedure Option
@@ -646,6 +648,30 @@ procedure Smaz is
                   Sx_Output.Close_List;
                end if;
 
+               if Handler.Check_Roundtrip then
+                  for S of Data_List loop
+                     declare
+                        use type Ada.Streams.Stream_Element_Array;
+                        Input : constant Ada.Streams.Stream_Element_Array
+                          := To_SEA (S);
+                        Processed : constant String
+                          := Decompress (Dict, Input);
+                        Roundtrip : constant Ada.Streams.Stream_Element_Array
+                          := Compress (Dict, Processed);
+                     begin
+                        if Input /= Roundtrip then
+                           Sx_Output.Open_List;
+                           Sx_Output.Append_String
+                             ("decompress-roundtrip-failed");
+                           Sx_Output.Append_Atom (Input);
+                           Sx_Output.Append_String (Processed);
+                           Sx_Output.Append_Atom (Roundtrip);
+                           Sx_Output.Close_List;
+                        end if;
+                     end;
+                  end loop;
+               end if;
+
                if Handler.Stat_Output then
                   declare
                      procedure Print_Line (Original, Output : Natural);
@@ -685,6 +711,27 @@ procedure Smaz is
                      Sx_Output.Append_Atom (Compress (Dict, S));
                   end loop;
                   Sx_Output.Close_List;
+               end if;
+
+               if Handler.Check_Roundtrip then
+                  for S of Data_List loop
+                     declare
+                        Processed : constant Ada.Streams.Stream_Element_Array
+                          := Compress (Dict, S);
+                        Roundtrip : constant String
+                          := Decompress (Dict, Processed);
+                     begin
+                        if S /= Roundtrip then
+                           Sx_Output.Open_List;
+                           Sx_Output.Append_String
+                             ("compress-roundtrip-failed");
+                           Sx_Output.Append_String (S);
+                           Sx_Output.Append_Atom (Processed);
+                           Sx_Output.Append_String (Roundtrip);
+                           Sx_Output.Close_List;
+                        end if;
+                     end;
+                  end loop;
                end if;
 
                if Handler.Stat_Output then
@@ -1097,6 +1144,9 @@ procedure Smaz is
 
          when Options.Base_256_Retired =>
             Handler.Algorithm := Algorithms.Base_256_Retired;
+
+         when Options.Check_Roundtrip =>
+            Handler.Check_Roundtrip := True;
       end case;
    end Option;
 
@@ -1176,6 +1226,7 @@ procedure Smaz is
    begin
       R.Add_Option ("base-256",      '2', No_Argument,       Base_256);
       R.Add_Option ("ada-dict",      'A', Optional_Argument, Output_Ada_Dict);
+      R.Add_Option ("check",         'C', No_Argument,       Check_Roundtrip);
       R.Add_Option ("decode",        'd', No_Argument,       Decode);
       R.Add_Option ("dict",          'D', No_Argument,       Dictionary_Input);
       R.Add_Option ("encode",        'e', No_Argument,       Encode);
@@ -1407,6 +1458,11 @@ procedure Smaz is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Use retired base-256 implementation");
+
+            when Options.Check_Roundtrip =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Check roundtrip of compression or decompression");
          end case;
       end loop;
    end Print_Help;
@@ -1434,7 +1490,8 @@ begin
       return;
    end if;
 
-   if not (Handler.Stat_Output or Handler.Sx_Output) then
+   if not (Handler.Stat_Output or Handler.Sx_Output or Handler.Check_Roundtrip)
+   then
       Handler.Sx_Output := True;
    end if;
 
