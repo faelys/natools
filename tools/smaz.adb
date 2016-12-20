@@ -33,7 +33,9 @@ with Natools.S_Expressions.Printers;
 with Natools.Smaz;
 with Natools.Smaz.Tools;
 with Natools.Smaz_256;
+with Natools.Smaz_64;
 with Natools.Smaz_Generic.Tools;
+with Natools.Smaz_Implementations.Base_64_Tools;
 with Natools.Smaz_Tools;
 with Natools.Smaz_Tools.GNAT;
 with Natools.String_Escapes;
@@ -43,6 +45,7 @@ procedure Smaz is
      renames Natools.S_Expressions.To_Atom;
 
    package Tools_256 is new Natools.Smaz_256.Tools;
+   package Tools_64 is new Natools.Smaz_64.Tools;
 
    package Methods renames Natools.Smaz_Tools.Methods;
 
@@ -57,6 +60,7 @@ procedure Smaz is
    package Algorithms is
       type Enum is
         (Base_256,
+         Base_64,
          Base_256_Retired);
    end Algorithms;
 
@@ -70,6 +74,7 @@ procedure Smaz is
    package Options is
       type Id is
         (Base_256,
+         Base_64,
          Output_Ada_Dict,
          Check_Roundtrip,
          Dictionary_Input,
@@ -137,6 +142,8 @@ procedure Smaz is
 
    function Activate_Dictionary (Dict : in Natools.Smaz_256.Dictionary)
      return Natools.Smaz_256.Dictionary;
+   function Activate_Dictionary (Dict : in Natools.Smaz_64.Dictionary)
+     return Natools.Smaz_64.Dictionary;
    function Activate_Dictionary (Dict : in Natools.Smaz.Dictionary)
      return Natools.Smaz.Dictionary;
       --  Update Dictionary.Hash so that it can be actually used
@@ -157,6 +164,9 @@ procedure Smaz is
    function Last_Code (Dict : in Natools.Smaz_256.Dictionary)
      return Ada.Streams.Stream_Element
      is (Dict.Last_Code);
+   function Last_Code (Dict : in Natools.Smaz_64.Dictionary)
+     return Natools.Smaz_Implementations.Base_64_Tools.Base_64_Digit
+     is (Dict.Last_Code);
    function Last_Code (Dict : in Natools.Smaz.Dictionary)
      return Ada.Streams.Stream_Element
      is (Dict.Dict_Last);
@@ -165,6 +175,10 @@ procedure Smaz is
    procedure Print_Dictionary
      (Output : in Ada.Text_IO.File_Type;
       Dictionary : in Natools.Smaz_256.Dictionary;
+      Hash_Package_Name : in String := "");
+   procedure Print_Dictionary
+     (Output : in Ada.Text_IO.File_Type;
+      Dictionary : in Natools.Smaz_64.Dictionary;
       Hash_Package_Name : in String := "");
    procedure Print_Dictionary
      (Output : in Ada.Text_IO.File_Type;
@@ -1013,6 +1027,37 @@ procedure Smaz is
       To_Dictionary => Tools_256.To_Dictionary,
       Worst_Element => Tools_256.Worst_Index);
 
+   package Dict_64 is new Dictionary_Subprograms
+     (Dictionary => Natools.Smaz_64.Dictionary,
+      Dictionary_Entry
+        => Natools.Smaz_Implementations.Base_64_Tools.Base_64_Digit,
+      Methods => Natools.Smaz_Tools.Methods.Enum,
+      Score_Value => Natools.Smaz_Tools.Score_Value,
+      String_Count => Natools.Smaz_Tools.String_Count,
+      Word_Counter => Natools.Smaz_Tools.Word_Counter,
+      Dictionary_Counts => Tools_64.Dictionary_Counts,
+      String_Lists => Natools.Smaz_Tools.String_Lists,
+      Add_Substrings => Natools.Smaz_Tools.Add_Substrings,
+      Add_Words => Natools.Smaz_Tools.Add_Words,
+      Append_String => Tools_64.Append_String,
+      Build_Perfect_Hash => Natools.Smaz_Tools.GNAT.Build_Perfect_Hash,
+      Compress => Natools.Smaz_64.Compress,
+      Decompress => Natools.Smaz_64.Decompress,
+      Dict_Entry => Natools.Smaz_64.Dict_Entry,
+      Evaluate_Dictionary => Tools_64.Evaluate_Dictionary,
+      Evaluate_Dictionary_Partial => Tools_64.Evaluate_Dictionary_Partial,
+      Filter_By_Count => Natools.Smaz_Tools.Filter_By_Count,
+      Last_Code => Last_Code,
+      Remove_Element => Tools_64.Remove_Element,
+      Score_Encoded => Tools_64.Score_Encoded'Access,
+      Score_Frequency => Tools_64.Score_Frequency'Access,
+      Score_Gain => Tools_64.Score_Gain'Access,
+      Simple_Dictionary => Natools.Smaz_Tools.Simple_Dictionary,
+      Simple_Dictionary_And_Pending
+        => Natools.Smaz_Tools.Simple_Dictionary_And_Pending,
+      To_Dictionary => Tools_64.To_Dictionary,
+      Worst_Element => Tools_64.Worst_Index);
+
    package Dict_Retired is new Dictionary_Subprograms
      (Dictionary => Natools.Smaz.Dictionary,
       Dictionary_Entry => Ada.Streams.Stream_Element,
@@ -1145,6 +1190,9 @@ procedure Smaz is
          when Options.Base_256_Retired =>
             Handler.Algorithm := Algorithms.Base_256_Retired;
 
+         when Options.Base_64 =>
+            Handler.Algorithm := Algorithms.Base_64;
+
          when Options.Check_Roundtrip =>
             Handler.Check_Roundtrip := True;
       end case;
@@ -1161,6 +1209,21 @@ procedure Smaz is
       Result.Hash := Natools.Smaz_Tools.Trie_Search'Access;
 
       pragma Assert (Natools.Smaz_256.Is_Valid (Result));
+
+      return Result;
+   end Activate_Dictionary;
+
+
+   function Activate_Dictionary (Dict : in Natools.Smaz_64.Dictionary)
+     return Natools.Smaz_64.Dictionary
+   is
+      Result : Natools.Smaz_64.Dictionary := Dict;
+   begin
+      Natools.Smaz_Tools.Set_Dictionary_For_Trie_Search
+        (Tools_64.To_String_List (Result));
+      Result.Hash := Natools.Smaz_Tools.Trie_Search'Access;
+
+      pragma Assert (Natools.Smaz_64.Is_Valid (Result));
 
       return Result;
    end Activate_Dictionary;
@@ -1225,6 +1288,7 @@ procedure Smaz is
       R : Getopt.Configuration;
    begin
       R.Add_Option ("base-256",      '2', No_Argument,       Base_256);
+      R.Add_Option ("base-64",       '6', No_Argument,       Base_64);
       R.Add_Option ("ada-dict",      'A', Optional_Argument, Output_Ada_Dict);
       R.Add_Option ("check",         'C', No_Argument,       Check_Roundtrip);
       R.Add_Option ("decode",        'd', No_Argument,       Decode);
@@ -1270,6 +1334,31 @@ procedure Smaz is
 
       procedure Print_Dictionary_In_Ada is
         new Tools_256.Print_Dictionary_In_Ada (Put_Line);
+   begin
+      if Hash_Package_Name'Length > 0 then
+         Print_Dictionary_In_Ada
+           (Dictionary,
+            Hash_Image => Hash_Package_Name & ".Hash'Access");
+      else
+         Print_Dictionary_In_Ada (Dictionary);
+      end if;
+   end Print_Dictionary;
+
+
+   procedure Print_Dictionary
+     (Output : in Ada.Text_IO.File_Type;
+      Dictionary : in Natools.Smaz_64.Dictionary;
+      Hash_Package_Name : in String := "")
+   is
+      procedure Put_Line (Line : in String);
+
+      procedure Put_Line (Line : in String) is
+      begin
+         Ada.Text_IO.Put_Line (Output, Line);
+      end Put_Line;
+
+      procedure Print_Dictionary_In_Ada is
+        new Tools_64.Print_Dictionary_In_Ada (Put_Line);
    begin
       if Hash_Package_Name'Length > 0 then
          Print_Dictionary_In_Ada
@@ -1459,6 +1548,11 @@ procedure Smaz is
                Put_Line (Output, Indent & Indent
                  & "Use retired base-256 implementation");
 
+            when Options.Base_64 =>
+               New_Line (Output);
+               Put_Line (Output, Indent & Indent
+                 & "Use base-64 implementation");
+
             when Options.Check_Roundtrip =>
                New_Line (Output);
                Put_Line (Output, Indent & Indent
@@ -1515,6 +1609,9 @@ begin
    case Handler.Algorithm is
       when Algorithms.Base_256 =>
          Dict_256.Process
+           (Handler, Input_List, Input_Data, Handler.Score_Method);
+      when Algorithms.Base_64 =>
+         Dict_64.Process
            (Handler, Input_List, Input_Data, Handler.Score_Method);
       when Algorithms.Base_256_Retired =>
          declare
