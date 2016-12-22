@@ -17,17 +17,20 @@
 with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Natools.Smaz_256;
+with Natools.Smaz_Generic;
 with Natools.Smaz_Original;
 
 package body Natools.Smaz_Tests is
 
-   function Image (S : Ada.Streams.Stream_Element_Array) return String;
-
-   procedure Roundtrip_Test
+   generic
+      with package Smaz is new Natools.Smaz_Generic (<>);
+   procedure Generic_Roundtrip_Test
      (Test : in out NT.Test;
-      Dict : in Smaz_256.Dictionary;
+      Dict : in Smaz.Dictionary;
       Decompressed : in String;
       Compressed : in Ada.Streams.Stream_Element_Array);
+
+   function Image (S : Ada.Streams.Stream_Element_Array) return String;
 
 
    ------------------------------
@@ -46,9 +49,9 @@ package body Natools.Smaz_Tests is
    end Image;
 
 
-   procedure Roundtrip_Test
+   procedure Generic_Roundtrip_Test
      (Test : in out NT.Test;
-      Dict : in Smaz_256.Dictionary;
+      Dict : in Smaz.Dictionary;
       Decompressed : in String;
       Compressed : in Ada.Streams.Stream_Element_Array)
    is
@@ -60,7 +63,7 @@ package body Natools.Smaz_Tests is
       begin
          declare
             Buffer : constant Ada.Streams.Stream_Element_Array
-              := Smaz_256.Compress (Dict, Decompressed);
+              := Smaz.Compress (Dict, Decompressed);
          begin
             First_OK := True;
 
@@ -71,7 +74,7 @@ package body Natools.Smaz_Tests is
 
                declare
                   Round : constant String
-                    := Smaz_256.Decompress (Dict, Buffer);
+                    := Smaz.Decompress (Dict, Buffer);
                begin
                   if Round /= Decompressed then
                      Test.Info ("Roundtrip failed, got: """ & Round & '"');
@@ -95,7 +98,7 @@ package body Natools.Smaz_Tests is
       begin
          declare
             Buffer : constant String
-              := Smaz_256.Decompress (Dict, Compressed);
+              := Smaz.Decompress (Dict, Compressed);
          begin
             First_OK := True;
 
@@ -106,7 +109,7 @@ package body Natools.Smaz_Tests is
 
                declare
                   Round : constant Ada.Streams.Stream_Element_Array
-                    := Smaz_256.Compress (Dict, Buffer);
+                    := Smaz.Compress (Dict, Buffer);
                begin
                   if Round /= Compressed then
                      Test.Info ("Roundtrip failed, got: " & Image (Round));
@@ -124,7 +127,10 @@ package body Natools.Smaz_Tests is
 
             Test.Report_Exception (Error, NT.Fail);
       end;
-   end Roundtrip_Test;
+   end Generic_Roundtrip_Test;
+
+
+   procedure Roundtrip_Test is new Generic_Roundtrip_Test (Natools.Smaz_256);
 
 
 
@@ -134,16 +140,29 @@ package body Natools.Smaz_Tests is
 
    procedure All_Tests (Report : in out NT.Reporter'Class) is
    begin
-      Sample_Strings (Report);
+      Report.Section ("Base 256");
+      All_Tests_256 (Report);
+      Report.End_Section;
    end All_Tests;
 
 
 
-   ----------------------
-   -- Individual Tests --
-   ----------------------
+   ------------------------------
+   -- Test Suite for Each Base --
+   ------------------------------
 
-   procedure Sample_Strings (Report : in out NT.Reporter'Class) is
+   procedure All_Tests_256 (Report : in out NT.Reporter'Class) is
+   begin
+      Sample_Strings_256 (Report);
+   end All_Tests_256;
+
+
+
+   -------------------------------
+   -- Individual Base-256 Tests --
+   -------------------------------
+
+   procedure Sample_Strings_256 (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item ("Roundtrip on sample strings");
    begin
       Roundtrip_Test (Test, Smaz_Original.Dictionary,
@@ -183,6 +202,6 @@ package body Natools.Smaz_Tests is
          (255, 6, 58, 32, 58, 32, 58, 32, 58));
    exception
       when Error : others => Test.Report_Exception (Error);
-   end Sample_Strings;
+   end Sample_Strings_256;
 
 end Natools.Smaz_Tests;
