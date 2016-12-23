@@ -14,11 +14,15 @@
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Latin_1;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
+with Natools.S_Expressions;
 with Natools.Smaz_256;
+with Natools.Smaz_64;
 with Natools.Smaz_Generic;
 with Natools.Smaz_Original;
+with Natools.Smaz_Test_Base_64_Hash;
 
 package body Natools.Smaz_Tests is
 
@@ -31,6 +35,31 @@ package body Natools.Smaz_Tests is
       Compressed : in Ada.Streams.Stream_Element_Array);
 
    function Image (S : Ada.Streams.Stream_Element_Array) return String;
+
+   function To_SEA (S : String) return Ada.Streams.Stream_Element_Array
+     renames Natools.S_Expressions.To_Atom;
+
+
+   -----------------------
+   -- Test Dictionaries --
+   -----------------------
+
+   LF : constant Character := Ada.Characters.Latin_1.LF;
+
+   Dict_64 : constant Natools.Smaz_64.Dictionary
+     := (Last_Code => 59,
+         Values_Last => 119,
+         Variable_Length_Verbatim => False,
+         Max_Word_Length => 6,
+         Offsets => (2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 18, 20, 22,
+            24, 25, 26, 28, 30, 31, 32, 36, 38, 40, 42, 44, 45, 47, 49, 51, 53,
+            56, 60, 63, 65, 68, 70, 72, 74, 76, 80, 82, 84, 88, 90, 92, 94, 98,
+            101, 102, 103, 105, 111, 112, 114, 115, 118),
+         Values => " ee stainruos l dt enescm pépd de lere ld"
+            & "e" & LF & "on cqumede mentes aiquen teerou    r  sque , is m q"
+            & "ueà v'tiweblogfanj." & LF & LF & "ch",
+         Hash => Natools.Smaz_Test_Base_64_Hash.Hash'Access);
+
 
 
    ------------------------------
@@ -132,6 +161,8 @@ package body Natools.Smaz_Tests is
 
    procedure Roundtrip_Test is new Generic_Roundtrip_Test (Natools.Smaz_256);
 
+   procedure Roundtrip_Test is new Generic_Roundtrip_Test (Natools.Smaz_64);
+
 
 
    -------------------------
@@ -142,6 +173,10 @@ package body Natools.Smaz_Tests is
    begin
       Report.Section ("Base 256");
       All_Tests_256 (Report);
+      Report.End_Section;
+
+      Report.Section ("Base 64");
+      All_Tests_64 (Report);
       Report.End_Section;
    end All_Tests;
 
@@ -155,6 +190,12 @@ package body Natools.Smaz_Tests is
    begin
       Sample_Strings_256 (Report);
    end All_Tests_256;
+
+
+   procedure All_Tests_64 (Report : in out NT.Reporter'Class) is
+   begin
+      Sample_Strings_64 (Report);
+   end All_Tests_64;
 
 
 
@@ -203,5 +244,22 @@ package body Natools.Smaz_Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings_256;
+
+
+
+   ------------------------------
+   -- Individual Base-64 Tests --
+   ------------------------------
+
+   procedure Sample_Strings_64 (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Roundtrip on sample strings");
+   begin
+      Roundtrip_Test (Test, Dict_64,
+         "Simple Test",
+         To_SEA ("+TBGSVYA+UBQE"));
+         --       <S>imp* <T>*t
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Sample_Strings_64;
 
 end Natools.Smaz_Tests;

@@ -23,7 +23,10 @@ package Natools.Smaz_Tests is
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
    procedure All_Tests_256 (Report : in out NT.Reporter'Class);
+   procedure All_Tests_64 (Report : in out NT.Reporter'Class);
 
    procedure Sample_Strings_256 (Report : in out NT.Reporter'Class);
+
+   procedure Sample_Strings_64 (Report : in out NT.Reporter'Class);
 
 end Natools.Smaz_Tests;
