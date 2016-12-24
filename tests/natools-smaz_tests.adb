@@ -28,13 +28,17 @@ package body Natools.Smaz_Tests is
 
    generic
       with package Smaz is new Natools.Smaz_Generic (<>);
+      with function Image (S : Ada.Streams.Stream_Element_Array) return String;
    procedure Generic_Roundtrip_Test
      (Test : in out NT.Test;
       Dict : in Smaz.Dictionary;
       Decompressed : in String;
       Compressed : in Ada.Streams.Stream_Element_Array);
 
-   function Image (S : Ada.Streams.Stream_Element_Array) return String;
+   function Decimal_Image (S : Ada.Streams.Stream_Element_Array) return String;
+
+   function Direct_Image (S : Ada.Streams.Stream_Element_Array) return String
+     renames Natools.S_Expressions.To_String;
 
    function To_SEA (S : String) return Ada.Streams.Stream_Element_Array
      renames Natools.S_Expressions.To_Atom;
@@ -66,7 +70,8 @@ package body Natools.Smaz_Tests is
    -- Local Helper Subprograms --
    ------------------------------
 
-   function Image (S : Ada.Streams.Stream_Element_Array) return String is
+   function Decimal_Image (S : Ada.Streams.Stream_Element_Array) return String
+   is
       use Ada.Strings.Unbounded;
       Result : Unbounded_String;
    begin
@@ -75,7 +80,7 @@ package body Natools.Smaz_Tests is
       end loop;
 
       return To_String (Result);
-   end Image;
+   end Decimal_Image;
 
 
    procedure Generic_Roundtrip_Test
@@ -159,9 +164,11 @@ package body Natools.Smaz_Tests is
    end Generic_Roundtrip_Test;
 
 
-   procedure Roundtrip_Test is new Generic_Roundtrip_Test (Natools.Smaz_256);
+   procedure Roundtrip_Test is new Generic_Roundtrip_Test
+     (Natools.Smaz_256, Decimal_Image);
 
-   procedure Roundtrip_Test is new Generic_Roundtrip_Test (Natools.Smaz_64);
+   procedure Roundtrip_Test is new Generic_Roundtrip_Test
+     (Natools.Smaz_64, Direct_Image);
 
 
 
