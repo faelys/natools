@@ -195,12 +195,14 @@ package body Natools.Smaz_Tests is
 
    procedure All_Tests_256 (Report : in out NT.Reporter'Class) is
    begin
+      Test_Validity_256 (Report);
       Sample_Strings_256 (Report);
    end All_Tests_256;
 
 
    procedure All_Tests_64 (Report : in out NT.Reporter'Class) is
    begin
+      Test_Validity_64 (Report);
       Sample_Strings_64 (Report);
    end All_Tests_64;
 
@@ -253,6 +255,17 @@ package body Natools.Smaz_Tests is
    end Sample_Strings_256;
 
 
+   procedure Test_Validity_256 (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Test dictionary validity");
+   begin
+      if not Natools.Smaz_256.Is_Valid (Smaz_Original.Dictionary) then
+         Test.Fail;
+      end if;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Test_Validity_256;
+
+
 
    ------------------------------
    -- Individual Base-64 Tests --
@@ -268,5 +281,16 @@ package body Natools.Smaz_Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings_64;
+
+
+   procedure Test_Validity_64 (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Test dictionary validity");
+   begin
+      if not Natools.Smaz_64.Is_Valid (Dict_64) then
+         Test.Fail;
+      end if;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Test_Validity_64;
 
 end Natools.Smaz_Tests;
