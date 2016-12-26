@@ -278,6 +278,29 @@ package body Natools.Smaz_Tests is
          "Simple Test",
          To_SEA ("+TBGSVYA+UBQE"));
          --       <S>imp* <T>*t
+      Roundtrip_Test (Test, Dict_64,
+         "SiT",
+         To_SEA ("/ATlGV"));
+         --        <SiT>  smaller than <S>i<T> ("+TBG+UB")
+      Roundtrip_Test (Test, Dict_64,
+         "sIMple TEST_WITH_14_B",
+         To_SEA ("D9J1EVYA8UVETR1XXlEVI9VM08lQ"));
+         --       s<IM>p* <TE ST_ WIT H_1 4_B>
+         --  TE   001010_10  1010_0010  00
+         --  ST_  110010_10  0010_1010  11_111010
+         --  WIT  111010_10  1001_0010  00_101010
+         --  H_1  000100_10  1111_1010  10_001100
+         --  4_B  001011_00  1111_1010  01_000010
+      Roundtrip_Test (Test, Dict_64,
+         "'7B_Verbatim'",
+         To_SEA ("0+3IC9lVlJnYF1S0"));
+         --       '<7B_Verb  >a*m'
+         --  7    111011_00  0100
+         --  B_V  010000_10  1111_1010  01_101010
+         --  erb  101001_10  0100_1110  01_000110
+         --  "erb" could have been encoded separately as "o+iB", which has
+         --  the same length, but the tie is broken in favor of the longer
+         --  verbatim fragment to help with corner cases.
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings_64;
