@@ -156,7 +156,7 @@ package body Natools.Smaz_Tests is
       exception
          when Error : others =>
             if not First_OK then
-               Test.Info ("During compression of " & Image (Compressed));
+               Test.Info ("During decompression of " & Image (Compressed));
             end if;
 
             Test.Report_Exception (Error, NT.Fail);
