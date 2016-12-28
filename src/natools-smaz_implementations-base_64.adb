@@ -60,8 +60,7 @@ package body Natools.Smaz_Implementations.Base_64 is
 
       else
          Offset_Backup := Offset;
-         Verbatim_Length := (Natural (Code) - 61)
-                          * (Natural (Tools.Single_Byte_Padding'Last) + 1);
+         Verbatim_Length := (61 - Natural (Code)) * 4;
          Tools.Decode_Double (Input, Offset, Ignored, Code);
          Verbatim_Length := (Verbatim_Length + Natural (Code)) * 3 + 2;
          Offset := Offset_Backup;
