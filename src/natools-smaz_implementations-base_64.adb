@@ -242,7 +242,7 @@ package body Natools.Smaz_Implementations.Base_64 is
                  (Input (Index .. Index + 1),
                   Tools.Double_Byte_Padding (Extra_Blocks mod 4),
                   Output, Offset);
-               Index := Index + 1;
+               Index := Index + 2;
 
                if Extra_Blocks > 0 then
                   Tools.Encode
