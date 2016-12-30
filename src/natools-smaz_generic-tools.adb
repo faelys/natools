@@ -290,7 +290,11 @@ package body Natools.Smaz_Generic.Tools is
 
       function New_Values return String is
       begin
-         if Index < Dict.Last_Code then
+         if Index = Dictionary_Code'First then
+            return Dict.Values
+              (Dict.Offsets (Dictionary_Code'Succ (Index))
+               .. Dict.Values'Last);
+         elsif Index < Dict.Last_Code then
             return Dict.Values (1 .. Dict.Offsets (Index) - 1)
               & Dict.Values (Dict.Offsets (Dictionary_Code'Succ (Index))
                              .. Dict.Values'Last);
