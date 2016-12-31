@@ -301,6 +301,15 @@ package body Natools.Smaz_Tests is
          --  "erb" could have been encoded separately as "o+iB", which has
          --  the same length, but the tie is broken in favor of the longer
          --  verbatim fragment to help with corner cases.
+      Roundtrip_Test (Test, Dict_64,
+         "'49 bytes of data to show a verbatim count issue'",
+         To_SEA ("090kTgIWenLK3NFEFAEKs/Ao92dAFAzo+iBF1SepHOvDJB0"));
+         --       '<49 by >tsof_ata_to_< how>_a_ve<b>atm_ontisue'
+         --                e_  d      s          r    i cu _s
+         --  49   001011_00  1001_1100  10
+         --   by  000001_00  0100_0110  10_011110
+         --  how  000101_10  1111_0110  11_101110
+         --- b    010001_10  0000
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings_64;
