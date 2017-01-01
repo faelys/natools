@@ -126,49 +126,32 @@ package body Natools.Smaz_Implementations.Base_64 is
                     * (Tools.Image_Length (Largest_Run) + 1)
                  + Tools.Image_Length (Last_Run_Size) + 1;
          end;
-      elsif Input_Length mod 3 = 0 then
-         declare
-            Largest_Run : constant Positive := 64 * 3;
-            Run_Count : constant Positive
-              := (Input_Length + Largest_Run - 1) / Largest_Run;
-            Last_Run_Size : constant Positive
-              := Input_Length - (Run_Count - 1) * Largest_Run;
-         begin
-            return Ada.Streams.Stream_Element_Count (Run_Count - 1)
-                    * (Tools.Image_Length (Largest_Run) + 2)
-                 + Tools.Image_Length (Last_Run_Size) + 2;
-         end;
-      elsif Input_Length mod 3 = 1 then
-         declare
-            Largest_Final_Run : constant Positive := 15 * 3 + 1;
-            Largest_Prefix_Run : constant Positive := 64 * 3;
-            Prefix_Run_Count : constant Natural
-              := (Input_Length + Largest_Prefix_Run - Largest_Final_Run)
-               / Largest_Prefix_Run;
-            Last_Run_Size : constant Positive
-              := Input_Length - Prefix_Run_Count * Largest_Prefix_Run;
-         begin
-            return Ada.Streams.Stream_Element_Count (Prefix_Run_Count)
-                    * (Tools.Image_Length (Largest_Prefix_Run) + 2)
-                 + Tools.Image_Length (Last_Run_Size) + 1;
-         end;
-      elsif Input_Length mod 3 = 2 then
-         declare
-            Largest_Final_Run : constant Positive
-              := ((62 - Natural (Last_Code)) * 4 - 1) * 3 + 2;
-            Largest_Prefix_Run : constant Positive := 64 * 3;
-            Prefix_Run_Count : constant Natural
-              := (Input_Length + Largest_Prefix_Run - Largest_Final_Run)
-               / Largest_Prefix_Run;
-            Last_Run_Size : constant Positive
-              := Input_Length - Prefix_Run_Count * Largest_Prefix_Run;
-         begin
-            return Ada.Streams.Stream_Element_Count (Prefix_Run_Count)
-                    * (Tools.Image_Length (Largest_Prefix_Run) + 2)
-                 + Tools.Image_Length (Last_Run_Size) + 1;
-         end;
       else
-         raise Program_Error with "Condition unreachable";
+         declare
+            Largest_Prefix : constant Natural
+              := (case Input_Length mod 3 is
+                  when 1 => 15 * 3 + 1,
+                  when 2 => ((62 - Natural (Last_Code)) * 4 - 1) * 3 + 2,
+                  when others => 0);
+            Prefix_Header_Size : constant Ada.Streams.Stream_Element_Count
+              := (if Largest_Prefix > 0 then 1 else 0);
+            Largest_Run : constant Positive := 64 * 3;
+            Prefix_Size : constant Natural
+              := Natural'Min (Largest_Prefix, Input_Length);
+            Run_Count : constant Natural
+              := (Input_Length - Prefix_Size + Largest_Run - 1) / Largest_Run;
+         begin
+            if Run_Count > 0 then
+               return Prefix_Header_Size + Tools.Image_Length (Prefix_Size)
+                 + Ada.Streams.Stream_Element_Count (Run_Count - 1)
+                    * (Tools.Image_Length (Largest_Run) + 2)
+                 + Tools.Image_Length (Input_Length - Prefix_Size
+                                       - (Run_Count - 1) * Largest_Run)
+                   + 2;
+            else
+               return Prefix_Header_Size + Tools.Image_Length (Prefix_Size);
+            end if;
+         end;
       end if;
    end Verbatim_Size;
 
