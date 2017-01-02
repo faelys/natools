@@ -59,9 +59,12 @@ package body Natools.Smaz_Tests is
             24, 25, 26, 28, 30, 31, 32, 36, 38, 40, 42, 44, 45, 47, 49, 51, 53,
             56, 60, 63, 65, 68, 70, 72, 74, 76, 80, 82, 84, 88, 90, 92, 94, 98,
             101, 102, 103, 105, 111, 112, 114, 115, 118),
-         Values => " ee stainruos l dt enescm pépd de lere ld"
+         Values => " ee stainruos l dt enescm p"
+            & Character'Val (16#C3#) & Character'Val (16#A9#)
+            & "pd de lere ld"
             & "e" & LF & "on cqumede mentes aiquen teerou    r  sque , is m q"
-            & "ueà v'tiweblogfanj." & LF & LF & "ch",
+            & "ue" & Character'Val (16#C3#) & Character'Va; (16#A0#)
+            & " v'tiweblogfanj." & LF & LF & "ch",
          Hash => Natools.Smaz_Test_Base_64_Hash.Hash'Access);
 
 
