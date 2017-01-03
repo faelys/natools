@@ -63,7 +63,7 @@ package body Natools.Smaz_Tests is
             & Character'Val (16#C3#) & Character'Val (16#A9#)
             & "pd de lere ld"
             & "e" & LF & "on cqumede mentes aiquen teerou    r  sque , is m q"
-            & "ue" & Character'Val (16#C3#) & Character'Va; (16#A0#)
+            & "ue" & Character'Val (16#C3#) & Character'Val (16#A0#)
             & " v'tiweblogfanj." & LF & LF & "ch",
          Hash => Natools.Smaz_Test_Base_64_Hash.Hash'Access);
 
@@ -313,6 +313,12 @@ package body Natools.Smaz_Tests is
          --   by  000001_00  0100_0110  10_011110
          --  how  000101_10  1111_0110  11_101110
          --- b    010001_10  0000
+      Roundtrip_Test (Test, Dict_64,
+         Character'Val (16#C3#) & Character'Val (16#A9#) & 'v'
+           & Character'Val (16#C3#) & Character'Val (16#A8#) & "nement",
+         To_SEA ("Uz9DjKHBi"));
+         --       év<è >nement
+         --  è    110000_11  0001_0101  00
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings_64;
