@@ -23,19 +23,19 @@ package body Natools.Smaz_Implementations.Base_64_Tools is
    -----------------------
 
    function Low_6 (Byte : in Character) return Base_64_Digit
-     is (Character'Pos (Byte) mod 64);
+     is (Base_64_Digit (Natural (Character'Pos (Byte)) mod 64));
    function Low_4 (Byte : in Character) return Single_Byte_Padding
-     is (Character'Pos (Byte) mod 16);
+     is (Single_Byte_Padding (Natural (Character'Pos (Byte)) mod 16));
    function Low_2 (Byte : in Character) return Double_Byte_Padding
-     is (Character'Pos (Byte) mod 4);
+     is (Double_Byte_Padding (Natural (Character'Pos (Byte)) mod 4));
       --  Least significant bits of a byte
 
    function High_6 (Byte : in Character) return Base_64_Digit
-     is (Character'Pos (Byte) / 4);
+     is (Base_64_Digit (Natural (Character'Pos (Byte)) / 4));
    function High_4 (Byte : in Character) return Single_Byte_Padding
-     is (Character'Pos (Byte) / 16);
+     is (Single_Byte_Padding (Natural (Character'Pos (Byte)) / 16));
    function High_2 (Byte : in Character) return Double_Byte_Padding
-     is (Character'Pos (Byte) / 64);
+     is (Double_Byte_Padding (Natural (Character'Pos (Byte)) / 64));
       --  Most significant bits of a byte
 
    function Image_2_4 (Low : Double_Byte_Padding; High : Single_Byte_Padding)
