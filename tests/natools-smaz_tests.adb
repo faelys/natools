@@ -67,6 +67,23 @@ package body Natools.Smaz_Tests is
             & " v'tiweblogfanj." & LF & LF & "ch",
          Hash => Natools.Smaz_Test_Base_64_Hash.Hash'Access);
 
+   Dict_64_V : constant Natools.Smaz_64.Dictionary
+     := (Last_Code => 59,
+         Values_Last => 119,
+         Variable_Length_Verbatim => True,
+         Max_Word_Length => 6,
+         Offsets => (2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 18, 20, 22,
+            24, 25, 26, 28, 30, 31, 32, 36, 38, 40, 42, 44, 45, 47, 49, 51, 53,
+            56, 60, 63, 65, 68, 70, 72, 74, 76, 80, 82, 84, 88, 90, 92, 94, 98,
+            101, 102, 103, 105, 111, 112, 114, 115, 118),
+         Values => " ee stainruos l dt enescm p"
+            & Character'Val (16#C3#) & Character'Val (16#A9#)
+            & "pd de lere ld"
+            & "e" & LF & "on cqumede mentes aiquen teerou    r  sque , is m q"
+            & "ue" & Character'Val (16#C3#) & Character'Val (16#A0#)
+            & " v'tiweblogfanj." & LF & LF & "ch",
+         Hash => Natools.Smaz_Test_Base_64_Hash.Hash'Access);
+
 
 
    ------------------------------
@@ -207,6 +224,7 @@ package body Natools.Smaz_Tests is
    begin
       Test_Validity_64 (Report);
       Sample_Strings_64 (Report);
+      Sample_Strings_VLV_64 (Report);
    end All_Tests_64;
 
 
@@ -324,10 +342,47 @@ package body Natools.Smaz_Tests is
    end Sample_Strings_64;
 
 
+   procedure Sample_Strings_VLV_64 (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item
+        ("Roundtrip on sample strings with variable-length verbatim");
+   begin
+      Roundtrip_Test (Test, Dict_64_V,
+         "Simple Test",
+         To_SEA ("+TBGSVYA+UBQE"));
+         --       <S>imp* <T>*t
+      Roundtrip_Test (Test, Dict_64_V,
+         "SiT",
+         To_SEA ("8TlGV"));
+         --        <SiT>  smaller than <S>i<T> ("+TBG+UB")
+      Roundtrip_Test (Test, Dict_64_V,
+         "sIMple TEST_WITH_14_B",
+         To_SEA ("D9J1EVYA/KUVETR1XXlEVI9VM08lQ"));
+         --       s<IM>p* < TE ST_ WIT H_1 4_B>
+         --  TE   001010_10  1010_0010  00
+         --  ST_  110010_10  0010_1010  11_111010
+         --  WIT  111010_10  1001_0010  00_101010
+         --  H_1  000100_10  1111_1010  10_001100
+         --  4_B  001011_00  1111_1010  01_000010
+      Roundtrip_Test (Test, Dict_64_V,
+         "'7B_Verbatim'",
+         To_SEA ("0/D3AC9lVlJnYF1S0"));
+         --       '< 7B_Verb  >a*m'
+         --  7    111011_00  0000
+         --  B_V  010000_10  1111_1010  01_101010
+         --  erb  101001_10  0100_1110  01_000110
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Sample_Strings_VLV_64;
+
+
    procedure Test_Validity_64 (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item ("Test dictionary validity");
    begin
       if not Natools.Smaz_64.Is_Valid (Dict_64) then
+         Test.Fail;
+      end if;
+
+      if not Natools.Smaz_64.Is_Valid (Dict_64_V) then
          Test.Fail;
       end if;
    exception
