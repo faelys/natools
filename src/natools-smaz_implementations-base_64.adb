@@ -43,7 +43,12 @@ package body Natools.Smaz_Implementations.Base_64 is
          Verbatim_Length := 0;
 
       elsif Variable_Length_Verbatim then
-         Verbatim_Length := 64 - Natural (Code);
+         if Code < 63 then
+            Verbatim_Length := 63 - Natural (Code);
+         else
+            Tools.Next_Digit (Input, Offset, Code);
+            Verbatim_Length := Natural (Code) + 63 - Natural (Last_Code);
+         end if;
          Code := 0;
 
       elsif Code = 63 then
@@ -116,15 +121,18 @@ package body Natools.Smaz_Implementations.Base_64 is
    begin
       if Variable_Length_Verbatim then
          declare
-            Largest_Run : constant Positive := 63 - Natural (Last_Code);
-            Run_Count : constant Positive
+            Largest_Single : constant Positive := 62 - Natural (Last_Code);
+            Largest_Run : constant Positive := 64 + Largest_Single;
+            Run_Count : constant Natural
               := (Input_Length + Largest_Run - 1) / Largest_Run;
             Last_Run_Size : constant Positive
               := Input_Length - (Run_Count - 1) * Largest_Run;
+            Last_Run_Header_Size : constant Ada.Streams.Stream_Element_Count
+              := (if Last_Run_Size > Largest_Single then 2 else 1);
          begin
-            return Ada.Streams.Stream_Element_Count (Run_Count - 1)
-                    * (Tools.Image_Length (Largest_Run) + 1)
-                 + Tools.Image_Length (Last_Run_Size) + 1;
+            return Ada.Streams.Stream_Element_Count (Run_Count)
+                    * (Tools.Image_Length (Largest_Run) + 2)
+                 + Tools.Image_Length (Last_Run_Size) + Last_Run_Header_Size;
          end;
       else
          declare
@@ -177,17 +185,40 @@ package body Natools.Smaz_Implementations.Base_64 is
    begin
       if Variable_Length_Verbatim then
          declare
-            Largest_Run : constant Positive := 63 - Natural (Last_Code);
-            Length, Last : Positive;
+            Largest_Single : constant Positive := 62 - Natural (Last_Code);
+            Largest_Run : constant Positive := 64 + Largest_Single;
+            Length, Last : Natural;
          begin
             while Index in Input'Range loop
                Length := Positive'Min (Largest_Run, Input'Last + 1 - Index);
-               Last := Index + Length - 1;
-               Output (Offset)
-                 := Tools.Image (63 - Tools.Base_64_Digit (Length - 1));
-               Offset := Offset + 1;
-               Tools.Encode (Input (Index .. Last), Output, Offset);
-               Index := Last + 1;
+
+               if Length > Largest_Single then
+                  Write_Code (Output, Offset, 63);
+                  Write_Code
+                    (Output, Offset,
+                     Tools.Base_64_Digit (Length - Largest_Single - 1));
+               else
+                  Write_Code
+                    (Output, Offset,
+                     Tools.Base_64_Digit (63 - Length));
+               end if;
+
+               if Length mod 3 = 1 then
+                  Tools.Encode_Single (Input (Index), 0, Output, Offset);
+                  Index := Index + 1;
+                  Length := Length - 1;
+               elsif Length mod 3 = 2 then
+                  Tools.Encode_Double
+                    (Input (Index .. Index + 1), 0, Output, Offset);
+                  Index := Index + 2;
+                  Length := Length - 2;
+               end if;
+
+               if Length > 0 then
+                  Last := Index + Length - 1;
+                  Tools.Encode (Input (Index .. Last), Output, Offset);
+                  Index := Last + 1;
+               end if;
             end loop;
          end;
       else
