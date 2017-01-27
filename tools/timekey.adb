@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2015, Natacha Porté                                        --
+-- Copyright (c) 2015-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -77,15 +77,19 @@ procedure Timekey is
    end Process_Input;
 begin
    for I in 1 .. Ada.Command_Line.Argument_Count loop
-      if Ada.Command_Line.Argument (I) = "-" then
-         Empty := False;
-         Process_Input;
-      elsif Ada.Command_Line.Argument (I) = "-v" then
-         Verbose := True;
-      else
-         Empty := False;
-         Process (Ada.Command_Line.Argument (I));
-      end if;
+      declare
+         Arg : constant String := Ada.Command_Line.Argument (I);
+      begin
+         if Arg = "-" then
+            Empty := False;
+            Process_Input;
+         elsif Arg = "-v" then
+            Verbose := True;
+         else
+            Empty := False;
+            Process (Arg);
+         end if;
+      end;
    end loop;
 
    if Empty then
