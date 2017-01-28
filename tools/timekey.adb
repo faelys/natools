@@ -31,6 +31,7 @@ procedure Timekey is
    Input_Processed : Boolean := False;
    Empty : Boolean := True;
    Verbose : Boolean := False;
+   Subsecond_Digits : Natural := Duration'Aft;
 
 
    procedure Process (Line : in String) is
@@ -46,7 +47,7 @@ procedure Timekey is
 
          Ada.Text_IO.Put_Line
            (Natools.Time_IO.RFC_3339.Image
-              (Natools.Time_Keys.To_Time (Line), Duration'Aft, False));
+              (Natools.Time_Keys.To_Time (Line), Subsecond_Digits, False));
 
       elsif Natools.Time_IO.RFC_3339.Is_Valid (Line) then
          if Verbose then
@@ -98,7 +99,7 @@ begin
       begin
          if Verbose then
             Ada.Text_IO.Put
-              (Natools.Time_IO.RFC_3339.Image (Now, Duration'Aft, False)
+              (Natools.Time_IO.RFC_3339.Image (Now, Subsecond_Digits, False)
                & " => ");
          end if;
 
