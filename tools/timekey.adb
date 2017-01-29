@@ -86,6 +86,12 @@ begin
             Process_Input;
          elsif Arg = "-v" then
             Verbose := True;
+         elsif Arg'Length = 2
+           and then Arg (Arg'First) = '-'
+           and then Arg (Arg'Last) in '0' .. '9'
+         then
+            Subsecond_Digits := Character'Pos (Arg (Arg'Last))
+              - Character'Pos ('0');
          else
             Empty := False;
             Process (Arg);
