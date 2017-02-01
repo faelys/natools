@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2016, Natacha Porté                                        --
+-- Copyright (c) 2016-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -23,10 +23,13 @@ package Natools.Smaz_Tests is
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
    procedure All_Tests_256 (Report : in out NT.Reporter'Class);
+   procedure All_Tests_4096 (Report : in out NT.Reporter'Class);
    procedure All_Tests_64 (Report : in out NT.Reporter'Class);
 
    procedure Sample_Strings_256 (Report : in out NT.Reporter'Class);
    procedure Test_Validity_256 (Report : in out NT.Reporter'Class);
+
+   procedure Test_Validity_4096 (Report : in out NT.Reporter'Class);
 
    procedure Sample_Strings_64 (Report : in out NT.Reporter'Class);
    procedure Sample_Strings_VLV_64 (Report : in out NT.Reporter'Class);

@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2015-2016, Natacha Porté                                   --
+-- Copyright (c) 2015-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -19,8 +19,10 @@ with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Natools.S_Expressions;
 with Natools.Smaz_256;
+with Natools.Smaz_4096;
 with Natools.Smaz_64;
 with Natools.Smaz_Generic;
+with Natools.Smaz_Implementations.Base_4096;
 with Natools.Smaz_Original;
 with Natools.Smaz_Test_Base_64_Hash;
 
@@ -37,11 +39,21 @@ package body Natools.Smaz_Tests is
 
    function Decimal_Image (S : Ada.Streams.Stream_Element_Array) return String;
 
+   function Dictionary_4096 (Variable_Length_Verbatim : in Boolean)
+     return Natools.Smaz_4096.Dictionary;
+
+   function Dictionary_4096_Hash (S : in String) return Natural;
+
    function Direct_Image (S : Ada.Streams.Stream_Element_Array) return String
      renames Natools.S_Expressions.To_String;
 
    function To_SEA (S : String) return Ada.Streams.Stream_Element_Array
      renames Natools.S_Expressions.To_Atom;
+
+
+   procedure Test_Validity_4096
+     (Report : in out NT.Reporter'Class;
+      Dictionary : in Smaz_4096.Dictionary);
 
 
    -----------------------
@@ -101,6 +113,161 @@ package body Natools.Smaz_Tests is
 
       return To_String (Result);
    end Decimal_Image;
+
+
+   function Dictionary_4096 (Variable_Length_Verbatim : in Boolean)
+     return Natools.Smaz_4096.Dictionary
+   is
+      subtype Letter_Rank is Natural range 1 .. 26;
+      function Lower (N : Letter_Rank) return Character
+        is (Character'Val (Character'Pos ('a') - 1 + N));
+      function Upper (N : Letter_Rank) return Character
+        is (Character'Val (Character'Pos ('A') - 1 + N));
+
+      subtype Digit_Rank is Natural range 0 .. 9;
+      function Image (N : Digit_Rank) return Character
+        is (Character'Val (Character'Pos ('0') + N));
+
+      Current_Index : Smaz_Implementations.Base_4096.Base_4096_Digit := 0;
+      Current_Offset : Positive := 1;
+
+      use type Smaz_Implementations.Base_4096.Base_4096_Digit;
+
+      procedure Push_Value
+        (Dict : in out Natools.Smaz_4096.Dictionary;
+         Value : in String);
+
+      procedure Push_Value
+        (Dict : in out Natools.Smaz_4096.Dictionary;
+         Value : in String) is
+      begin
+         if Current_Index > 0 then
+            Dict.Offsets (Current_Index) := Current_Offset;
+         end if;
+
+         Dict.Values (Current_Offset .. Current_Offset + Value'Length - 1)
+           := Value;
+
+         Current_Index := Current_Index + 1;
+         Current_Offset := Current_Offset + Value'Length;
+      end Push_Value;
+   begin
+      return Dict : Natools.Smaz_4096.Dictionary
+        := (Last_Code => 4059,
+            Values_Last => 8864,
+            Variable_Length_Verbatim => Variable_Length_Verbatim,
+            Max_Word_Length => 3,
+            Offsets => <>,
+            Values => <>,
+            Hash => Dictionary_4096_Hash'Access)
+      do
+         --  0 .. 255: ASCII table
+         for C in Character loop
+            Push_Value (Dict, (1 => C));
+         end loop;
+
+         --  256 .. 355: two-digit numbers
+         for U in Digit_Rank loop
+            for V in Digit_Rank loop
+               Push_Value (Dict, (1 => Image (U), 2 => Image (V)));
+            end loop;
+         end loop;
+
+         --  356 .. 1355: three-digit numbers
+         for U in Digit_Rank loop
+            for V in Digit_Rank loop
+               for W in Digit_Rank loop
+                  Push_Value
+                    (Dict, (1 => Image (U), 2 => Image (V), 3 => Image (W)));
+               end loop;
+            end loop;
+         end loop;
+
+         --  1356 .. 2031: two lower-case letters
+         for M in Letter_Rank loop
+            for N in Letter_Rank loop
+               Push_Value (Dict, (1 => Lower (M), 2 => Lower (N)));
+            end loop;
+         end loop;
+
+         --  2032 .. 2707: lower-case then upper-case letter
+         for M in Letter_Rank loop
+            for N in Letter_Rank loop
+               Push_Value (Dict, (1 => Lower (M), 2 => Upper (N)));
+            end loop;
+         end loop;
+
+         --  2708 .. 3383: upper-case then lower-case letter
+         for M in Letter_Rank loop
+            for N in Letter_Rank loop
+               Push_Value (Dict, (1 => Upper (M), 2 => Lower (N)));
+            end loop;
+         end loop;
+
+         --  3384 .. 4059: two upper-case letters
+         for M in Letter_Rank loop
+            for N in Letter_Rank loop
+               Push_Value (Dict, (1 => Upper (M), 2 => Upper (N)));
+            end loop;
+         end loop;
+
+         pragma Assert (Current_Index = Dict.Last_Code + 1);
+         pragma Assert (Current_Offset = Dict.Values_Last + 1);
+      end return;
+   end Dictionary_4096;
+
+
+   function Dictionary_4096_Hash (S : in String) return Natural is
+      function Rank (C : Character) return Natural
+        is (case C is
+            when '0' .. '9' => Character'Pos (C) - Character'Pos ('0'),
+            when 'a' .. 'z' => Character'Pos (C) - Character'Pos ('a'),
+            when 'A' .. 'Z' => Character'Pos (C) - Character'Pos ('A'),
+            when others => raise Program_Error);
+   begin
+      case S'Length is
+         when 1 =>
+            return Character'Pos (S (S'First));
+
+         when 2 =>
+            declare
+               U : constant Character := S (S'First);
+               V : constant Character := S (S'Last);
+            begin
+               if U in '0' .. '9' and then V in '0' .. '9' then
+                  return 256 + Rank (U) * 10 + Rank (V);
+               elsif U in 'a' .. 'z' and then V in 'a' .. 'z' then
+                  return 1356 + Rank (U) * 26 + Rank (V);
+               elsif U in 'a' .. 'z' and then V in 'A' .. 'Z' then
+                  return 2032 + Rank (U) * 26 + Rank (V);
+               elsif U in 'A' .. 'Z' and then V in 'a' .. 'z' then
+                  return 2708 + Rank (U) * 26 + Rank (V);
+               elsif U in 'A' .. 'Z' and then V in 'A' .. 'Z' then
+                  return 3384 + Rank (U) * 26 + Rank (V);
+               else
+                  return 4096;
+               end if;
+            end;
+
+         when 3 =>
+            declare
+               U : constant Character := S (S'First);
+               V : constant Character := S (S'First + 1);
+               W : constant Character := S (S'First + 2);
+            begin
+               if U in '0' .. '9'
+                 and then V in '0' .. '9'
+                 and then W in '0' .. '9'
+               then
+                  return 356 + Rank (U) * 100 + Rank (V) * 10 + Rank (W);
+               else
+                  return 4096;
+               end if;
+            end;
+         when others =>
+            return 4096;
+      end case;
+   end Dictionary_4096_Hash;
 
 
    procedure Generic_Roundtrip_Test
@@ -187,6 +354,9 @@ package body Natools.Smaz_Tests is
    procedure Roundtrip_Test is new Generic_Roundtrip_Test
      (Natools.Smaz_256, Decimal_Image);
 
+--   procedure Roundtrip_Test is new Generic_Roundtrip_Test
+--     (Natools.Smaz_4096, Direct_Image);
+
    procedure Roundtrip_Test is new Generic_Roundtrip_Test
      (Natools.Smaz_64, Direct_Image);
 
@@ -205,6 +375,10 @@ package body Natools.Smaz_Tests is
       Report.Section ("Base 64");
       All_Tests_64 (Report);
       Report.End_Section;
+
+      Report.Section ("Base 4096");
+      All_Tests_4096 (Report);
+      Report.End_Section;
    end All_Tests;
 
 
@@ -218,6 +392,26 @@ package body Natools.Smaz_Tests is
       Test_Validity_256 (Report);
       Sample_Strings_256 (Report);
    end All_Tests_256;
+
+
+   procedure All_Tests_4096 (Report : in out NT.Reporter'Class) is
+   begin
+      declare
+         Dict : constant Smaz_4096.Dictionary := Dictionary_4096 (False);
+      begin
+         Report.Section ("Without variable-length verbatim");
+         Test_Validity_4096 (Report, Dict);
+         Report.End_Section;
+      end;
+
+      declare
+         Dict : constant Smaz_4096.Dictionary := Dictionary_4096 (True);
+      begin
+         Report.Section ("With variable-length verbatim");
+         Test_Validity_4096 (Report, Dict);
+         Report.End_Section;
+      end;
+   end All_Tests_4096;
 
 
    procedure All_Tests_64 (Report : in out NT.Reporter'Class) is
@@ -285,6 +479,32 @@ package body Natools.Smaz_Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Test_Validity_256;
+
+
+
+   --------------------------------
+   -- Individual Base-4096 Tests --
+   --------------------------------
+
+   procedure Test_Validity_4096
+     (Report : in out NT.Reporter'Class;
+      Dictionary : in Smaz_4096.Dictionary)
+   is
+      Test : NT.Test := Report.Item ("Test dictionary validity");
+   begin
+      if not Smaz_4096.Is_Valid (Dictionary) then
+         Test.Fail;
+      end if;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Test_Validity_4096;
+
+
+   procedure Test_Validity_4096 (Report : in out NT.Reporter'Class) is
+   begin
+      Test_Validity_4096 (Report, Dictionary_4096 (False));
+      Test_Validity_4096 (Report, Dictionary_4096 (True));
+   end Test_Validity_4096;
 
 
 
