@@ -29,6 +29,7 @@ package Natools.Smaz_Tests is
    procedure Sample_Strings_256 (Report : in out NT.Reporter'Class);
    procedure Test_Validity_256 (Report : in out NT.Reporter'Class);
 
+   procedure Sample_Strings_4096 (Report : in out NT.Reporter'Class);
    procedure Test_Validity_4096 (Report : in out NT.Reporter'Class);
 
    procedure Sample_Strings_64 (Report : in out NT.Reporter'Class);
