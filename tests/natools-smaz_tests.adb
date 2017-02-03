@@ -405,6 +405,7 @@ package body Natools.Smaz_Tests is
       begin
          Report.Section ("Without variable-length verbatim");
          Test_Validity_4096 (Report, Dict);
+         Sample_Strings_4096 (Report, Dict);
          Report.End_Section;
       end;
 
