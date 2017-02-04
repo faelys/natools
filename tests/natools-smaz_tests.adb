@@ -499,35 +499,35 @@ package body Natools.Smaz_Tests is
    begin
       Roundtrip_Test (Test, Dictionary,
          "This is a small string",
-         To_SEA ("yJYuAgYuAgBhAgcsVXBsAgczcOak"));
+         To_SEA ("JyuYgAuYgAhBgAscXVsBgAzcOcka"));
       Roundtrip_Test (Test, Dictionary,
          "foobar",
-         To_SEA ("Xca5Vd"));
+         To_SEA ("cX5adV"));
       Roundtrip_Test (Test, Dictionary,
          "the end",
-         To_SEA ("dBBlAgXBBk"));
+         To_SEA ("BdlBgABXkB"));
       Roundtrip_Test (Test, Dictionary,
          "not-a-g00d-Exampl333",
-         To_SEA ("asB0AtBhAtBnEABkAtsTVYbdKx"));
+         To_SEA ("sa0BtAhBtAnBAEkBtATsYVdbxK"));
       Roundtrip_Test (Test, Dictionary,
          "Smaz is a simple compression library",
-         To_SEA ("x0VlAgYuAgBhAgcoaTAgWOaTcKcyYqBuAgZyV3VdB5"));
+         To_SEA ("0xlVgAuYgAhBgAocTagAOWTaKcycqYuBgAyZ3VdV5B"));
       Roundtrip_Test (Test, Dictionary,
          "Nothing is more difficult, and therefore more precious, "
            & "than to be able to decide",
-         To_SEA ("v0dBYpBnAgYuAgaScKAgWiXTYedfB0AsAgVZBkAgdBXFW5bJBlAgaScKAg"
-           & "bjW2YqdmAsAgdBVZAgdIAgVqAgVNZuAgdIAgWeWIWe"));
+         To_SEA ("0vBdpYnBgAuYgASaKcgAiWTXeYfd0BsAgAZVkBgABdFX5WJblBgASaKcgA"
+           & "jb2WqYmdsAgABdZVgAIdgAqVgANVuZgAIdgAeWIWeW"));
       Roundtrip_Test (Test, Dictionary,
          "this is an example of what works very well with smaz",
-         To_SEA ("dBYuAgYuAgVZAgXLVYbdBlAga9AgePVfAgeWcQBzAgdyceAgeMZ1Ag"
-           & "eQdBAgcsVl"));
+         To_SEA ("BduYgAuYgAZVgALXYVdblBgA9agAPefVgAWeQczBgAydecgAMe1ZgA"
+           & "QeBdgAsclV"));
       Roundtrip_Test (Test, Dictionary,
          "1000 numbers 2000 will 10 20 30 compress very little",
-         To_SEA ("HIAwAgayaFXFBzAgIsAwAgeQZ1AgEKAgEUAgEeAgWOaTcKcyAg"
-           & "dyceAgZydNZu"));
+         To_SEA ("IHwAgAyaFaFXzBgAsIwAgAQe1ZgAKEgAUEgAeEgAOWTaKcycgA"
+           & "ydecgAyZNduZ"));
       Roundtrip_Test (Test, Dictionary,
          ": : : :",
-         To_SEA ("/5OiA6IDogOgo"));
+         To_SEA ("5/OiA6IDogOgo"));
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings_4096;
