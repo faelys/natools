@@ -511,7 +511,7 @@ package body Natools.Smaz_Tests is
          To_SEA ("sa0BtAhBtAnBAEkBtATsYVdbxK"));
       Roundtrip_Test (Test, Dictionary,
          "Smaz is a simple compression library",
-         To_SEA ("0xlVgAuYgAhBgAocTagAOWTaKcycqYuBgAyZ3VdV5B"));
+         To_SEA ("0xlVgAuYgAhBgAocTauZgAOWTaKcycqYuBgAyZ3VdV5B"));
       Roundtrip_Test (Test, Dictionary,
          "Nothing is more difficult, and therefore more precious, "
            & "than to be able to decide",
