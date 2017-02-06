@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2016, Natacha Porté                                        --
+-- Copyright (c) 2016-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -12,6 +12,19 @@
 -- WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN    --
 -- ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF  --
 -- OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.           --
+------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------
+-- Natools.Smaz_Generic provides a generic implementation of the Smaz       --
+-- algorithm, leaving encoding and decoding to the formal subprograms.      --
+-- This factors all the logic common to standard byte-based Smaz, the       --
+-- the base-64 variant, and the base-4096 variant.                          --
+--                                                                          --
+-- WARNING: an important assumption that is not checked/asserted, is that   --
+-- it is never preferable to use verbatim encoding rather than a code,      --
+-- except when merging to verbatim sections and the code between them. This --
+-- means in particular that a dictionary must never contain an entry        --
+-- shorter than its encoded counterpart.                                    --
 ------------------------------------------------------------------------------
 
 with Ada.Streams;
