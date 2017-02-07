@@ -157,27 +157,22 @@ package body Natools.Smaz_Tests is
       end Push_Value;
    begin
       return Dict : Natools.Smaz_4096.Dictionary
-        := (Last_Code => 4059,
-            Values_Last => 8864,
+        := (Last_Code => 3803,
+            Values_Last => 8608,
             Variable_Length_Verbatim => Variable_Length_Verbatim,
             Max_Word_Length => 3,
             Offsets => <>,
             Values => <>,
             Hash => Dictionary_4096_Hash'Access)
       do
-         --  0 .. 255: ASCII table
-         for C in Character loop
-            Push_Value (Dict, (1 => C));
-         end loop;
-
-         --  256 .. 355: two-digit numbers
+         --  0 .. 99: two-digit numbers
          for U in Digit_Rank loop
             for V in Digit_Rank loop
                Push_Value (Dict, (1 => Image (U), 2 => Image (V)));
             end loop;
          end loop;
 
-         --  356 .. 1355: three-digit numbers
+         --  100 .. 1099: three-digit numbers
          for U in Digit_Rank loop
             for V in Digit_Rank loop
                for W in Digit_Rank loop
@@ -187,28 +182,28 @@ package body Natools.Smaz_Tests is
             end loop;
          end loop;
 
-         --  1356 .. 2031: two lower-case letters
+         --  1100 .. 1775: two lower-case letters
          for M in Letter_Rank loop
             for N in Letter_Rank loop
                Push_Value (Dict, (1 => Lower (M), 2 => Lower (N)));
             end loop;
          end loop;
 
-         --  2032 .. 2707: lower-case then upper-case letter
+         --  1776 .. 2451: lower-case then upper-case letter
          for M in Letter_Rank loop
             for N in Letter_Rank loop
                Push_Value (Dict, (1 => Lower (M), 2 => Upper (N)));
             end loop;
          end loop;
 
-         --  2708 .. 3383: upper-case then lower-case letter
+         --  2452 .. 3127: upper-case then lower-case letter
          for M in Letter_Rank loop
             for N in Letter_Rank loop
                Push_Value (Dict, (1 => Upper (M), 2 => Lower (N)));
             end loop;
          end loop;
 
-         --  3384 .. 4059: two upper-case letters
+         --  3128 .. 3803: two upper-case letters
          for M in Letter_Rank loop
             for N in Letter_Rank loop
                Push_Value (Dict, (1 => Upper (M), 2 => Upper (N)));
@@ -230,24 +225,21 @@ package body Natools.Smaz_Tests is
             when others => raise Program_Error);
    begin
       case S'Length is
-         when 1 =>
-            return Character'Pos (S (S'First));
-
          when 2 =>
             declare
                U : constant Character := S (S'First);
                V : constant Character := S (S'Last);
             begin
                if U in '0' .. '9' and then V in '0' .. '9' then
-                  return 256 + Rank (U) * 10 + Rank (V);
+                  return 0 + Rank (U) * 10 + Rank (V);
                elsif U in 'a' .. 'z' and then V in 'a' .. 'z' then
-                  return 1356 + Rank (U) * 26 + Rank (V);
+                  return 1100 + Rank (U) * 26 + Rank (V);
                elsif U in 'a' .. 'z' and then V in 'A' .. 'Z' then
-                  return 2032 + Rank (U) * 26 + Rank (V);
+                  return 1776 + Rank (U) * 26 + Rank (V);
                elsif U in 'A' .. 'Z' and then V in 'a' .. 'z' then
-                  return 2708 + Rank (U) * 26 + Rank (V);
+                  return 2452 + Rank (U) * 26 + Rank (V);
                elsif U in 'A' .. 'Z' and then V in 'A' .. 'Z' then
-                  return 3384 + Rank (U) * 26 + Rank (V);
+                  return 3128 + Rank (U) * 26 + Rank (V);
                else
                   return 4096;
                end if;
@@ -263,7 +255,7 @@ package body Natools.Smaz_Tests is
                  and then V in '0' .. '9'
                  and then W in '0' .. '9'
                then
-                  return 356 + Rank (U) * 100 + Rank (V) * 10 + Rank (W);
+                  return 100 + Rank (U) * 100 + Rank (V) * 10 + Rank (W);
                else
                   return 4096;
                end if;
