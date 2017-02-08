@@ -241,7 +241,7 @@ package body Natools.Smaz_Tests is
                elsif U in 'A' .. 'Z' and then V in 'A' .. 'Z' then
                   return 3128 + Rank (U) * 26 + Rank (V);
                else
-                  return 4096;
+                  return 4095;
                end if;
             end;
 
@@ -257,11 +257,11 @@ package body Natools.Smaz_Tests is
                then
                   return 100 + Rank (U) * 100 + Rank (V) * 10 + Rank (W);
                else
-                  return 4096;
+                  return 4095;
                end if;
             end;
          when others =>
-            return 4096;
+            return 4095;
       end case;
    end Dictionary_4096_Hash;
 
