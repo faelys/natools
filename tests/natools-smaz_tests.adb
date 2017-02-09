@@ -132,6 +132,9 @@ package body Natools.Smaz_Tests is
       function Image (N : Digit_Rank) return Character
         is (Character'Val (Character'Pos ('0') + N));
 
+      subtype Alphanum is Character with Static_Predicate
+        => Alphanum in '0' .. '9' | 'A' .. 'Z' | 'a' .. 'z';
+
       Current_Index : Smaz_Implementations.Base_4096.Base_4096_Digit := 0;
       Current_Offset : Positive := 1;
 
@@ -157,22 +160,47 @@ package body Natools.Smaz_Tests is
       end Push_Value;
    begin
       return Dict : Natools.Smaz_4096.Dictionary
-        := (Last_Code => 3803,
-            Values_Last => 8608,
+        := (Last_Code => 4059,
+            Values_Last => 9120,
             Variable_Length_Verbatim => Variable_Length_Verbatim,
             Max_Word_Length => 3,
             Offsets => <>,
             Values => <>,
             Hash => Dictionary_4096_Hash'Access)
       do
-         --  0 .. 99: two-digit numbers
+         --  0 .. 61: space + letter
+         for L in Alphanum loop
+            Push_Value (Dict, (1 => ' ', 2 => L));
+         end loop;
+
+         --  62 .. 123: letter + space
+         for L in Alphanum loop
+            Push_Value (Dict, (1 => L, 2 => ' '));
+         end loop;
+
+         --  124 .. 185: letter + comma
+         for L in Alphanum loop
+            Push_Value (Dict, (1 => L, 2 => ','));
+         end loop;
+
+         --  186 .. 247: letter + period
+         for L in Alphanum loop
+            Push_Value (Dict, (1 => L, 2 => '.'));
+         end loop;
+
+         --  248 .. 255: double punctuation
+         for L in Character range ' ' .. ''' loop
+            Push_Value (Dict, (1 => L, 2 => L));
+         end loop;
+
+         --  256 .. 355: two-digit numbers
          for U in Digit_Rank loop
             for V in Digit_Rank loop
                Push_Value (Dict, (1 => Image (U), 2 => Image (V)));
             end loop;
          end loop;
 
-         --  100 .. 1099: three-digit numbers
+         --  356 .. 1355: three-digit numbers
          for U in Digit_Rank loop
             for V in Digit_Rank loop
                for W in Digit_Rank loop
@@ -182,28 +210,28 @@ package body Natools.Smaz_Tests is
             end loop;
          end loop;
 
-         --  1100 .. 1775: two lower-case letters
+         --  1356 .. 2031: two lower-case letters
          for M in Letter_Rank loop
             for N in Letter_Rank loop
                Push_Value (Dict, (1 => Lower (M), 2 => Lower (N)));
             end loop;
          end loop;
 
-         --  1776 .. 2451: lower-case then upper-case letter
+         --  2032 .. 2707: lower-case then upper-case letter
          for M in Letter_Rank loop
             for N in Letter_Rank loop
                Push_Value (Dict, (1 => Lower (M), 2 => Upper (N)));
             end loop;
          end loop;
 
-         --  2452 .. 3127: upper-case then lower-case letter
+         --  2708 .. 3383: upper-case then lower-case letter
          for M in Letter_Rank loop
             for N in Letter_Rank loop
                Push_Value (Dict, (1 => Upper (M), 2 => Lower (N)));
             end loop;
          end loop;
 
-         --  3128 .. 3803: two upper-case letters
+         --  3384 .. 4059: two upper-case letters
          for M in Letter_Rank loop
             for N in Letter_Rank loop
                Push_Value (Dict, (1 => Upper (M), 2 => Upper (N)));
@@ -230,16 +258,42 @@ package body Natools.Smaz_Tests is
                U : constant Character := S (S'First);
                V : constant Character := S (S'Last);
             begin
-               if U in '0' .. '9' and then V in '0' .. '9' then
-                  return 0 + Rank (U) * 10 + Rank (V);
+               if U = ' ' and then V in '0' .. '9' then
+                  return Rank (V);
+               elsif U = ' ' and then V in 'A' .. 'Z' then
+                  return 10 + Rank (V);
+               elsif U = ' ' and then V in 'a' .. 'z' then
+                  return 36 + Rank (V);
+               elsif U in '0' .. '9' and then V in ' ' | ',' | '.' then
+                  return Rank (U)
+                    + (case V is when ' ' =>  62,
+                                 when ',' => 124,
+                                 when '.' => 186,
+                                 when others => raise Program_Error);
+               elsif U in 'A' .. 'Z' and then V in ' ' | ',' | '.' then
+                  return Rank (U) + 10
+                    + (case V is when ' ' =>  62,
+                                 when ',' => 124,
+                                 when '.' => 186,
+                                 when others => raise Program_Error);
+               elsif U in 'a' .. 'z' and then V in ' ' | ',' | '.' then
+                  return Rank (U) + 36
+                    + (case V is when ' ' =>  62,
+                                 when ',' => 124,
+                                 when '.' => 186,
+                                 when others => raise Program_Error);
+               elsif U in ' ' .. ''' and then U = V then
+                  return 248 + Character'Pos (U) - Character'Pos (' ');
+               elsif U in '0' .. '9' and then V in '0' .. '9' then
+                  return 256 + Rank (U) * 10 + Rank (V);
                elsif U in 'a' .. 'z' and then V in 'a' .. 'z' then
-                  return 1100 + Rank (U) * 26 + Rank (V);
+                  return 1356 + Rank (U) * 26 + Rank (V);
                elsif U in 'a' .. 'z' and then V in 'A' .. 'Z' then
-                  return 1776 + Rank (U) * 26 + Rank (V);
+                  return 2032 + Rank (U) * 26 + Rank (V);
                elsif U in 'A' .. 'Z' and then V in 'a' .. 'z' then
-                  return 2452 + Rank (U) * 26 + Rank (V);
+                  return 2708 + Rank (U) * 26 + Rank (V);
                elsif U in 'A' .. 'Z' and then V in 'A' .. 'Z' then
-                  return 3128 + Rank (U) * 26 + Rank (V);
+                  return 3384 + Rank (U) * 26 + Rank (V);
                else
                   return 4095;
                end if;
@@ -255,7 +309,7 @@ package body Natools.Smaz_Tests is
                  and then V in '0' .. '9'
                  and then W in '0' .. '9'
                then
-                  return 100 + Rank (U) * 100 + Rank (V) * 10 + Rank (W);
+                  return 356 + Rank (U) * 100 + Rank (V) * 10 + Rank (W);
                else
                   return 4095;
                end if;
