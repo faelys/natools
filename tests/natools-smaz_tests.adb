@@ -545,32 +545,39 @@ package body Natools.Smaz_Tests is
    begin
       Roundtrip_Test (Test, Dictionary,
          "This is a small string",
-         To_SEA ("JyuYgAuYgAhBgAscXVsBgAzcOcka"));
+         To_SEA ("JyuYsA0BiBscXVtBzcOcka"));
+         --       This is a small string
       Roundtrip_Test (Test, Dictionary,
          "foobar",
          To_SEA ("cX5adV"));
+         --       foobar
       Roundtrip_Test (Test, Dictionary,
          "the end",
-         To_SEA ("BdlBgABXkB"));
+         To_SEA ("BdmBBX//kB"));
+         --       the en<d >
       Roundtrip_Test (Test, Dictionary,
          "not-a-g00d-Exampl333",
-         To_SEA ("sa0BtAhBtAnBAEkBtATsYVdbxK"));
+         To_SEA ("sa3/dC1hLWcwMGQtTsYVdbxK"));
+--                no< t-a -g0 0d->Exampl333
       Roundtrip_Test (Test, Dictionary,
          "Smaz is a simple compression library",
-         To_SEA ("0xlVgAuYgAhBgAocTauZgAOWTaKcycqYuBgAyZ3VdV5B"));
+         To_SEA ("0xlVsA0BiBocTauZmAEbjbGXocFbvAdYGcec"));
+         --       Smaz is a simple compression library
       Roundtrip_Test (Test, Dictionary,
          "Nothing is more difficult, and therefore more precious, "
            & "than to be able to decide",
-         To_SEA ("0vBdpYnBgAuYgASaKcgAiWTXeYfd0BsAgAZVkBgABdFX5WJblBgASaKcgA"
-           & "jb2WqYmdsAgABdZVgAIdgAqVgANVuZgAIdgAeWIWeW"));
+         To_SEA ("0vBdpYoBuYwAJbmBiWTXeYfdzCkAha3AGYKccXKcwAJbmBjb2WqYmd//sA"
+         --       Nothing is more difficult, and therefore more precious< ,>
+           & "3ACYvBIdlAmBNVuZ3AwBeWIWeW"));
+         --    than to be able to decide
       Roundtrip_Test (Test, Dictionary,
          "this is an example of what works very well with smaz",
-         To_SEA ("BduYgAuYgAZVgALXYVdblBgA9agAPefVgAWeQczBgAydecgAMe1ZgA"
-           & "QeBdgAsclV"));
+         To_SEA ("BduYsA0BZVoAieTauZyAnBPefV6AJbiZ5AFX6BMe1Z6AvYpBsclV"));
+         --       this is an example of what works very well with smaz
       Roundtrip_Test (Test, Dictionary,
          "1000 numbers 2000 will 10 20 30 compress very little",
-         To_SEA ("IHwAgAyaFaFXzBgAsIwAgAQe1ZgAKEgAUEgAeEgAOWTaKcycgA"
-           & "ydecgAyZNduZ"));
+         To_SEA ("IH+AyaFaFX0BsI+AQe1ZBA+AUEDA+AOWTaKcyc5AFX6ByZNduZ"));
+         --      1000 numbers 2*0 will 10 20 30 compress very little",
       Roundtrip_Test (Test, Dictionary,
          ": : : :",
          To_SEA ("5/OiA6IDogOgo"));
