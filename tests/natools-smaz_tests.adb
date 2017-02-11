@@ -557,8 +557,11 @@ package body Natools.Smaz_Tests is
          --       the en<d >
       Roundtrip_Test (Test, Dictionary,
          "not-a-g00d-Exampl333",
-         To_SEA ("sa3/dC1hLWcwMGQtTsYVdbxK"));
---                no< t-a -g0 0d->Exampl333
+         To_SEA ("sa3/01SYtcGMwQWLTsYVdbxK"));
+         --       no< t-a -g0 0d->Exampl333
+         --  t-a  001011_10  1011_0100  10_000110
+         --  -g0  101101_00  1110_0110  00_001100
+         --  0d-  000011_00  0010_0110  10_110100
       Roundtrip_Test (Test, Dictionary,
          "Smaz is a simple compression library",
          To_SEA ("0xlVsA0BiBocTauZmAEbjbGXocFbvAdYGcec"));
@@ -580,7 +583,10 @@ package body Natools.Smaz_Tests is
          --      1000 numbers 2*0 will 10 20 30 compress very little",
       Roundtrip_Test (Test, Dictionary,
          ": : : :",
-         To_SEA ("5/OiA6IDogOgo"));
+         To_SEA ("5/6AiOgoDI6A"));
+         --  :_:  010111_00  0000_0100  01_011100
+         --  _:_  000001_00  0101_1100  00_000100
+         --  :    010111_00  0000
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings_4096;
