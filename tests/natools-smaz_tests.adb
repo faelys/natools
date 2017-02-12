@@ -55,6 +55,10 @@ package body Natools.Smaz_Tests is
      (Report : in out NT.Reporter'Class;
       Dictionary : in Smaz_4096.Dictionary);
 
+   procedure Sample_Strings_VLV_4096
+     (Report : in out NT.Reporter'Class;
+      Dictionary : in Smaz_4096.Dictionary);
+
    procedure Test_Validity_4096
      (Report : in out NT.Reporter'Class;
       Dictionary : in Smaz_4096.Dictionary);
@@ -460,6 +464,7 @@ package body Natools.Smaz_Tests is
       begin
          Report.Section ("With variable-length verbatim");
          Test_Validity_4096 (Report, Dict);
+         Sample_Strings_VLV_4096 (Report, Dict);
          Report.End_Section;
       end;
    end All_Tests_4096;
@@ -596,6 +601,67 @@ package body Natools.Smaz_Tests is
    begin
       Sample_Strings_4096 (Report, Dictionary_4096 (False));
    end Sample_Strings_4096;
+
+
+   procedure Sample_Strings_VLV_4096
+     (Report : in out NT.Reporter'Class;
+      Dictionary : in Smaz_4096.Dictionary)
+   is
+      Test : NT.Test := Report.Item ("Roundtrip on sample strings");
+   begin
+      Roundtrip_Test (Test, Dictionary,
+         "This is a small string",
+         To_SEA ("JyuYsA0BiBscXVtBzcOcka"));
+         --       This is a small string
+      Roundtrip_Test (Test, Dictionary,
+         "foobar",
+         To_SEA ("cX5adV"));
+         --       foobar
+      Roundtrip_Test (Test, Dictionary,
+         "the end",
+         To_SEA ("BdmBBX+/kB"));
+         --       the en<d >
+      Roundtrip_Test (Test, Dictionary,
+         "not-a-g00d-Exampl333",
+         To_SEA ("sa2/01SYtcGMwQWLTsYVdbxK"));
+         --       no< t-a -g0 0d->Exampl333
+         --  t-a  001011_10  1011_0100  10_000110
+         --  -g0  101101_00  1110_0110  00_001100
+         --  0d-  000011_00  0010_0110  10_110100
+      Roundtrip_Test (Test, Dictionary,
+         "Smaz is a simple compression library",
+         To_SEA ("0xlVsA0BiBocTauZmAEbjbGXocFbvAdYGcec"));
+         --       Smaz is a simple compression library
+      Roundtrip_Test (Test, Dictionary,
+         "Nothing is more difficult, and therefore more precious, "
+           & "than to be able to decide",
+         To_SEA ("0vBdpYoBuYwAJbmBiWTXeYfdzCkAha3AGYKccXKcwAJbmBjb2WqYmd+/sA"
+         --       Nothing is more difficult, and therefore more precious< ,>
+           & "3ACYvBIdlAmBNVuZ3AwBeWIWeW"));
+         --    than to be able to decide
+      Roundtrip_Test (Test, Dictionary,
+         "this is an example of what works very well with smaz",
+         To_SEA ("BduYsA0BZVoAieTauZyAnBPefV6AJbiZ5AFX6BMe1Z6AvYpBsclV"));
+         --       this is an example of what works very well with smaz
+      Roundtrip_Test (Test, Dictionary,
+         "1000 numbers 2000 will 10 20 30 compress very little",
+         To_SEA ("IH+AyaFaFX0BsI+AQe1ZBA+AUEDA+AOWTaKcyc5AFX6ByZNduZ"));
+         --      1000 numbers 2*0 will 10 20 30 compress very little",
+      Roundtrip_Test (Test, Dictionary,
+         ": : : :",
+         To_SEA ("4/6AiOgoDI6A"));
+         --  :_:  010111_00  0000_0100  01_011100
+         --  _:_  000001_00  0101_1100  00_000100
+         --  :    010111_00  0000
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Sample_Strings_VLV_4096;
+
+
+   procedure Sample_Strings_VLV_4096 (Report : in out NT.Reporter'Class) is
+   begin
+      Sample_Strings_VLV_4096 (Report, Dictionary_4096 (True));
+   end Sample_Strings_VLV_4096;
 
 
    procedure Test_Validity_4096
