@@ -16,6 +16,7 @@
 
 with Ada.Characters.Latin_1;
 with Ada.Streams;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Natools.S_Expressions;
 with Natools.Smaz_256;
@@ -592,6 +593,12 @@ package body Natools.Smaz_Tests is
          --  :_:  010111_00  0000_0100  01_011100
          --  _:_  000001_00  0101_1100  00_000100
          --  :    010111_00  0000
+      Roundtrip_Test (Test, Dictionary,
+         (1 .. 80 => ':'),
+         To_SEA (Ada.Strings.Fixed."*"
+           (2, "c/" & Ada.Strings.Fixed."*" (12, "6ojO"))
+           & "4/6ojO6ojO6oD"));
+         --  :::  010111_00  0101_1100  01_011100
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings_4096;
@@ -653,6 +660,10 @@ package body Natools.Smaz_Tests is
          --  :_:  010111_00  0000_0100  01_011100
          --  _:_  000001_00  0101_1100  00_000100
          --  :    010111_00  0000
+      Roundtrip_Test (Test, Dictionary,
+         (1 .. 4096 + 36 => ':'),
+         To_SEA ("////" & Ada.Strings.Fixed."*" (1377, "6ojO") & "+/6A"));
+         --  :::  010111_00  0101_1100  01_011100
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings_VLV_4096;
