@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2016, Natacha Porté                                        --
+-- Copyright (c) 2016-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -21,7 +21,6 @@
 -- global constant dictionary object.                                       --
 ------------------------------------------------------------------------------
 
-with Ada.Containers;
 with Natools.Smaz_Tools;
 
 generic
@@ -35,8 +34,8 @@ package Natools.Smaz_Generic.Tools is
      (List : in String_Lists.List;
       Variable_Length_Verbatim : in Boolean)
      return Dictionary
-     with Pre => String_Lists.Length (List) in 1 ..
-                 Ada.Containers.Count_Type (Ada.Streams.Stream_Element'Last);
+     with Pre => String_Lists.Length (List)
+                 in 1 .. Dictionary_Code'Pos (Dictionary_Code'Last);
       --  Build a Dictionary object from a string list
       --  Note that Hash is set to a placeholder which unconditionnally
       --  raises Program_Error when called.
