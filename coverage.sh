@@ -5,8 +5,10 @@
 : ${LCOV_HTML_DIR:=coverage}
 : ${TEST_LOG:=coverage.log}
 
-${GNATPATH}/gnatmake -p -Ptests -XMODE=Coverage || exit $?
-${GNATPATH}/gnatmake -p -Ptools -XMODE=Coverage || exit $?
+PATH=${GNATPATH}:${PATH} \
+gprbuild -XTASK_SAFETY=Intel -p -Ptests -XMODE=Coverage || exit $?
+PATH=${GNATPATH}:${PATH} \
+gprbuild -XTASK_SAFETY=Intel -p -Ptools -XMODE=Coverage || exit $?
 lcov --directory coverage/obj --zerocounters
 coverage/bin/test_all > "${TEST_LOG}"
 tools/tests.sh coverage/bin
