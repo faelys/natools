@@ -445,7 +445,7 @@ package body Natools.Smaz_Tests is
    procedure All_Tests_256 (Report : in out NT.Reporter'Class) is
    begin
       Test_Validity_256 (Report);
-      Sample_Strings_256 (Report);
+      Sample_Strings_VLV_256 (Report);
    end All_Tests_256;
 
 
@@ -484,8 +484,9 @@ package body Natools.Smaz_Tests is
    -- Individual Base-256 Tests --
    -------------------------------
 
-   procedure Sample_Strings_256 (Report : in out NT.Reporter'Class) is
-      Test : NT.Test := Report.Item ("Roundtrip on sample strings");
+   procedure Sample_Strings_VLV_256 (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item
+        ("Roundtrip on sample strings with variable-length verbatim");
    begin
       Roundtrip_Test (Test, Smaz_Original.Dictionary,
          "This is a small string",
@@ -524,7 +525,7 @@ package body Natools.Smaz_Tests is
          (255, 6, 58, 32, 58, 32, 58, 32, 58));
    exception
       when Error : others => Test.Report_Exception (Error);
-   end Sample_Strings_256;
+   end Sample_Strings_VLV_256;
 
 
    procedure Test_Validity_256 (Report : in out NT.Reporter'Class) is
