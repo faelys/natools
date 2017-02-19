@@ -40,6 +40,8 @@ package body Natools.Smaz_Tests is
 
    function Decimal_Image (S : Ada.Streams.Stream_Element_Array) return String;
 
+   function Dictionary_256_Without_VLV return Smaz_256.Dictionary;
+
    function Dictionary_4096 (Variable_Length_Verbatim : in Boolean)
      return Natools.Smaz_4096.Dictionary;
 
@@ -122,6 +124,14 @@ package body Natools.Smaz_Tests is
 
       return To_String (Result);
    end Decimal_Image;
+
+
+   function Dictionary_256_Without_VLV return Smaz_256.Dictionary is
+   begin
+      return Dict : Smaz_256.Dictionary := Smaz_Original.Dictionary do
+         Dict.Variable_Length_Verbatim := False;
+      end return;
+   end Dictionary_256_Without_VLV;
 
 
    function Dictionary_4096 (Variable_Length_Verbatim : in Boolean)
@@ -445,6 +455,7 @@ package body Natools.Smaz_Tests is
    procedure All_Tests_256 (Report : in out NT.Reporter'Class) is
    begin
       Test_Validity_256 (Report);
+      Sample_Strings_256 (Report);
       Sample_Strings_VLV_256 (Report);
    end All_Tests_256;
 
@@ -483,6 +494,51 @@ package body Natools.Smaz_Tests is
    -------------------------------
    -- Individual Base-256 Tests --
    -------------------------------
+
+   procedure Sample_Strings_256 (Report : in out NT.Reporter'Class) is
+      Test : NT.Test
+        := Report.Item ("Roundtrip on sample strings without VLV");
+      Dict : constant Smaz_256.Dictionary := Dictionary_256_Without_VLV;
+   begin
+      Roundtrip_Test (Test, Dict,
+         "This is a small string",
+         (255, 84, 76, 56, 172, 62, 173, 152, 62, 195, 70));
+      Roundtrip_Test (Test, Dict,
+         "foobar",
+         (220, 6, 90, 79));
+      Roundtrip_Test (Test, Dict,
+         "the end",
+         (1, 171, 61));
+      Roundtrip_Test (Test, Dict,
+         "not-a-g00d-Exampl333",
+         (132, 204, 4, 204, 59, 254, 48, 48, 24, 204, 255, 69, 250, 4, 45,
+           60, 22, 254, 51, 51, 255, 51));
+      Roundtrip_Test (Test, Dict,
+         "Smaz is a simple compression library",
+         (255, 83, 173, 219, 56, 172, 62, 226, 60, 87, 161, 45, 60, 33, 166,
+           107, 205, 8, 90, 130, 12, 83));
+      Roundtrip_Test (Test, Dict,
+         "Nothing is more difficult, and therefore more precious, "
+           & "than to be able to decide",
+         (255, 78, 223, 102, 99, 116, 45, 42, 11, 129, 44, 44, 131, 38, 22, 3,
+           148, 63, 210, 68, 11, 45, 42, 11, 60, 33, 28, 144, 164, 36, 203,
+           143, 96, 92, 25, 90, 87, 82, 165, 215, 237, 2));
+      Roundtrip_Test (Test, Dict,
+         "this is an example of what works very well with smaz",
+         (155, 56, 172, 41, 2, 250, 4, 45, 60, 87, 32, 159, 135, 65, 42, 255,
+           107, 23, 231, 71, 145, 152, 243, 227, 10, 173, 219));
+      Roundtrip_Test (Test, Dict,
+         "1000 numbers 2000 will 10 20 30 compress very little",
+         (254, 49, 48, 254, 48, 48, 236, 38, 45, 92, 221, 0, 254, 50, 48,
+           254, 48, 48, 243, 152, 0, 254, 49, 48, 0, 254, 50, 48, 0, 254, 51,
+           48, 161, 45, 60, 33, 166, 0, 231, 71, 151, 3, 3, 87));
+      Roundtrip_Test (Test, Dict,
+         ": : : :",
+         (254, 58, 32, 254, 58, 32, 254, 58, 32, 255, 58));
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Sample_Strings_256;
+
 
    procedure Sample_Strings_VLV_256 (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item
