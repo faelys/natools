@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2016, Natacha Porté                                        --
+-- Copyright (c) 2016-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -114,10 +114,10 @@ package body Natools.Smaz_Implementations.Base_256 is
       end if;
 
       declare
-         Full_Blocks : constant Ada.Streams.Stream_Element_Count
-           := Remaining / Verbatim1_Max_Size;
+         Block_Count : constant Ada.Streams.Stream_Element_Count
+           := (Remaining + Verbatim1_Max_Size - 1) / Verbatim1_Max_Size;
       begin
-         Overhead := Overhead + Full_Blocks;
+         Overhead := Overhead + Block_Count;
       end;
 
       return Overhead + Ada.Streams.Stream_Element_Count (Input_Length);
