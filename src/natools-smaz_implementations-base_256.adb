@@ -38,7 +38,7 @@ package body Natools.Smaz_Implementations.Base_256 is
 
          if not Variable_Length_Verbatim then
             Verbatim_Length
-              := Positive (Ada.Streams.Stream_Element'Last - Input_Byte) + 1;
+              := Natural (Ada.Streams.Stream_Element'Last - Input_Byte) + 1;
          elsif Input_Byte < Ada.Streams.Stream_Element'Last then
             Verbatim_Length
               := Positive (Ada.Streams.Stream_Element'Last - Input_Byte);
