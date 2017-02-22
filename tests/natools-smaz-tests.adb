@@ -188,6 +188,10 @@ package body Natools.Smaz.Tests is
       Roundtrip_Test (Test, Original.Dictionary,
          ": : : :",
          (255, 6, 58, 32, 58, 32, 58, 32, 58));
+      Roundtrip_Test (Test, Original.Dictionary,
+         (1 .. 300 => ':'),
+         (1 .. 2 => 255, 3 .. 258 => 58,
+           259 => 255, 260 => 43, 261 .. 304 => 58));
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings;
