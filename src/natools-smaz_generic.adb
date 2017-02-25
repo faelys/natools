@@ -200,6 +200,7 @@ package body Natools.Smaz_Generic is
             Skip_Verbatim (Input, Input_Index, Verbatim_Length);
             Result := Result + Verbatim_Length;
          else
+            exit when not Is_Valid_Code (Dict, Code);
             Result := Result + Dict_Entry_Length (Dict, Code);
          end if;
       end loop;
@@ -233,6 +234,8 @@ package body Natools.Smaz_Generic is
                  (Output_Last + 1 .. Output_Last + Verbatim_Length));
             Output_Last := Output_Last + Verbatim_Length;
          else
+            exit when not Is_Valid_Code (Dict, Code);
+
             declare
                Decoded : constant String := Dict_Entry (Dict, Code);
             begin
