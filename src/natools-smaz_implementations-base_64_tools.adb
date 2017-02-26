@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2016, Natacha Porté                                        --
+-- Copyright (c) 2016-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -227,6 +227,29 @@ package body Natools.Smaz_Implementations.Base_64_Tools is
       Digit := Value (Input (Offset));
       Offset := Offset + 1;
    end Next_Digit;
+
+
+   procedure Next_Digit_Or_End
+     (Input : in Ada.Streams.Stream_Element_Array;
+      Offset : in out Ada.Streams.Stream_Element_Offset;
+      Digit : out Base_64_Digit;
+      Finished : out Boolean) is
+   begin
+      loop
+         if Offset not in Input'Range then
+            Finished := True;
+            return;
+         end if;
+
+         exit when Input (Offset) in Base_64_Symbol;
+
+         Offset := Offset + 1;
+      end loop;
+
+      Digit := Value (Input (Offset));
+      Finished := False;
+      Offset := Offset + 1;
+   end Next_Digit_Or_End;
 
 
    function Symbol_Count (Input : Ada.Streams.Stream_Element_Array)

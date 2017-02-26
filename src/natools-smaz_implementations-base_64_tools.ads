@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2016, Natacha Porté                                        --
+-- Copyright (c) 2016-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -142,6 +142,11 @@ package Natools.Smaz_Implementations.Base_64_Tools is
      (Input : in Ada.Streams.Stream_Element_Array;
       Offset : in out Ada.Streams.Stream_Element_Offset;
       Digit : out Base_64_Digit);
+   procedure Next_Digit_Or_End
+     (Input : in Ada.Streams.Stream_Element_Array;
+      Offset : in out Ada.Streams.Stream_Element_Offset;
+      Digit : out Base_64_Digit;
+      Finished : out Boolean);
       --  Look for the first valid symbol in Input from Offset, and decode it
 
 end Natools.Smaz_Implementations.Base_64_Tools;
