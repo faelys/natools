@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2016, Natacha Porté                                        --
+-- Copyright (c) 2016-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -36,8 +36,15 @@ package body Natools.Smaz_Implementations.Base_64 is
    is
       Ignored : String (1 .. 2);
       Offset_Backup : Ada.Streams.Stream_Element_Offset;
+      Finished : Boolean;
    begin
-      Tools.Next_Digit (Input, Offset, Code);
+      Tools.Next_Digit_Or_End (Input, Offset, Code, Finished);
+
+      if Finished then
+         Code := Base_64_Tools.Base_64_Digit'Last;
+         Verbatim_Length := 0;
+         return;
+      end if;
 
       if Code <= Last_Code then
          Verbatim_Length := 0;
