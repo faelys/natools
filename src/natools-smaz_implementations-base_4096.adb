@@ -26,6 +26,11 @@ package body Natools.Smaz_Implementations.Base_4096 is
      (Input : in Ada.Streams.Stream_Element_Array;
       Offset : in out Ada.Streams.Stream_Element_Offset;
       Code : out Base_4096_Digit);
+   procedure Read_Code_Or_End
+     (Input : in Ada.Streams.Stream_Element_Array;
+      Offset : in out Ada.Streams.Stream_Element_Offset;
+      Code : out Base_4096_Digit;
+      Finished : out Boolean);
       --  Read two base-64 symbols and assemble them into a base-4096 number
 
 
@@ -46,6 +51,25 @@ package body Natools.Smaz_Implementations.Base_4096 is
    end Read_Code;
 
 
+   procedure Read_Code_Or_End
+     (Input : in Ada.Streams.Stream_Element_Array;
+      Offset : in out Ada.Streams.Stream_Element_Offset;
+      Code : out Base_4096_Digit;
+      Finished : out Boolean)
+   is
+      Low, High : Tools.Base_64_Digit;
+   begin
+      Tools.Next_Digit_Or_End (Input, Offset, Low, Finished);
+
+      if Finished then
+         return;
+      end if;
+
+      Tools.Next_Digit (Input, Offset, High);
+      Code := Base_4096_Digit (Low) + Base_4096_Digit (High) * 64;
+   end Read_Code_Or_End;
+
+
 
    ----------------------
    -- Public Interface --
@@ -57,9 +81,17 @@ package body Natools.Smaz_Implementations.Base_4096 is
       Code : out Base_4096_Digit;
       Verbatim_Length : out Natural;
       Last_Code : in Base_4096_Digit;
-      Variable_Length_Verbatim : in Boolean) is
+      Variable_Length_Verbatim : in Boolean)
+   is
+      Finished : Boolean;
    begin
-      Read_Code (Input, Offset, Code);
+      Read_Code_Or_End (Input, Offset, Code, Finished);
+
+      if Finished then
+         Code := Base_4096_Digit'Last;
+         Verbatim_Length := 0;
+         return;
+      end if;
 
       if Code <= Last_Code then
          Verbatim_Length := 0;
