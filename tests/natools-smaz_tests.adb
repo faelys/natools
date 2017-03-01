@@ -487,6 +487,7 @@ package body Natools.Smaz_Tests is
       Test_Validity_64 (Report);
       Sample_Strings_64 (Report);
       Sample_Strings_VLV_64 (Report);
+      Impure_Stream_64 (Report);
    end All_Tests_64;
 
 
@@ -761,6 +762,29 @@ package body Natools.Smaz_Tests is
    ------------------------------
    -- Individual Base-64 Tests --
    ------------------------------
+
+   procedure Impure_Stream_64 (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Input stream with non-base-64 symbols");
+   begin
+      declare
+         CRLF : constant String := (Character'Val (13), Character'Val (10));
+         Input : constant Ada.Streams.Stream_Element_Array
+           := To_SEA ("090kTgIW enLK3NFE FAEKs/Ao" & CRLF
+                    & "92dAFAzo +iBF1Sep HOvDJB0=");
+         Output : constant String := Smaz_64.Decompress (Dict_64, Input);
+         Expected : constant String
+           := "'49 bytes of data to show a verbatim count issue'";
+      begin
+         if Output /= Expected then
+            Test.Fail ("Bad decompression");
+            Test.Info ("Found:   """ & Output & '"');
+            Test.Info ("Expected:""" & Expected & '"');
+         end if;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Impure_Stream_64;
+
 
    procedure Sample_Strings_64 (Report : in out NT.Reporter'Class) is
       Test : NT.Test := Report.Item ("Roundtrip on sample strings");
