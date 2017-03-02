@@ -30,6 +30,7 @@ package Natools.Smaz_Tests is
    procedure Sample_Strings_VLV_256 (Report : in out NT.Reporter'Class);
    procedure Test_Validity_256 (Report : in out NT.Reporter'Class);
 
+   procedure Impure_Stream_4096 (Report : in out NT.Reporter'Class);
    procedure Sample_Strings_4096 (Report : in out NT.Reporter'Class);
    procedure Sample_Strings_VLV_4096 (Report : in out NT.Reporter'Class);
    procedure Test_Validity_4096 (Report : in out NT.Reporter'Class);

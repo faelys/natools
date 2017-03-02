@@ -54,6 +54,10 @@ package body Natools.Smaz_Tests is
      renames Natools.S_Expressions.To_Atom;
 
 
+   procedure Impure_Stream_4096
+     (Report : in out NT.Reporter'Class;
+      Dictionary : in Smaz_4096.Dictionary);
+
    procedure Sample_Strings_4096
      (Report : in out NT.Reporter'Class;
       Dictionary : in Smaz_4096.Dictionary);
@@ -468,6 +472,7 @@ package body Natools.Smaz_Tests is
          Report.Section ("Without variable-length verbatim");
          Test_Validity_4096 (Report, Dict);
          Sample_Strings_4096 (Report, Dict);
+         Impure_Stream_4096 (Report, Dict);
          Report.End_Section;
       end;
 
@@ -604,6 +609,40 @@ package body Natools.Smaz_Tests is
    --------------------------------
    -- Individual Base-4096 Tests --
    --------------------------------
+
+   procedure Impure_Stream_4096
+     (Report : in out NT.Reporter'Class;
+      Dictionary : in Smaz_4096.Dictionary)
+   is
+      Test : NT.Test := Report.Item ("Input stream with non-base-64 symbols");
+   begin
+      declare
+         CRLF : constant String := (Character'Val (13), Character'Val (10));
+         Input : constant Ada.Streams.Stream_Element_Array
+           := To_SEA ("0vBdpYoBuYwAJbmB iWTXeYfdzCkAha3A" & CRLF
+                    & "GYKccXKcwAJbmBjb 2WqYmd//sA3ACYvB" & CRLF
+                    & "IdlAmBNVuZ3AwBeW IWeW" & CRLF);
+         Output : constant String := Smaz_4096.Decompress (Dictionary, Input);
+         Expected : constant String
+           := "Nothing is more difficult, and therefore more precious, "
+              & "than to be able to decide";
+      begin
+         if Output /= Expected then
+            Test.Fail ("Bad decompression");
+            Test.Info ("Found:   """ & Output & '"');
+            Test.Info ("Expected:""" & Expected & '"');
+         end if;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Impure_Stream_4096;
+
+
+   procedure Impure_Stream_4096 (Report : in out NT.Reporter'Class) is
+   begin
+      Impure_Stream_4096 (Report, Dictionary_4096 (False));
+   end Impure_Stream_4096;
+
 
    procedure Sample_Strings_4096
      (Report : in out NT.Reporter'Class;
