@@ -251,19 +251,4 @@ package body Natools.Smaz_Implementations.Base_64_Tools is
       Offset := Offset + 1;
    end Next_Digit_Or_End;
 
-
-   function Symbol_Count (Input : Ada.Streams.Stream_Element_Array)
-     return Ada.Streams.Stream_Element_Count
-   is
-      Result : Ada.Streams.Stream_Element_Count := 0;
-   begin
-      for S of Input loop
-         if S in Base_64_Symbol then
-            Result := Result + 1;
-         end if;
-      end loop;
-
-      return Result;
-   end Symbol_Count;
-
 end Natools.Smaz_Implementations.Base_64_Tools;

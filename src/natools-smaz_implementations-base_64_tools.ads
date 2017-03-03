@@ -88,10 +88,6 @@ package Natools.Smaz_Implementations.Base_64_Tools is
      is (Natural (Input_Length) - (Natural (Input_Length) + 3) / 4);
       --  Original length of an encoded array
 
-   function Symbol_Count (Input : Ada.Streams.Stream_Element_Array)
-     return Ada.Streams.Stream_Element_Count;
-      --  Return the number of valid symbols in Input
-
 
    procedure Encode
      (Input : in String;
