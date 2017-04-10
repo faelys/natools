@@ -497,4 +497,27 @@ package body Natools.S_Expressions.Parsers is
       end if;
    end Read_More;
 
+
+
+   -------------------
+   -- Memory Parser --
+   -------------------
+
+   not overriding function Create
+     (Data : in Ada.Streams.Stream_Element_Array)
+     return Memory_Parser is
+   begin
+      return P : Memory_Parser do
+         P.Pending.Append (Data);
+         P.Pending.Invert;
+      end return;
+   end Create;
+
+
+   not overriding function Create_From_String
+     (Data : in String) return Memory_Parser is
+   begin
+      return Create (To_Atom (Data));
+   end Create_From_String;
+
 end Natools.S_Expressions.Parsers;

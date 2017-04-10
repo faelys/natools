@@ -75,6 +75,18 @@ package Natools.S_Expressions.Parsers is
      limited new Lockable.Descriptor with private;
    pragma Preelaborable_Initialization (Stream_Parser);
 
+
+
+   type Memory_Parser (<>) is limited new Lockable.Descriptor with private;
+   pragma Preelaborable_Initialization (Memory_Parser);
+
+   not overriding function Create
+     (Data : in Ada.Streams.Stream_Element_Array)
+     return Memory_Parser;
+
+   not overriding function Create_From_String
+     (Data : in String) return Memory_Parser;
+
 private
 
    type Internal_State is
@@ -127,5 +139,12 @@ private
    overriding procedure Read_More
      (Self : in out Stream_Parser;
       Buffer : out Atom_Buffers.Atom_Buffer);
+
+   type Memory_Parser is limited new Parser with null record;
+
+   overriding procedure Read_More
+     (Self : in out Memory_Parser;
+      Buffer : out Atom_Buffers.Atom_Buffer)
+     is null;
 
 end Natools.S_Expressions.Parsers;
