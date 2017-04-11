@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -33,6 +33,7 @@ package Natools.S_Expressions.Parsers.Tests is
    procedure Canonical_Encoding (Report : in out NT.Reporter'Class);
    procedure Lockable_Interface (Report : in out NT.Reporter'Class);
    procedure Locked_Next (Report : in out NT.Reporter'Class);
+   procedure Memory_Parser (Report : in out NT.Reporter'Class);
    procedure Nested_Subpexression (Report : in out NT.Reporter'Class);
    procedure Number_Prefixes (Report : in out NT.Reporter'Class);
    procedure Quoted_Escapes (Report : in out NT.Reporter'Class);

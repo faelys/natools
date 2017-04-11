@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -69,6 +69,7 @@ package body Natools.S_Expressions.Parsers.Tests is
       Lockable_Interface (Report);
       Reset (Report);
       Locked_Next (Report);
+      Memory_Parser (Report);
    end All_Tests;
 
 
@@ -165,6 +166,33 @@ package body Natools.S_Expressions.Parsers.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Locked_Next;
+
+
+   procedure Memory_Parser (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Memory-backed parser");
+   begin
+      declare
+         Parser : Parsers.Memory_Parser
+           := Create_From_String ("(command (subcommand arg (arg list)))0:");
+      begin
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("command"), 1);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 2);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("subcommand"), 2);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("arg"), 2);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 3);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("arg"), 3);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("list"), 3);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Close_List, 2);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Close_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Close_List, 0);
+         Test_Tools.Next_And_Check (Test, Parser, Null_Atom, 0);
+         Test_Tools.Next_And_Check (Test, Parser, Events.End_Of_Input, 0);
+         Test_Tools.Next_And_Check (Test, Parser, Events.End_Of_Input, 0);
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Memory_Parser;
 
 
    procedure Nested_Subpexression (Report : in out NT.Reporter'Class) is
