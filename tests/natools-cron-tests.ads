@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -28,6 +28,7 @@ package Natools.Cron.Tests is
 
    procedure Basic_Usage (Report : in out NT.Reporter'Class);
    procedure Delete_While_Busy (Report : in out NT.Reporter'Class);
+   procedure Delete_While_Collision (Report : in out NT.Reporter'Class);
    procedure Insert_While_Busy (Report : in out NT.Reporter'Class);
    procedure Time_Collision (Report : in out NT.Reporter'Class);
 

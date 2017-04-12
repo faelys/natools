@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014-2016, Natacha Porté                                   --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -80,6 +80,7 @@ package body Natools.Cron.Tests is
       Delete_While_Busy (Report);
       Insert_While_Busy (Report);
       Time_Collision (Report);
+      Delete_While_Collision (Report);
    end All_Tests;
 
 
@@ -183,6 +184,47 @@ package body Natools.Cron.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Delete_While_Busy;
+
+
+   procedure Delete_While_Collision (Report : in out NT.Reporter'Class) is
+      Test : NT.Test
+        := Report.Item ("Delete entry while callback list is running");
+      Total : constant Duration := 0.0625;
+      Tick : constant Duration := Total / 8;
+      Log : aliased Bounded_String (256);
+   begin
+      declare
+         use type Ada.Calendar.Time;
+         Common : constant Periodic_Time
+           := (Origin => Ada.Calendar.Clock + 2 * Tick,
+               Period => 8 * Tick);
+         First, Second : Cron_Entry;
+      begin
+         First.Set (Common, Long_Callback'
+           (Backend => Log'Access,
+            Open => '(',
+            Close => ')',
+            Wait => 2 * Tick));
+         Second.Set (Common, Long_Callback'
+           (Backend => Log'Access,
+            Open => '<',
+            Close => '>',
+            Wait => 2 * Tick));
+         delay 3 * Tick;
+      end;
+
+      --  Timeline:  0  .  1/4  .  1/2  .  3/4  .   1   .  5/4
+      --  Triggers:         *                               *
+      --  Log:              (       )<      >               (
+      --  End of Block:         ^
+      --  End of Test:                          ^
+
+      Check (Test, Get (Log), "(");
+      delay 4 * Tick;
+      Check (Test, Get (Log), "()<>");
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Delete_While_Collision;
 
 
    procedure Insert_While_Busy (Report : in out NT.Reporter'Class) is
