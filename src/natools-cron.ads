@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014-2015, Natacha Porté                                   --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -105,6 +105,31 @@ private
    overriding procedure Finalize (Object : in out Cron_Entry);
 
 
+   package Event_Lists is new Ada.Containers.Doubly_Linked_Lists
+     (Callback_Refs.Reference, Callback_Refs."=");
+
+   type Event_List is new Callback with record
+      List : Event_Lists.List;
+   end record;
+
+   overriding procedure Run (Self : in out Event_List);
+      --  Sequentially run the contained events
+
+   procedure Append
+     (Self : in out Event_List;
+      Ref : in Callback_Refs.Reference);
+      --  Append Ref at the end of Self.List
+
+   procedure Remove
+     (Self : in out Event_List;
+      Ref : in Callback_Refs.Reference;
+      Removed : out Boolean);
+      --  Remove Ref from Self.List, through a linear search
+
+   function Is_Empty (Self : Event_List) return Boolean;
+      --  Return whether Self contains any element
+
+
    function "<" (Left, Right : Periodic_Time) return Boolean;
       --  Comparison function for ordered map
 
@@ -132,6 +157,12 @@ private
          --  Return the next active callback, or an empty reference when
          --  the database is empty (to signal task termination).
 
+      procedure Get_Event_List
+        (Source : in Event_List;
+         List : out Event_Lists.List);
+         --  Initialize an event list from Source without
+         --  any concurrent tampering of the list.
+
       entry Update_Notification;
          --  Block as long as the next active item does not change
 
@@ -149,30 +180,5 @@ private
      (Worker, Worker_Access);
 
    Global_Worker : Worker_Access := null;
-
-
-   package Event_Lists is new Ada.Containers.Doubly_Linked_Lists
-     (Callback_Refs.Reference, Callback_Refs."=");
-
-   type Event_List is new Callback with record
-      List : Event_Lists.List;
-   end record;
-
-   overriding procedure Run (Self : in out Event_List);
-      --  Sequentially run the contained events
-
-   procedure Append
-     (Self : in out Event_List;
-      Ref : in Callback_Refs.Reference);
-      --  Append Ref at the end of Self.List
-
-   procedure Remove
-     (Self : in out Event_List;
-      Ref : in Callback_Refs.Reference;
-      Removed : out Boolean);
-      --  Remove Ref from Self.List, through a linear search
-
-   function Is_Empty (Self : Event_List) return Boolean;
-      --  Return whether Self contains any element
 
 end Natools.Cron;

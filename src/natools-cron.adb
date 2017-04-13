@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014-2015, Natacha Porté                                   --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -311,6 +311,14 @@ package body Natools.Cron is
       end Get_First;
 
 
+      procedure Get_Event_List
+        (Source : in Event_List;
+         List : out Event_Lists.List) is
+      begin
+         List := Source.List;
+      end Get_Event_List;
+
+
       entry Update_Notification when First_Changed is
       begin
          null;
@@ -358,8 +366,11 @@ package body Natools.Cron is
    ----------------
 
    overriding procedure Run (Self : in out Event_List) is
+      Local_List : Event_Lists.List;
    begin
-      for Ref of Self.List loop
+      Database.Get_Event_List (Self, Local_List);
+
+      for Ref of Local_List loop
          Ref.Update.Data.Run;
       end loop;
    end Run;
