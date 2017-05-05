@@ -96,6 +96,16 @@ package body Natools.S_Expressions.Parsers.Tests is
    end Atom_Encodings;
 
 
+   procedure Base64_Subexpression (Report : in out NT.Reporter'Class) is
+      procedure Test is new Blackbox_Test
+        (Name => "Base-64 subexpression",
+         Source => To_Atom ("head({KDc6c3VibGlzdCk1OnRva2Vu})""tail"""),
+         Expected => To_Atom ("4:head((7:sublist)5:token)4:tail"));
+   begin
+      Test (Report);
+   end Base64_Subexpression;
+
+
    procedure Canonical_Encoding (Report : in out NT.Reporter'Class) is
       Sample_Image : constant String
         := "3:The(5:quick((5:brown3:fox)5:jumps))9:over3:the()4:lazy0:3:dog";
@@ -107,16 +117,6 @@ package body Natools.S_Expressions.Parsers.Tests is
    begin
       Test (Report);
    end Canonical_Encoding;
-
-
-   procedure Base64_Subexpression (Report : in out NT.Reporter'Class) is
-      procedure Test is new Blackbox_Test
-        (Name => "Base-64 subexpression",
-         Source => To_Atom ("head({KDc6c3VibGlzdCk1OnRva2Vu})""tail"""),
-         Expected => To_Atom ("4:head((7:sublist)5:token)4:tail"));
-   begin
-      Test (Report);
-   end Base64_Subexpression;
 
 
    procedure Lockable_Interface (Report : in out NT.Reporter'Class) is
