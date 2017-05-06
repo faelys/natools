@@ -327,6 +327,76 @@ package body Natools.Smaz_Generic.Tools is
    end Remove_Element;
 
 
+   function Replace_Element
+     (Dict : in Dictionary;
+      Index : in Dictionary_Code;
+      Value : in String)
+     return Dictionary
+   is
+      Removed_Length : constant Positive := Dict_Entry_Length (Dict, Index);
+      Length_Delta : constant Integer := Value'Length - Removed_Length;
+
+      function New_Offsets return Offset_Array;
+      function New_Values return String;
+
+      function New_Offsets return Offset_Array is
+         Result : Offset_Array (Dict.Offsets'First .. Dict.Last_Code);
+      begin
+         for I in Result'Range loop
+            if I <= Index then
+               Result (I) := Dict.Offsets (I);
+            else
+               Result (I) := Dict.Offsets (I) + Length_Delta;
+            end if;
+         end loop;
+
+         return Result;
+      end New_Offsets;
+
+      function New_Values return String is
+      begin
+         if Index = Dictionary_Code'First then
+            return Value & Dict.Values
+              (Dict.Offsets (Dictionary_Code'Succ (Index))
+               .. Dict.Values'Last);
+         elsif Index < Dict.Last_Code then
+            return Dict.Values (1 .. Dict.Offsets (Index) - 1)
+              & Value
+              & Dict.Values (Dict.Offsets (Dictionary_Code'Succ (Index))
+                             .. Dict.Values'Last);
+         else
+            return Dict.Values (1 .. Dict.Offsets (Index) - 1) & Value;
+         end if;
+      end New_Values;
+
+      New_Max_Word_Length : Positive := Dict.Max_Word_Length;
+   begin
+      if Removed_Length = Dict.Max_Word_Length then
+         New_Max_Word_Length := 1;
+         for I in Dict.Offsets'Range loop
+            if I /= Index
+              and then Dict_Entry_Length (Dict, I) > New_Max_Word_Length
+            then
+               New_Max_Word_Length := Dict_Entry_Length (Dict, I);
+            end if;
+         end loop;
+      end if;
+
+      if New_Max_Word_Length < Value'Length then
+         New_Max_Word_Length := Value'Length;
+      end if;
+
+      return Dictionary'
+        (Last_Code => Dict.Last_Code,
+         Values_Last => Dict.Values_Last + Length_Delta,
+         Variable_Length_Verbatim => Dict.Variable_Length_Verbatim,
+         Max_Word_Length => New_Max_Word_Length,
+         Offsets => New_Offsets,
+         Values => New_Values,
+         Hash => Smaz_Tools.Dummy_Hash'Access);
+   end Replace_Element;
+
+
    function To_Dictionary
      (List : in String_Lists.List;
       Variable_Length_Verbatim : in Boolean)

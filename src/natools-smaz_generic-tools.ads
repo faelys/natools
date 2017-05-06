@@ -94,6 +94,19 @@ package Natools.Smaz_Generic.Tools is
                         = Value;
       --  Return a new dictionary with Value appended
 
+   function Replace_Element
+     (Dict : in Dictionary;
+      Index : in Dictionary_Code;
+      Value : in String)
+     return Dictionary
+     with Pre => Index <= Dict.Last_Code and then Value'Length > 0,
+         Post => Dict.Last_Code = Replace_Element'Result.Last_Code
+               and then (for all I in Dictionary_Code'First .. Dict.Last_Code
+                  => (I = Index or else Dict_Entry (Dict, I)
+                                    = Dict_Entry (Replace_Element'Result, I)))
+               and then Dict_Entry (Replace_Element'Result, Index) = Value;
+      --  Return a new dictionary with entry at Index replaced by Value
+
 
    type Dictionary_Counts is
      array (Dictionary_Code) of Smaz_Tools.String_Count;
