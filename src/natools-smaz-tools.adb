@@ -442,6 +442,74 @@ package body Natools.Smaz.Tools is
    end Remove_Element;
 
 
+   function Replace_Element
+     (Dict : in Dictionary;
+      Index : in Ada.Streams.Stream_Element;
+      Value : in String)
+     return Dictionary
+   is
+      Removed_Length : constant Positive := Dict_Entry (Dict, Index)'Length;
+      Length_Delta : constant Integer := Value'Length - Removed_Length;
+
+      function New_Offsets return Offset_Array;
+      function New_Values return String;
+
+      function New_Offsets return Offset_Array is
+         Result : Offset_Array (Dict.Offsets'First .. Dict.Dict_Last);
+      begin
+         for I in Result'Range loop
+            if I <= Index then
+               Result (I) := Dict.Offsets (I);
+            else
+               Result (I) := Dict.Offsets (I) + Length_Delta;
+            end if;
+         end loop;
+
+         return Result;
+      end New_Offsets;
+
+      function New_Values return String is
+      begin
+         if Index = 0 then
+            return Value
+              & Dict.Values (Dict.Offsets (Index + 1) .. Dict.Values'Last);
+         elsif Index < Dict.Dict_Last then
+            return Dict.Values (1 .. Dict.Offsets (Index) - 1)
+              & Value
+              & Dict.Values (Dict.Offsets (Index + 1) .. Dict.Values'Last);
+         else
+            return Dict.Values (1 .. Dict.Offsets (Index) - 1) & Value;
+         end if;
+      end New_Values;
+
+      New_Max_Word_Length : Positive := Dict.Max_Word_Length;
+   begin
+      if Removed_Length = Dict.Max_Word_Length then
+         New_Max_Word_Length := 1;
+         for I in Dict.Offsets'Range loop
+            if I /= Index
+              and then Dict_Entry (Dict, I)'Length > New_Max_Word_Length
+            then
+               New_Max_Word_Length := Dict_Entry (Dict, I)'Length;
+            end if;
+         end loop;
+      end if;
+
+      if New_Max_Word_Length < Value'Length then
+         New_Max_Word_Length := Value'Length;
+      end if;
+
+      return Dictionary'
+        (Dict_Last => Dict.Dict_Last,
+         String_Size => Dict.String_Size + Length_Delta,
+         Variable_Length_Verbatim => Dict.Variable_Length_Verbatim,
+         Max_Word_Length => New_Max_Word_Length,
+         Offsets => New_Offsets,
+         Values => New_Values,
+         Hash => Dummy_Hash'Access);
+   end Replace_Element;
+
+
    function To_Dictionary
      (List : in String_Lists.List;
       Variable_Length_Verbatim : in Boolean)

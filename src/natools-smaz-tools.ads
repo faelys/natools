@@ -96,6 +96,19 @@ package Natools.Smaz.Tools is
                         = Value;
       --  Return a new dictionary with Value appended
 
+   function Replace_Element
+     (Dict : in Dictionary;
+      Index : in Ada.Streams.Stream_Element;
+      Value : in String)
+     return Dictionary
+     with Pre => Index <= Dict.Dict_Last and then Value'Length > 0,
+         Post => Dict.Dict_Last = Replace_Element'Result.Dict_Last
+               and then (for all I in 0 .. Dict.Dict_Last
+                  => (I = Index or else Dict_Entry (Dict, I)
+                                    = Dict_Entry (Replace_Element'Result, I)))
+               and then Dict_Entry (Replace_Element'Result, Index) = Value;
+      --  Return a new dictionary with entry at Index replaced by Value
+
    List_For_Linear_Search : String_Lists.List;
    function Linear_Search (Value : String) return Natural;
       --  Function and data source for inefficient but dynamic function
