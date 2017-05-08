@@ -103,6 +103,7 @@ procedure Smaz is
          Max_Word_Size,
          Sx_Output,
          No_Sx_Output,
+         Force_Word,
          No_Vlen_Verbatim,
          Score_Method,
          Vlen_Verbatim);
@@ -132,6 +133,7 @@ procedure Smaz is
       Hash_Package : Ada.Strings.Unbounded.Unbounded_String;
       Dict_Source : Dict_Sources.Enum := Dict_Sources.S_Expression;
       Check_Roundtrip : Boolean := False;
+      Forced_Words : Natools.Smaz_Tools.String_Lists.List;
    end record;
 
    overriding procedure Option
@@ -1243,6 +1245,12 @@ procedure Smaz is
 
          when Options.Check_Roundtrip =>
             Handler.Check_Roundtrip := True;
+
+         when Options.Force_Word =>
+            if Argument'Length > 0 then
+               Handler.Need_Dictionary := True;
+               Handler.Forced_Words.Append (Argument);
+            end if;
       end case;
    end Option;
 
@@ -1376,6 +1384,7 @@ procedure Smaz is
       R.Add_Option ("max-word-len",  'W', Required_Argument, Max_Word_Size);
       R.Add_Option ("s-expr",        'x', No_Argument,       Sx_Output);
       R.Add_Option ("no-s-expr",     'X', No_Argument,       No_Sx_Output);
+      R.Add_Option ("force-word",         Required_Argument, Force_Word);
       R.Add_Option ("no-vlen-verbatim",   No_Argument,       No_Vlen_Verbatim);
       R.Add_Option ("score-method",       Required_Argument, Score_Method);
       R.Add_Option ("vlen-verbatim",      No_Argument,       Vlen_Verbatim);
@@ -1651,6 +1660,14 @@ procedure Smaz is
                New_Line (Output);
                Put_Line (Output, Indent & Indent
                  & "Check roundtrip of compression or decompression");
+
+            when Options.Force_Word =>
+               Put_Line (Output, " <word>");
+               Put_Line (Output, Indent & Indent
+                 & "Force <word> into the dictionary,"
+                 & " replacing the worst entry");
+               Put_Line (Output, Indent & Indent
+                 & "Can be specified multiple times to force many words.");
          end case;
       end loop;
    end Print_Help;
