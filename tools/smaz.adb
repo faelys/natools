@@ -290,6 +290,12 @@ procedure Smaz is
          Element : in Dictionary_Entry)
         return Dictionary;
 
+      with function Replace_Element
+        (Dict : in Dictionary;
+         Element : in Dictionary_Entry;
+         Value : in String)
+        return Dictionary;
+
       Score_Encoded, Score_Frequency, Score_Gain : in access function
         (D : in Dictionary;
          C : in Dictionary_Counts;
@@ -325,6 +331,14 @@ procedure Smaz is
 
       package Holders is new Ada.Containers.Indefinite_Holders (Dictionary);
 
+      function Adjust_Dictionary
+        (Handler : in Callback'Class;
+         Dict : in Dictionary;
+         Corpus : in String_Lists.List;
+         Method : in Methods)
+        return Dictionary;
+         --  Adjust the given dictionary according to info in Handle
+
       procedure Evaluate_Dictionary
         (Job_Count : in Natural;
          Dict : in Dictionary;
@@ -339,6 +353,9 @@ procedure Smaz is
          Code : in Dictionary_Entry)
         return Natools.S_Expressions.Atom;
          --  S-expression image of Code
+
+      function Is_In_Dict (Dict : Dictionary; Word : String) return Boolean;
+         --  Return whether Word is in Dict (inefficient)
 
       procedure Optimization_Round
         (Dict : in out Holders.Holder;
@@ -397,6 +414,65 @@ procedure Smaz is
 
    package body Dictionary_Subprograms is
 
+      function Adjust_Dictionary
+        (Handler : in Callback'Class;
+         Dict : in Dictionary;
+         Corpus : in String_Lists.List;
+         Method : in Methods)
+        return Dictionary is
+      begin
+         if Handler.Forced_Words.Is_Empty or else Corpus.Is_Empty then
+            return Dict;
+         end if;
+
+         Add_Forced_Words :
+         declare
+            Actual_Dict : constant Dictionary := Activate_Dictionary (Dict);
+            Counts : Dictionary_Counts;
+            Discarded_Size : Ada.Streams.Stream_Element_Count;
+            Replacement_Count : String_Count;
+            Current : Holders.Holder := Holders.To_Holder (Actual_Dict);
+         begin
+            Evaluate_Dictionary
+              (Handler.Job_Count, Actual_Dict, Corpus, Discarded_Size, Counts);
+
+            Replacement_Count := Counts (Counts'First);
+            for I in Counts'Range loop
+               if Replacement_Count < Counts (I) then
+                  Replacement_Count := Counts (I);
+               end if;
+            end loop;
+
+            for Word of Handler.Forced_Words loop
+               if not Is_In_Dict (Actual_Dict, Word) then
+                  declare
+                     Worst_Index : constant Dictionary_Entry
+                       := Worst_Element (Actual_Dict, Counts, Method);
+                     New_Dict : constant Dictionary
+                       := Replace_Element (Current.Element, Worst_Index, Word);
+                  begin
+                     Ada.Text_IO.Put_Line
+                       (Ada.Text_IO.Current_Error,
+                        "Removing"
+                        & Counts (Worst_Index)'Img & "x "
+                        & Natools.String_Escapes.C_Escape_Hex
+                          (Dict_Entry (Actual_Dict, Worst_Index), True)
+                        & " at"
+                        & Worst_Index'Img
+                        & ", replaced by "
+                        & Natools.String_Escapes.C_Escape_Hex (Word, True));
+
+                     Current := Holders.To_Holder (New_Dict);
+                     Counts (Worst_Index) := Replacement_Count;
+                  end;
+               end if;
+            end loop;
+
+            return Current.Element;
+         end Add_Forced_Words;
+      end Adjust_Dictionary;
+
+
       procedure Evaluate_Dictionary
         (Job_Count : in Natural;
          Dict : in Dictionary;
@@ -423,6 +499,18 @@ procedure Smaz is
       begin
          return Compress (Dict, Dict_Entry (Dict, Code));
       end Image;
+
+
+      function Is_In_Dict (Dict : Dictionary; Word : String) return Boolean is
+      begin
+         for Code in Dictionary_Entry'First .. Last_Code (Dict) loop
+            if Dict_Entry (Dict, Code) = Word then
+               return True;
+            end if;
+         end loop;
+
+         return False;
+      end Is_In_Dict;
 
 
       procedure Optimization_Round
@@ -642,7 +730,11 @@ procedure Smaz is
          Method : in Methods)
       is
          Dict : constant Dictionary := Activate_Dictionary
-           (To_Dictionary (Handler, Word_List, Method));
+           (Adjust_Dictionary
+              (Handler,
+               To_Dictionary (Handler, Word_List, Method),
+               Data_List,
+               Method));
          Sx_Output : Natools.S_Expressions.Printers.Canonical
            (Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Output));
          Ada_Dictionary : constant String
@@ -1034,6 +1126,7 @@ procedure Smaz is
       Filter_By_Count => Natools.Smaz_Tools.Filter_By_Count,
       Last_Code => Last_Code,
       Remove_Element => Tools_256.Remove_Element,
+      Replace_Element => Tools_256.Replace_Element,
       Score_Encoded => Tools_256.Score_Encoded'Access,
       Score_Frequency => Tools_256.Score_Frequency'Access,
       Score_Gain => Tools_256.Score_Gain'Access,
@@ -1065,6 +1158,7 @@ procedure Smaz is
       Filter_By_Count => Natools.Smaz_Tools.Filter_By_Count,
       Last_Code => Last_Code,
       Remove_Element => Tools_4096.Remove_Element,
+      Replace_Element => Tools_4096.Replace_Element,
       Score_Encoded => Tools_4096.Score_Encoded'Access,
       Score_Frequency => Tools_4096.Score_Frequency'Access,
       Score_Gain => Tools_4096.Score_Gain'Access,
@@ -1096,6 +1190,7 @@ procedure Smaz is
       Filter_By_Count => Natools.Smaz_Tools.Filter_By_Count,
       Last_Code => Last_Code,
       Remove_Element => Tools_64.Remove_Element,
+      Replace_Element => Tools_64.Replace_Element,
       Score_Encoded => Tools_64.Score_Encoded'Access,
       Score_Frequency => Tools_64.Score_Frequency'Access,
       Score_Gain => Tools_64.Score_Gain'Access,
@@ -1127,6 +1222,7 @@ procedure Smaz is
       Filter_By_Count => Natools.Smaz.Tools.Filter_By_Count,
       Last_Code => Last_Code,
       Remove_Element => Natools.Smaz.Tools.Remove_Element,
+      Replace_Element => Natools.Smaz.Tools.Replace_Element,
       Score_Encoded => Natools.Smaz.Tools.Score_Encoded'Access,
       Score_Frequency => Natools.Smaz.Tools.Score_Frequency'Access,
       Score_Gain => Natools.Smaz.Tools.Score_Gain'Access,
