@@ -55,6 +55,7 @@ procedure Smaz is
    package Actions is
       type Enum is
         (Nothing,
+         Adjust_Dictionary,
          Decode,
          Encode,
          Evaluate);
@@ -759,7 +760,7 @@ procedure Smaz is
          end if;
 
          case Handler.Action is
-            when Actions.Nothing => null;
+            when Actions.Nothing | Actions.Adjust_Dictionary => null;
 
             when Actions.Decode =>
                if Handler.Sx_Output then
@@ -1346,6 +1347,10 @@ procedure Smaz is
             if Argument'Length > 0 then
                Handler.Need_Dictionary := True;
                Handler.Forced_Words.Append (Argument);
+
+               if Handler.Action in Actions.Nothing then
+                  Handler.Action := Actions.Adjust_Dictionary;
+               end if;
             end if;
       end case;
    end Option;
