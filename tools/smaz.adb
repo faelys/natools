@@ -405,6 +405,7 @@ procedure Smaz is
       function To_Dictionary
         (Handler : in Callback'Class;
          Input : in String_Lists.List;
+         Data_List : in String_Lists.List;
          Method : in Methods)
         return Dictionary;
          --  Convert the input into a dictionary given the option in Handler
@@ -731,11 +732,7 @@ procedure Smaz is
          Method : in Methods)
       is
          Dict : constant Dictionary := Activate_Dictionary
-           (Adjust_Dictionary
-              (Handler,
-               To_Dictionary (Handler, Word_List, Method),
-               Data_List,
-               Method));
+           (To_Dictionary (Handler, Word_List, Data_List, Method));
          Sx_Output : Natools.S_Expressions.Printers.Canonical
            (Ada.Text_IO.Text_Streams.Stream (Ada.Text_IO.Current_Output));
          Ada_Dictionary : constant String
@@ -1043,6 +1040,7 @@ procedure Smaz is
       function To_Dictionary
         (Handler : in Callback'Class;
          Input : in String_Lists.List;
+         Data_List : in String_Lists.List;
          Method : in Methods)
         return Dictionary
       is
@@ -1051,7 +1049,11 @@ procedure Smaz is
       begin
          case Handler.Dict_Source is
             when Dict_Sources.S_Expression =>
-               return To_Dictionary (Input, Handler.Vlen_Verbatim);
+               return Adjust_Dictionary
+                 (Handler,
+                  To_Dictionary (Input, Handler.Vlen_Verbatim),
+                  Data_List,
+                  Method);
 
             when Dict_Sources.Text_List | Dict_Sources.Unoptimized_Text_List =>
                declare
