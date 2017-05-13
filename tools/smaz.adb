@@ -358,6 +358,12 @@ procedure Smaz is
       function Is_In_Dict (Dict : Dictionary; Word : String) return Boolean;
          --  Return whether Word is in Dict (inefficient)
 
+      function Make_Word_Counter
+        (Handler : in Callback'Class;
+         Input : in String_Lists.List)
+        return Word_Counter;
+         --  Make a word counter from an input word list
+
       procedure Optimization_Round
         (Dict : in out Holders.Holder;
          Score : in out Ada.Streams.Stream_Element_Count;
@@ -513,6 +519,34 @@ procedure Smaz is
 
          return False;
       end Is_In_Dict;
+
+
+      function Make_Word_Counter
+        (Handler : in Callback'Class;
+         Input : in String_Lists.List)
+        return Word_Counter
+      is
+         use type Natools.Smaz_Tools.String_Count;
+         Counter : Word_Counter;
+      begin
+         for S of Input loop
+            Add_Substrings
+              (Counter, S,
+               Handler.Min_Sub_Size, Handler.Max_Sub_Size);
+
+            if Handler.Max_Word_Size > Handler.Max_Sub_Size then
+               Add_Words
+                 (Counter, S,
+                  Handler.Max_Sub_Size + 1, Handler.Max_Word_Size);
+            end if;
+         end loop;
+
+         if Handler.Filter_Threshold > 0 then
+            Filter_By_Count (Counter, String_Count (Handler.Filter_Threshold));
+         end if;
+
+         return Counter;
+      end Make_Word_Counter;
 
 
       procedure Optimization_Round
@@ -1042,10 +1076,7 @@ procedure Smaz is
          Input : in String_Lists.List;
          Data_List : in String_Lists.List;
          Method : in Methods)
-        return Dictionary
-      is
-         use type Natools.Smaz_Tools.String_Count;
-         use type Dict_Sources.Enum;
+        return Dictionary is
       begin
          case Handler.Dict_Source is
             when Dict_Sources.S_Expression =>
@@ -1055,52 +1086,33 @@ procedure Smaz is
                   Data_List,
                   Method);
 
-            when Dict_Sources.Text_List | Dict_Sources.Unoptimized_Text_List =>
+            when Dict_Sources.Text_List =>
                declare
-                  Counter : Word_Counter;
+                  Selected, Pending : String_Lists.List;
                begin
-                  for S of Input loop
-                     Add_Substrings
-                       (Counter, S,
-                        Handler.Min_Sub_Size, Handler.Max_Sub_Size);
+                  Simple_Dictionary_And_Pending
+                    (Make_Word_Counter (Handler, Input),
+                     Handler.Dict_Size,
+                     Selected,
+                     Pending,
+                     Method,
+                     Handler.Max_Pending);
 
-                     if Handler.Max_Word_Size > Handler.Max_Sub_Size then
-                        Add_Words
-                          (Counter, S,
-                           Handler.Max_Sub_Size + 1, Handler.Max_Word_Size);
-                     end if;
-                  end loop;
-
-                  if Handler.Filter_Threshold > 0 then
-                     Filter_By_Count
-                       (Counter, String_Count (Handler.Filter_Threshold));
-                  end if;
-
-                  if Handler.Dict_Source = Dict_Sources.Text_List then
-                     declare
-                        Selected, Pending : String_Lists.List;
-                     begin
-                        Simple_Dictionary_And_Pending
-                          (Counter,
-                           Handler.Dict_Size,
-                           Selected,
-                           Pending,
-                           Method,
-                           Handler.Max_Pending);
-
-                        return Optimize_Dictionary
-                          (To_Dictionary (Selected, Handler.Vlen_Verbatim),
-                           Pending,
-                           Input,
-                           Handler.Job_Count,
-                           Method);
-                     end;
-                  else
-                     return To_Dictionary
-                       (Simple_Dictionary (Counter, Handler.Dict_Size, Method),
-                        Handler.Vlen_Verbatim);
-                  end if;
+                  return Optimize_Dictionary
+                    (To_Dictionary (Selected, Handler.Vlen_Verbatim),
+                     Pending,
+                     Input,
+                     Handler.Job_Count,
+                     Method);
                end;
+
+            when Dict_Sources.Unoptimized_Text_List =>
+               return To_Dictionary
+                 (Simple_Dictionary
+                    (Make_Word_Counter (Handler, Input),
+                     Handler.Dict_Size,
+                     Method),
+                  Handler.Vlen_Verbatim);
          end case;
       end To_Dictionary;
 
