@@ -1107,12 +1107,29 @@ procedure Smaz is
                end;
 
             when Dict_Sources.Unoptimized_Text_List =>
-               return To_Dictionary
-                 (Simple_Dictionary
-                    (Make_Word_Counter (Handler, Input),
-                     Handler.Dict_Size,
-                     Method),
-                  Handler.Vlen_Verbatim);
+               declare
+                  Needed : constant Integer
+                    := Handler.Dict_Size
+                     - Natural (Handler.Forced_Words.Length);
+                  All_Words : String_Lists.List;
+               begin
+                  if Needed > 0 then
+                     All_Words := Simple_Dictionary
+                       (Make_Word_Counter (Handler, Input), Needed, Method);
+
+                     for Word of reverse Handler.Forced_Words loop
+                        All_Words.Prepend (Word);
+                     end loop;
+                  else
+                     for Word of reverse Handler.Forced_Words loop
+                        All_Words.Prepend (Word);
+                        exit when Positive (All_Words.Length)
+                          >= Handler.Dict_Size;
+                     end loop;
+                  end if;
+
+                  return To_Dictionary (All_Words, Handler.Vlen_Verbatim);
+               end;
          end case;
       end To_Dictionary;
 
