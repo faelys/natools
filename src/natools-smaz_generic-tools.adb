@@ -517,19 +517,18 @@ package body Natools.Smaz_Generic.Tools is
    function Worst_Index
      (Dict : in Dictionary;
       Counts : in Dictionary_Counts;
-      Method : in Smaz_Tools.Methods.Enum)
+      Method : in Smaz_Tools.Methods.Enum;
+      First, Last : in Dictionary_Code)
      return Dictionary_Code
    is
       use type Smaz_Tools.Score_Value;
 
-      Result : Dictionary_Code := Dictionary_Code'First;
+      Result : Dictionary_Code := First;
       Worst_Score : Smaz_Tools.Score_Value
         := Score (Dict, Counts, Result, Method);
       S : Smaz_Tools.Score_Value;
    begin
-      for I in Dictionary_Code'Succ (Dictionary_Code'First)
-               .. Dict.Last_Code
-      loop
+      for I in Dictionary_Code'Succ (First) .. Last loop
          S := Score (Dict, Counts, I, Method);
 
          if S < Worst_Score then

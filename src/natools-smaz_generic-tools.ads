@@ -128,9 +128,20 @@ package Natools.Smaz_Generic.Tools is
    function Worst_Index
      (Dict : in Dictionary;
       Counts : in Dictionary_Counts;
+      Method : in Smaz_Tools.Methods.Enum;
+      First, Last : in Dictionary_Code)
+     return Dictionary_Code
+     with Pre => Last in First .. Dict.Last_Code;
+      --  Return the element from the given interval with worst score
+
+   function Worst_Index
+     (Dict : in Dictionary;
+      Counts : in Dictionary_Counts;
       Method : in Smaz_Tools.Methods.Enum)
-     return Dictionary_Code;
-      --  Return the element with worst score
+     return Dictionary_Code
+     is (Worst_Index (Dict, Counts, Method,
+                      Dictionary_Code'First, Dict.Last_Code));
+      --  Return the element with worst score in the whole directionary
 
 
    function Score_Encoded
