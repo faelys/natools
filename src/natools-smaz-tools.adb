@@ -919,14 +919,15 @@ package body Natools.Smaz.Tools is
    function Worst_Index
      (Dict : in Dictionary;
       Counts : in Dictionary_Counts;
-      Method : in Methods.Enum)
+      Method : in Methods.Enum;
+      First, Last : in Ada.Streams.Stream_Element)
      return Ada.Streams.Stream_Element
    is
-      Result : Ada.Streams.Stream_Element := 0;
-      Worst_Score : Score_Value := Score (Dict, Counts, 0, Method);
+      Result : Ada.Streams.Stream_Element := First;
+      Worst_Score : Score_Value := Score (Dict, Counts, First, Method);
       S : Score_Value;
    begin
-      for I in 1 .. Dict.Dict_Last loop
+      for I in First + 1 .. Last loop
          S := Score (Dict, Counts, I, Method);
 
          if S < Worst_Score then

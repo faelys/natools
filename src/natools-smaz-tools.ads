@@ -209,9 +209,19 @@ package Natools.Smaz.Tools is
    function Worst_Index
      (Dict : in Dictionary;
       Counts : in Dictionary_Counts;
+      Method : in Methods.Enum;
+      First, Last : in Ada.Streams.Stream_Element)
+     return Ada.Streams.Stream_Element
+     with Pre => Last in First .. Dict.Dict_Last;
+      --  Return the element with worst score in the whole directionary
+
+   function Worst_Index
+     (Dict : in Dictionary;
+      Counts : in Dictionary_Counts;
       Method : in Methods.Enum)
-     return Ada.Streams.Stream_Element;
-      --  Return the element with worst score
+     return Ada.Streams.Stream_Element
+     is (Worst_Index (Dict, Counts, Method, 0, Dict.Dict_Last));
+      --  Return the element with worst score in the whole directionary
 
 
    type Score_Value is range 0 .. 2 ** 31 - 1;
