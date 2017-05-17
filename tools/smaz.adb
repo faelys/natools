@@ -325,7 +325,8 @@ procedure Smaz is
       with function Worst_Element
         (Dict : in Dictionary;
          Counts : in Dictionary_Counts;
-         Method : in Methods)
+         Method : in Methods;
+         First, Last : in Dictionary_Entry)
         return Dictionary_Entry;
 
    package Dictionary_Subprograms is
@@ -455,7 +456,9 @@ procedure Smaz is
                if not Is_In_Dict (Actual_Dict, Word) then
                   declare
                      Worst_Index : constant Dictionary_Entry
-                       := Worst_Element (Actual_Dict, Counts, Method);
+                       := Worst_Element
+                          (Actual_Dict, Counts, Method,
+                           Dictionary_Entry'First, Last_Code (Actual_Dict));
                      New_Dict : constant Dictionary
                        := Replace_Element (Current.Element, Worst_Index, Word);
                   begin
@@ -564,7 +567,9 @@ procedure Smaz is
          New_Value : Ada.Strings.Unbounded.Unbounded_String;
          New_Position : String_Lists.Cursor;
          Worst_Index : constant Dictionary_Entry
-           := Worst_Element (Dict.Element, Counts, Method);
+           := Worst_Element
+              (Dict.Element, Counts, Method,
+               Dictionary_Entry'First, Last_Code (Dict.Element));
          Worst_Value : constant String
            := Dict_Entry (Dict.Element, Worst_Index);
          Worst_Count : constant String_Count := Counts (Worst_Index);
