@@ -369,6 +369,7 @@ procedure Smaz is
         (Dict : in out Holders.Holder;
          Score : in out Ada.Streams.Stream_Element_Count;
          Counts : in out Dictionary_Counts;
+         First : in Dictionary_Entry;
          Pending_Words : in out String_Lists.List;
          Input_Texts : in String_Lists.List;
          Job_Count : in Natural;
@@ -379,13 +380,15 @@ procedure Smaz is
 
       function Optimize_Dictionary
         (Base : in Dictionary;
+         First : in Dictionary_Entry;
          Pending_Words : in String_Lists.List;
          Input_Texts : in String_Lists.List;
          Job_Count : in Natural;
          Method : in Methods)
         return Dictionary;
       --  Optimize the dictionary on Input_Texts, starting with Base and
-      --  adding substrings from Pending_Words.
+      --  adding substrings from Pending_Words. Operates only on words
+      --  at First and beyond.
 
       procedure Parallel_Evaluate_Dictionary
         (Job_Count : in Positive;
@@ -556,6 +559,7 @@ procedure Smaz is
         (Dict : in out Holders.Holder;
          Score : in out Ada.Streams.Stream_Element_Count;
          Counts : in out Dictionary_Counts;
+         First : in Dictionary_Entry;
          Pending_Words : in out String_Lists.List;
          Input_Texts : in String_Lists.List;
          Job_Count : in Natural;
@@ -568,8 +572,7 @@ procedure Smaz is
          New_Position : String_Lists.Cursor;
          Worst_Index : constant Dictionary_Entry
            := Worst_Element
-              (Dict.Element, Counts, Method,
-               Dictionary_Entry'First, Last_Code (Dict.Element));
+              (Dict.Element, Counts, Method, First, Last_Code (Dict.Element));
          Worst_Value : constant String
            := Dict_Entry (Dict.Element, Worst_Index);
          Worst_Count : constant String_Count := Counts (Worst_Index);
@@ -625,6 +628,7 @@ procedure Smaz is
 
       function Optimize_Dictionary
         (Base : in Dictionary;
+         First : in Dictionary_Entry;
          Pending_Words : in String_Lists.List;
          Input_Texts : in String_Lists.List;
          Job_Count : in Natural;
@@ -645,6 +649,7 @@ procedure Smaz is
               (Holder,
                Score,
                Counts,
+               First,
                Pending,
                Input_Texts,
                Job_Count,
@@ -1093,18 +1098,38 @@ procedure Smaz is
 
             when Dict_Sources.Text_List =>
                declare
+                  Needed : constant Integer
+                    := Handler.Dict_Size
+                     - Natural (Handler.Forced_Words.Length);
                   Selected, Pending : String_Lists.List;
+                  First : Dictionary_Entry := Dictionary_Entry'First;
                begin
+                  if Needed <= 0 then
+                     for Word of reverse Handler.Forced_Words loop
+                        Selected.Prepend (Word);
+                        if Positive (Selected.Length) = Handler.Dict_Size then
+                           return To_Dictionary
+                             (Selected, Handler.Vlen_Verbatim);
+                        end if;
+                     end loop;
+                  end if;
+
                   Simple_Dictionary_And_Pending
                     (Make_Word_Counter (Handler, Input),
-                     Handler.Dict_Size,
+                     Needed,
                      Selected,
                      Pending,
                      Method,
                      Handler.Max_Pending);
 
+                  for Word of reverse Handler.Forced_Words loop
+                     Selected.Prepend (Word);
+                     First := Dictionary_Entry'Succ (First);
+                  end loop;
+
                   return Optimize_Dictionary
                     (To_Dictionary (Selected, Handler.Vlen_Verbatim),
+                     First,
                      Pending,
                      Input,
                      Handler.Job_Count,
