@@ -105,6 +105,8 @@ procedure Smaz is
          Sx_Output,
          No_Sx_Output,
          Force_Word,
+         Max_Dict_Size,
+         Min_Dict_Size,
          No_Vlen_Verbatim,
          Score_Method,
          Vlen_Verbatim);
@@ -122,7 +124,8 @@ procedure Smaz is
       Min_Sub_Size : Positive := 1;
       Max_Sub_Size : Positive := 3;
       Max_Word_Size : Positive := 10;
-      Dict_Size : Positive := 254;
+      Max_Dict_Size : Positive := 254;
+      Min_Dict_Size : Positive := 254;
       Vlen_Verbatim : Boolean := True;
       Max_Pending : Ada.Containers.Count_Type
         := Ada.Containers.Count_Type'Last;
@@ -374,6 +377,8 @@ procedure Smaz is
          Input_Texts : in String_Lists.List;
          Job_Count : in Natural;
          Method : in Methods;
+         Min_Dict_Size : in Positive;
+         Max_Dict_Size : in Positive;
          Updated : out Boolean);
       --  Try to improve on Dict by replacing a single entry from it with
       --  one of the substring in Pending_Words.
@@ -384,7 +389,9 @@ procedure Smaz is
          Pending_Words : in String_Lists.List;
          Input_Texts : in String_Lists.List;
          Job_Count : in Natural;
-         Method : in Methods)
+         Method : in Methods;
+         Min_Dict_Size : in Positive;
+         Max_Dict_Size : in Positive)
         return Dictionary;
       --  Optimize the dictionary on Input_Texts, starting with Base and
       --  adding substrings from Pending_Words. Operates only on words
@@ -564,8 +571,12 @@ procedure Smaz is
          Input_Texts : in String_Lists.List;
          Job_Count : in Natural;
          Method : in Methods;
+         Min_Dict_Size : in Positive;
+         Max_Dict_Size : in Positive;
          Updated : out Boolean)
       is
+         pragma Unreferenced (Min_Dict_Size);
+         pragma Unreferenced (Max_Dict_Size);
          use type Ada.Streams.Stream_Element_Offset;
 
          New_Value : Ada.Strings.Unbounded.Unbounded_String;
@@ -632,7 +643,9 @@ procedure Smaz is
          Pending_Words : in String_Lists.List;
          Input_Texts : in String_Lists.List;
          Job_Count : in Natural;
-         Method : in Methods)
+         Method : in Methods;
+         Min_Dict_Size : in Positive;
+         Max_Dict_Size : in Positive)
         return Dictionary
       is
          Holder : Holders.Holder := Holders.To_Holder (Base);
@@ -654,6 +667,8 @@ procedure Smaz is
                Input_Texts,
                Job_Count,
                Method,
+               Min_Dict_Size,
+               Max_Dict_Size,
                Running);
          end loop;
 
@@ -1099,7 +1114,7 @@ procedure Smaz is
             when Dict_Sources.Text_List =>
                declare
                   Needed : constant Integer
-                    := Handler.Dict_Size
+                    := Handler.Max_Dict_Size
                      - Natural (Handler.Forced_Words.Length);
                   Selected, Pending : String_Lists.List;
                   First : Dictionary_Entry := Dictionary_Entry'First;
@@ -1107,11 +1122,10 @@ procedure Smaz is
                   if Needed <= 0 then
                      for Word of reverse Handler.Forced_Words loop
                         Selected.Prepend (Word);
-                        if Positive (Selected.Length) = Handler.Dict_Size then
-                           return To_Dictionary
-                             (Selected, Handler.Vlen_Verbatim);
-                        end if;
+                        exit when Positive (Selected.Length)
+                          = Handler.Max_Dict_Size;
                      end loop;
+                     return To_Dictionary (Selected, Handler.Vlen_Verbatim);
                   end if;
 
                   Simple_Dictionary_And_Pending
@@ -1133,13 +1147,15 @@ procedure Smaz is
                      Pending,
                      Input,
                      Handler.Job_Count,
-                     Method);
+                     Method,
+                     Handler.Min_Dict_Size,
+                     Handler.Max_Dict_Size);
                end;
 
             when Dict_Sources.Unoptimized_Text_List =>
                declare
                   Needed : constant Integer
-                    := Handler.Dict_Size
+                    := Handler.Max_Dict_Size
                      - Natural (Handler.Forced_Words.Length);
                   All_Words : String_Lists.List;
                begin
@@ -1154,7 +1170,7 @@ procedure Smaz is
                      for Word of reverse Handler.Forced_Words loop
                         All_Words.Prepend (Word);
                         exit when Positive (All_Words.Length)
-                          >= Handler.Dict_Size;
+                          >= Handler.Max_Dict_Size;
                      end loop;
                   end if;
 
@@ -1381,7 +1397,8 @@ procedure Smaz is
             Handler.Max_Pending := Ada.Containers.Count_Type'Value (Argument);
 
          when Options.Dict_Size =>
-            Handler.Dict_Size := Positive'Value (Argument);
+            Handler.Min_Dict_Size := Positive'Value (Argument);
+            Handler.Max_Dict_Size := Positive'Value (Argument);
 
          when Options.Vlen_Verbatim =>
             Handler.Vlen_Verbatim := True;
@@ -1413,6 +1430,12 @@ procedure Smaz is
                   Handler.Action := Actions.Adjust_Dictionary;
                end if;
             end if;
+
+         when Options.Max_Dict_Size =>
+            Handler.Max_Dict_Size := Positive'Value (Argument);
+
+         when Options.Min_Dict_Size =>
+            Handler.Min_Dict_Size := Positive'Value (Argument);
       end case;
    end Option;
 
@@ -1547,6 +1570,8 @@ procedure Smaz is
       R.Add_Option ("s-expr",        'x', No_Argument,       Sx_Output);
       R.Add_Option ("no-s-expr",     'X', No_Argument,       No_Sx_Output);
       R.Add_Option ("force-word",         Required_Argument, Force_Word);
+      R.Add_Option ("max-dict-size",      Required_Argument, Max_Dict_Size);
+      R.Add_Option ("min-dict-size",      Required_Argument, Min_Dict_Size);
       R.Add_Option ("no-vlen-verbatim",   No_Argument,       No_Vlen_Verbatim);
       R.Add_Option ("score-method",       Required_Argument, Score_Method);
       R.Add_Option ("vlen-verbatim",      No_Argument,       Vlen_Verbatim);
@@ -1830,6 +1855,16 @@ procedure Smaz is
                  & " replacing the worst entry");
                Put_Line (Output, Indent & Indent
                  & "Can be specified multiple times to force many words.");
+
+            when Options.Max_Dict_Size =>
+               Put_Line (Output, " <count>");
+               Put_Line (Output, Indent & Indent
+                 & "Maximum number of words in the dictionary to build");
+
+            when Options.Min_Dict_Size =>
+               Put_Line (Output, " <count>");
+               Put_Line (Output, Indent & Indent
+                 & "Minimum number of words in the dictionary to build");
          end case;
       end loop;
    end Print_Help;
