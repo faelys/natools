@@ -579,16 +579,17 @@ procedure Smaz is
          pragma Unreferenced (Max_Dict_Size);
          use type Ada.Streams.Stream_Element_Offset;
 
-         New_Value : Ada.Strings.Unbounded.Unbounded_String;
          New_Position : String_Lists.Cursor;
+         Log_Message : Ada.Strings.Unbounded.Unbounded_String;
+         Original : constant Dictionary := Dict.Element;
          Worst_Index : constant Dictionary_Entry
            := Worst_Element
-              (Dict.Element, Counts, Method, First, Last_Code (Dict.Element));
+              (Original, Counts, Method, First, Last_Code (Original));
          Worst_Value : constant String
-           := Dict_Entry (Dict.Element, Worst_Index);
+           := Dict_Entry (Original, Worst_Index);
          Worst_Count : constant String_Count := Counts (Worst_Index);
          Base : constant Dictionary
-           := Remove_Element (Dict.Element, Worst_Index);
+           := Remove_Element (Original, Worst_Index);
          Old_Score : constant Ada.Streams.Stream_Element_Count := Score;
       begin
          Updated := False;
@@ -607,10 +608,21 @@ procedure Smaz is
                   Dict := Holders.To_Holder (New_Dict);
                   Score := New_Score;
                   Counts := New_Counts;
-                  New_Value
-                    := Ada.Strings.Unbounded.To_Unbounded_String (Word);
                   New_Position := Position;
                   Updated := True;
+                  Log_Message := Ada.Strings.Unbounded.To_Unbounded_String
+                    ("Removing"
+                     & Worst_Count'Img & "x "
+                     & Natools.String_Escapes.C_Escape_Hex (Worst_Value, True)
+                     & ", adding"
+                     & Counts (Last_Code (New_Dict))'Img & "x "
+                     & Natools.String_Escapes.C_Escape_Hex (Word, True)
+                     & ", size"
+                     & Score'Img
+                     & " ("
+                     & Ada.Streams.Stream_Element_Offset'Image
+                        (Score - Old_Score)
+                     & ')');
                end if;
             end;
          end loop;
@@ -621,18 +633,7 @@ procedure Smaz is
 
             Ada.Text_IO.Put_Line
               (Ada.Text_IO.Current_Error,
-               "Removing"
-               & Worst_Count'Img & "x "
-               & Natools.String_Escapes.C_Escape_Hex (Worst_Value, True)
-               & ", adding"
-               & Counts (Last_Code (Dict.Element))'Img & "x "
-               & Natools.String_Escapes.C_Escape_Hex
-                  (Ada.Strings.Unbounded.To_String (New_Value), True)
-               & ", size"
-               & Score'Img
-               & " ("
-               & Ada.Streams.Stream_Element_Offset'Image (Score - Old_Score)
-               & ')');
+               Ada.Strings.Unbounded.To_String (Log_Message));
          end if;
       end Optimization_Round;
 
