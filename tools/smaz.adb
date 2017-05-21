@@ -579,7 +579,7 @@ procedure Smaz is
          pragma Unreferenced (Max_Dict_Size);
          use type Ada.Streams.Stream_Element_Offset;
 
-         New_Position : String_Lists.Cursor;
+         No_Longer_Pending : String_Lists.Cursor;
          Log_Message : Ada.Strings.Unbounded.Unbounded_String;
          Original : constant Dictionary := Dict.Element;
          Worst_Index : constant Dictionary_Entry
@@ -608,7 +608,7 @@ procedure Smaz is
                   Dict := Holders.To_Holder (New_Dict);
                   Score := New_Score;
                   Counts := New_Counts;
-                  New_Position := Position;
+                  No_Longer_Pending := Position;
                   Updated := True;
                   Log_Message := Ada.Strings.Unbounded.To_Unbounded_String
                     ("Removing"
@@ -628,7 +628,10 @@ procedure Smaz is
          end loop;
 
          if Updated then
-            Pending_Words.Delete (New_Position);
+            if String_Lists.Has_Element (No_Longer_Pending) then
+               Pending_Words.Delete (No_Longer_Pending);
+            end if;
+
             Pending_Words.Append (Worst_Value);
 
             Ada.Text_IO.Put_Line
