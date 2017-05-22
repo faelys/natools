@@ -188,6 +188,16 @@ procedure Smaz is
      is (Dict.Dict_Last);
       --  Return the last valid entry
 
+   function Length (Dict : in Natools.Smaz_256.Dictionary) return Positive
+     is (Dict.Offsets'Length + 1);
+   function Length (Dict : in Natools.Smaz_4096.Dictionary) return Positive
+     is (Dict.Offsets'Length + 1);
+   function Length (Dict : in Natools.Smaz_64.Dictionary) return Positive
+     is (Dict.Offsets'Length + 1);
+   function Length (Dict : in Natools.Smaz.Dictionary) return Positive
+     is (Dict.Offsets'Length);
+      --  Return the number of entries in Dict
+
    procedure Print_Dictionary
      (Output : in Ada.Text_IO.File_Type;
       Dictionary : in Natools.Smaz_256.Dictionary;
@@ -282,6 +292,8 @@ procedure Smaz is
          Threshold_Count : in String_Count);
 
       with function Last_Code (Dict : in Dictionary) return Dictionary_Entry;
+
+      with function Length (Dict : in Dictionary) return Positive is <>;
 
       with procedure Print_Dictionary
         (Output : in Ada.Text_IO.File_Type;
@@ -432,6 +444,7 @@ procedure Smaz is
 
 
    package body Dictionary_Subprograms is
+      pragma Unreferenced (Length);
 
       function Adjust_Dictionary
         (Handler : in Callback'Class;
