@@ -444,7 +444,6 @@ procedure Smaz is
 
 
    package body Dictionary_Subprograms is
-      pragma Unreferenced (Length);
 
       function Adjust_Dictionary
         (Handler : in Callback'Class;
@@ -588,7 +587,6 @@ procedure Smaz is
          Max_Dict_Size : in Positive;
          Updated : out Boolean)
       is
-         pragma Unreferenced (Min_Dict_Size);
          pragma Unreferenced (Max_Dict_Size);
          use type Ada.Streams.Stream_Element_Offset;
 
@@ -639,6 +637,34 @@ procedure Smaz is
                end if;
             end;
          end loop;
+
+         if Length (Base) >= Min_Dict_Size then
+            declare
+               New_Score : Ada.Streams.Stream_Element_Count;
+               New_Counts : Dictionary_Counts;
+            begin
+               Evaluate_Dictionary
+                 (Job_Count, Base, Input_Texts, New_Score, New_Counts);
+
+               if New_Score <= Score then
+                  Dict := Holders.To_Holder (Base);
+                  Score := New_Score;
+                  Counts := New_Counts;
+                  No_Longer_Pending := String_Lists.No_Element;
+                  Updated := True;
+                  Log_Message := Ada.Strings.Unbounded.To_Unbounded_String
+                    ("Removing"
+                     & Worst_Count'Img & "x "
+                     & Natools.String_Escapes.C_Escape_Hex (Worst_Value, True)
+                     & ", size"
+                     & Score'Img
+                     & " ("
+                     & Ada.Streams.Stream_Element_Offset'Image
+                        (Score - Old_Score)
+                     & ')');
+               end if;
+            end;
+         end if;
 
          if Updated then
             if String_Lists.Has_Element (No_Longer_Pending) then
