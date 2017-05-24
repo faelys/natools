@@ -599,6 +599,7 @@ procedure Smaz is
          Worst_Value : constant String
            := Dict_Entry (Original, Worst_Index);
          Worst_Count : constant String_Count := Counts (Worst_Index);
+         Worst_Removed : Boolean := False;
          Base : constant Dictionary
            := Remove_Element (Original, Worst_Index);
          Old_Score : constant Ada.Streams.Stream_Element_Count := Score;
@@ -620,6 +621,7 @@ procedure Smaz is
                   Score := New_Score;
                   Counts := New_Counts;
                   No_Longer_Pending := Position;
+                  Worst_Removed := True;
                   Updated := True;
                   Log_Message := Ada.Strings.Unbounded.To_Unbounded_String
                     ("Removing"
@@ -651,6 +653,7 @@ procedure Smaz is
                   Score := New_Score;
                   Counts := New_Counts;
                   No_Longer_Pending := String_Lists.No_Element;
+                  Worst_Removed := True;
                   Updated := True;
                   Log_Message := Ada.Strings.Unbounded.To_Unbounded_String
                     ("Removing"
@@ -671,7 +674,9 @@ procedure Smaz is
                Pending_Words.Delete (No_Longer_Pending);
             end if;
 
-            Pending_Words.Append (Worst_Value);
+            if Worst_Removed then
+               Pending_Words.Append (Worst_Value);
+            end if;
 
             Ada.Text_IO.Put_Line
               (Ada.Text_IO.Current_Error,
