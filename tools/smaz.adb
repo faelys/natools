@@ -587,7 +587,6 @@ procedure Smaz is
          Max_Dict_Size : in Positive;
          Updated : out Boolean)
       is
-         pragma Unreferenced (Max_Dict_Size);
          use type Ada.Streams.Stream_Element_Offset;
 
          No_Longer_Pending : String_Lists.Cursor;
@@ -639,6 +638,43 @@ procedure Smaz is
                end if;
             end;
          end loop;
+
+         if Length (Original) < Max_Dict_Size then
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Current_Error,
+               "Condiering adding to dictionary");
+            for Position in Pending_Words.Iterate loop
+               declare
+                  Word : constant String := String_Lists.Element (Position);
+                  New_Dict : constant Dictionary
+                    := Append_String (Original, Word);
+                  New_Score : Ada.Streams.Stream_Element_Count;
+                  New_Counts : Dictionary_Counts;
+               begin
+                  Evaluate_Dictionary
+                    (Job_Count, New_Dict, Input_Texts, New_Score, New_Counts);
+
+                  if New_Score < Score then
+                     Dict := Holders.To_Holder (New_Dict);
+                     Score := New_Score;
+                     Counts := New_Counts;
+                     No_Longer_Pending := Position;
+                     Worst_Removed := False;
+                     Updated := True;
+                     Log_Message := Ada.Strings.Unbounded.To_Unbounded_String
+                       ("Adding"
+                        & Counts (Last_Code (New_Dict))'Img & "x "
+                        & Natools.String_Escapes.C_Escape_Hex (Word, True)
+                        & ", size"
+                        & Score'Img
+                        & " ("
+                        & Ada.Streams.Stream_Element_Offset'Image
+                           (Score - Old_Score)
+                        & ')');
+                  end if;
+               end;
+            end loop;
+         end if;
 
          if Length (Base) >= Min_Dict_Size then
             declare
