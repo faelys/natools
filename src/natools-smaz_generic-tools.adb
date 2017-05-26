@@ -309,9 +309,9 @@ package body Natools.Smaz_Generic.Tools is
          New_Max_Word_Length := 1;
          for I in Dict.Offsets'Range loop
             if I /= Index
-              and then Dict_Entry (Dict, I)'Length > New_Max_Word_Length
+              and then Dict_Entry_Length (Dict, I) > New_Max_Word_Length
             then
-               New_Max_Word_Length := Dict_Entry (Dict, I)'Length;
+               New_Max_Word_Length := Dict_Entry_Length (Dict, I);
             end if;
          end loop;
       end if;
