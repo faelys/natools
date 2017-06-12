@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2016, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -16,7 +16,7 @@
 
 package body Natools.String_Slices is
 
-   use type String_Refs.Reference;
+   use type String_Refs.Immutable_Reference;
 
 
    -----------------------------

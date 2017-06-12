@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2016, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -186,7 +186,7 @@ private
 
    type Slice is tagged record
       Bounds : String_Range := (1, 0);
-      Ref : String_Refs.Reference;
+      Ref : String_Refs.Immutable_Reference;
    end record;
 
    Null_Slice : constant Slice := ((1, 0), Ref => <>);
