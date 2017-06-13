@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2016, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -227,7 +227,7 @@ private
 
    type Slice_Set is tagged record
       Bounds : Range_Set;
-      Ref : String_Refs.Reference;
+      Ref : String_Refs.Immutable_Reference;
    end record;
 
 end Natools.String_Slices.Slice_Sets;
