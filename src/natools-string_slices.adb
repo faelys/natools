@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013-2016, Natacha Porté                                   --
+-- Copyright (c) 2013-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -116,6 +116,21 @@ package body Natools.String_Slices is
    --------------------------
    -- Conversion functions --
    --------------------------
+
+   function New_Slice
+     (First : Positive;
+      Last : Natural;
+      Initialize : not null access procedure (S : out String))
+     return Slice
+   is
+      Data : constant  String_Refs.Data_Access := new String (First .. Last);
+      Ref : constant String_Refs.Immutable_Reference
+        := String_Refs.Create (Data);
+   begin
+      Initialize (Data.all);
+      return Slice'(Bounds => (First, Last + 1 - First), Ref => Ref);
+   end New_Slice;
+
 
    function To_Slice (S : String) return Slice is
       function Create return String;

@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013-2016, Natacha Porté                                   --
+-- Copyright (c) 2013-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -75,6 +75,13 @@ package Natools.String_Slices is
    --------------------------
    -- Conversion functions --
    --------------------------
+
+   function New_Slice
+     (First : Positive;
+      Last : Natural;
+      Initialize : not null access procedure (S : out String))
+     return Slice;
+      --  Create a callback-initialized slice
 
    function To_Slice (S : String) return Slice;
       --  Create a new slice containing the whole given string
