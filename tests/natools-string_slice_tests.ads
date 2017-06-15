@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -40,6 +40,7 @@ package Natools.String_Slice_Tests is
    procedure Test_Incoming_Range (Report : in out NT.Reporter'Class);
    procedure Test_Invalid_Extensions (Report : in out NT.Reporter'Class);
    procedure Test_Invalid_Subslices (Report : in out NT.Reporter'Class);
+   procedure Test_New_Slice (Report : in out NT.Reporter'Class);
    procedure Test_Null_Slice (Report : in out NT.Reporter'Class);
    procedure Test_Outgoing_Range (Report : in out NT.Reporter'Class);
    procedure Test_Slice_Relations (Report : in out NT.Reporter'Class);

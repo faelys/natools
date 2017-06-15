@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013, Natacha Porté                                        --
+-- Copyright (c) 2013-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -80,6 +80,7 @@ package body Natools.String_Slice_Tests is
       Test_Null_Slice (Report);
       Test_Outgoing_Range (Report);
       Test_Subslices (Report);
+      Test_New_Slice (Report);
    end Slice_Tests;
 
 
@@ -457,6 +458,76 @@ package body Natools.String_Slice_Tests is
    exception
       when Error : others => Report.Report_Exception (Name, Error);
    end Test_Is_Subrange;
+
+
+   procedure Test_New_Slice (Report : in out NT.Reporter'Class) is
+      Name : constant String := "Callback-based constructor";
+      First : constant Positive := 42;
+      Last : constant Natural := First + Name'Length - 1;
+      Result : Boolean := True;
+
+      procedure Initialize (S : out String);
+
+      procedure Initialize (S : out String) is
+      begin
+         S := Name;
+      end Initialize;
+   begin
+      declare
+         Slice : constant String_Slices.Slice
+           := String_Slices.New_Slice (First, Last, Initialize'Access);
+      begin
+         if Slice.First /= First then
+            if Result then
+               Report.Item (Name, NT.Fail);
+            end if;
+
+            Report.Info ("Incorrect value"
+              & Integer'Image (Slice.First) & " for Slice.First, expected"
+              & Integer'Image (First));
+            Result := False;
+         end if;
+
+         if Slice.Last /= Last then
+            if Result then
+               Report.Item (Name, NT.Fail);
+            end if;
+
+            Report.Info ("Incorrect value"
+              & Integer'Image (Slice.Last) & " for Slice.Last, expected"
+              & Integer'Image (Last));
+            Result := False;
+         end if;
+
+         if Slice.Length /= Name'Length then
+            if Result then
+               Report.Item (Name, NT.Fail);
+            end if;
+
+            Report.Info ("Incorrect value"
+              & Integer'Image (Slice.Length) & " for Slice.Length, expected"
+              & Integer'Image (Name'Length));
+            Result := False;
+         end if;
+
+         if Slice.To_String /= Name then
+            if Result then
+               Report.Item (Name, NT.Fail);
+            end if;
+
+            Report.Info ("Incorrect string """
+              & Integer'Image (Slice.Length) & """ in Slice, expected """
+              & Name & '"');
+            Result := False;
+         end if;
+      end;
+
+      if Result then
+         Report.Item (Name, NT.Success);
+      end if;
+   exception
+      when Error : others => Report.Report_Exception (Name, Error);
+   end Test_New_Slice;
 
 
    procedure Test_Null_Slice (Report : in out NT.Reporter'Class) is
