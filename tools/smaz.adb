@@ -640,9 +640,6 @@ procedure Smaz is
          end loop;
 
          if Length (Original) < Max_Dict_Size then
-            Ada.Text_IO.Put_Line
-              (Ada.Text_IO.Current_Error,
-               "Condiering adding to dictionary");
             for Position in Pending_Words.Iterate loop
                declare
                   Word : constant String := String_Lists.Element (Position);
