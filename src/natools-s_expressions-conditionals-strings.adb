@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2015, Natacha Porté                                        --
+-- Copyright (c) 2015-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -36,6 +36,10 @@ package body Natools.S_Expressions.Conditionals.Strings is
    function Contains (Context : in Strings.Context; Data : in Atom)
      return Boolean;
       --  Check whether Context contains Data
+
+   function Is_Equal_To (Context : in Strings.Context; Data : in Atom)
+     return Boolean;
+      --  Check whether Context is equal to Data
 
    function Is_Prefix (Context : in Strings.Context; Data : in Atom)
      return Boolean;
@@ -94,6 +98,22 @@ package body Natools.S_Expressions.Conditionals.Strings is
             Ada.Characters.Handling.To_Lower'Access) > 0;
       end if;
    end Contains;
+
+
+   function Is_Equal_To (Context : in Strings.Context; Data : in Atom)
+     return Boolean is
+   begin
+      if Context.Data.all'Length /= Data'Length then
+         return False;
+      end if;
+
+      if Context.Settings.Case_Sensitive then
+         return Context.Data.all = To_String (Data);
+      else
+         return Fixed.Translate (Context.Data.all, To_Lower'Access)
+           = Fixed.Translate (To_String (Data), To_Lower'Access);
+      end if;
+   end Is_Equal_To;
 
 
    function Is_Prefix (Context : in Strings.Context; Data : in Atom)
@@ -164,6 +184,10 @@ package body Natools.S_Expressions.Conditionals.Strings is
          when Contains_Any =>
             return Conditional_On_Atoms
               (Context, Arguments, Contains'Access, False);
+
+         when Is_Equal_To =>
+            return Conditional_On_Atoms
+              (Context, Arguments, Is_Equal_To'Access, False);
 
          when Starts_With =>
             return Conditional_On_Atoms

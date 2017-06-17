@@ -8,6 +8,7 @@
       Case_Sensitive,
       Contains_All,
       Contains_Any,
+      Is_Equal_To,
       Starts_With);
 
    type Simple_Condition is
@@ -24,6 +25,7 @@
          (Case_Sensitive   case-sensitive)
          (Contains_All   contains contains-all contains-all-of)
          (Contains_Any   contains-any contains-any-of)
+         (Is_Equal_To   is is-equal-to "=")
          (Starts_With   starts-with)))
 
    (Simple_Condition
