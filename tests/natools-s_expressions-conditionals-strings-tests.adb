@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2015, Natacha Porté                                        --
+-- Copyright (c) 2015-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -116,6 +116,7 @@ package body Natools.S_Expressions.Conditionals.Strings.Tests is
          Image : constant String := "Expression 1";
          Exp : constant Caches.Reference := Test_Tools.To_S_Expression
            ("(or is-empty (starts-with Hi)"
+            & "(is BY) (case-insensitive (is HELLO))"
             & "(and (contains 1:.) (contains-any-of 1:! 1:?))"
             & "(case-insensitive (or (contains aLiCe)"
             & " (case-sensitive (contains Bob))))"
@@ -136,6 +137,10 @@ package body Natools.S_Expressions.Conditionals.Strings.Tests is
          Check ("BOBBY!", False);
          Check ("AlicE and Malory");
          Check ("©");
+         Check ("BY");
+         Check ("By", False);
+         Check ("Hello");
+         Check ("Hell", False);
       end;
    exception
       when Error : others => Test.Report_Exception (Error);
