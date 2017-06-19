@@ -70,6 +70,7 @@ package body Natools.S_Expressions.Parsers.Tests is
       Reset (Report);
       Locked_Next (Report);
       Memory_Parser (Report);
+      Close_Current_List (Report);
    end All_Tests;
 
 
@@ -117,6 +118,48 @@ package body Natools.S_Expressions.Parsers.Tests is
    begin
       Test (Report);
    end Canonical_Encoding;
+
+
+   procedure Close_Current_List (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Close_Current_List primitive");
+   begin
+      declare
+         Input : aliased Test_Tools.Memory_Stream;
+         Parser : Parsers.Stream_Parser (Input'Access);
+      begin
+         Input.Set_Data (To_Atom ("3:The(5:quick((5:brown3:fox)5:jumps))"
+           & "(4:over()3:the)4:lazy(0:3:dog)3:the3:end"));
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("The"), 0);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("quick"), 1);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 2);
+         Parser.Close_Current_List;
+         Test_Tools.Next_And_Check (Test, Parser, Events.Close_List, 0);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("over"), 1);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 2);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Close_List, 1);
+         Parser.Close_Current_List;
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("lazy"), 0);
+         Test_Tools.Next_And_Check (Test, Parser, Events.Open_List, 1);
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom (""), 1);
+         Parser.Close_Current_List;
+         Test_Tools.Next_And_Check (Test, Parser, To_Atom ("the"), 0);
+         Parser.Close_Current_List;
+
+         Check_Last_Event :
+         declare
+            Last_Event : constant Events.Event := Parser.Current_Event;
+         begin
+            if Last_Event /= Events.End_Of_Input then
+               Test.Fail ("Unexpected last event "
+                 & Events.Event'Image (Last_Event));
+            end if;
+         end Check_Last_Event;
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Close_Current_List;
 
 
    procedure Lockable_Interface (Report : in out NT.Reporter'Class) is

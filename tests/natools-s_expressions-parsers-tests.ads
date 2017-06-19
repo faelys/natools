@@ -31,6 +31,7 @@ package Natools.S_Expressions.Parsers.Tests is
    procedure Atom_Encodings (Report : in out NT.Reporter'Class);
    procedure Base64_Subexpression (Report : in out NT.Reporter'Class);
    procedure Canonical_Encoding (Report : in out NT.Reporter'Class);
+   procedure Close_Current_List (Report : in out NT.Reporter'Class);
    procedure Lockable_Interface (Report : in out NT.Reporter'Class);
    procedure Locked_Next (Report : in out NT.Reporter'Class);
    procedure Memory_Parser (Report : in out NT.Reporter'Class);
