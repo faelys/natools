@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014-2015, Natacha Porté                                   --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -333,6 +333,15 @@ package body Natools.Constant_Indefinite_Ordered_Maps is
         (Accessor.Data.Nodes (Position.Index).Key.all,
          Accessor.Data.Nodes (Position.Index).Element.all);
    end Query_Element;
+
+
+   function Rank (Position : Cursor) return Ada.Containers.Count_Type is
+   begin
+      case Position.Is_Empty is
+         when True => return 0;
+         when False => return Position.Index;
+      end case;
+   end Rank;
 
 
 

@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014-2015, Natacha Porté                                   --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -110,6 +110,10 @@ package Natools.Constant_Indefinite_Ordered_Maps is
      with Pre => Has_Element (Right) or else raise Constraint_Error;
    function ">" (Left : Key_Type; Right : Cursor) return Boolean
      with Pre => Has_Element (Right) or else raise Constraint_Error;
+
+   function Rank (Position : Cursor) return Ada.Containers.Count_Type;
+      --  Return 1-based numeric position of the element designated by Position
+      --  or zero when Position is empty.
 
 
    package Map_Iterator_Interfaces is new Ada.Iterator_Interfaces
