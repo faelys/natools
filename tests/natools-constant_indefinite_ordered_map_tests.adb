@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -112,6 +112,7 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
       Range_Iterators (Report);
       Update_Constructors (Report);
       Update_Constructor_Exceptions (Report);
+      Rank (Report);
    end All_Tests;
 
 
@@ -879,6 +880,46 @@ package body Natools.Constant_Indefinite_Ordered_Map_Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Range_Iterators;
+
+
+   procedure Rank (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Rank function");
+   begin
+      declare
+         Map : constant Test_Maps.Updatable_Map := Sample_Map;
+
+         procedure Test_Rank
+           (Cursor : in Test_Maps.Cursor;
+            Expected : in Ada.Containers.Count_Type;
+            Name : in String);
+
+         procedure Test_Rank
+           (Cursor : in Test_Maps.Cursor;
+            Expected : in Ada.Containers.Count_Type;
+            Name : in String)
+         is
+            use type Ada.Containers.Count_Type;
+
+            Actual : constant Ada.Containers.Count_Type
+              := Test_Maps.Rank (Cursor);
+         begin
+            if Actual /= Expected then
+               Test.Fail ("Expected rank"
+                 & Ada.Containers.Count_Type'Image (Expected)
+                 & " for " & Name & ", found"
+                 & Ada.Containers.Count_Type'Image (Actual));
+            end if;
+         end Test_Rank;
+      begin
+         Test_Rank (Test_Maps.No_Element, 0, "No_Element");
+         Test_Rank (Map.First, 1, "Map.First");
+         Test_Rank (Map.Last, 20, "Map.Last");
+         Test_Rank (Test_Maps.Next (Map.First), 2, "Next (Map.First)");
+         Test_Rank (Test_Maps.Next (Map.Last), 0, "Next (Map.Last)");
+      end;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Rank;
 
 
    procedure Unsafe_Map_Roundtrip (Report : in out NT.Reporter'Class) is

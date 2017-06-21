@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -33,6 +33,7 @@ package Natools.Constant_Indefinite_Ordered_Map_Tests is
    procedure Iterations (Report : in out NT.Reporter'Class);
    procedure Map_Updates (Report : in out NT.Reporter'Class);
    procedure Range_Iterators (Report : in out NT.Reporter'Class);
+   procedure Rank (Report : in out NT.Reporter'Class);
    procedure Unsafe_Map_Roundtrip (Report : in out NT.Reporter'Class);
    procedure Update_Constructors (Report : in out NT.Reporter'Class);
    procedure Update_Constructor_Exceptions (Report : in out NT.Reporter'Class);
