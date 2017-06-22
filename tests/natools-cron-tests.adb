@@ -81,6 +81,7 @@ package body Natools.Cron.Tests is
       Insert_While_Busy (Report);
       Time_Collision (Report);
       Delete_While_Collision (Report);
+      Event_List_Fusion (Report);
    end All_Tests;
 
 
@@ -225,6 +226,62 @@ package body Natools.Cron.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Delete_While_Collision;
+
+
+   procedure Event_List_Fusion (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Fusion of synchronized callbacks");
+      Total : constant Duration := 0.25;
+      Log : aliased Bounded_String (256);
+   begin
+      declare
+         use type Ada.Calendar.Time;
+         First_Tick : constant Periodic_Time
+           := (Origin => Ada.Calendar.Clock + Total / 8,
+               Period => Total / 4);
+         Second_Tick : constant Periodic_Time
+           := (Origin => First_Tick.Origin + First_Tick.Period,
+               Period => First_Tick.Period);
+
+         A_Head, A_Tail, B_Head, B_Tail : Cron_Entry;
+      begin
+         A_Head.Set (First_Tick, Long_Callback'
+           (Backend => Log'Access,
+            Open => '(',
+            Close => ')',
+            Wait => Total / 8));
+         A_Tail.Set (First_Tick, Test_Callback'
+           (Backend => Log'Access,
+            Symbol => 'A'));
+
+         delay Total / 8 + Total / 16;
+         Check (Test, Get (Log), "(");
+
+         B_Head.Set (Second_Tick, Test_Callback'
+           (Backend => Log'Access,
+            Symbol => 'B'));
+         B_Tail.Set (Second_Tick, Test_Callback'
+           (Backend => Log'Access,
+            Symbol => 'b'));
+
+         delay Total / 4 + Total / 8;
+         Check (Test, Get (Log), "()ABb()A");
+
+         A_Tail.Reset;
+         B_Tail.Reset;
+
+         delay Total / 4;
+         Check (Test, Get (Log), "()ABb()AB()");
+      end;
+
+      --  Timeline:  0   .   1/4   .   1/2   .   3/4   .   1
+      --  Log:           (    )A  Bb(   )A   B(   )
+      --  Code:      *     *               *         *   *
+
+      delay Total / 8;
+      Check (Test, Get (Log), "()ABb()AB()");
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Event_List_Fusion;
 
 
    procedure Insert_While_Busy (Report : in out NT.Reporter'Class) is
