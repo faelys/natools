@@ -202,10 +202,19 @@ package body Natools.Cron is
             if not Inserted then
                Previous := Entry_Maps.Element (Position);
 
-               if Previous.Update.Data.all in Event_List then
-                  Append
-                    (Event_List (Previous.Update.Data.all),
-                     Callback);
+               if Previous.Query.Data.all in Event_List then
+                  if Callback.Query.Data.all in Event_List then
+                     for I of Event_List (Callback.Query.Data.all).List loop
+                        Append (Event_List (Previous.Update.Data.all), I);
+                     end loop;
+                  else
+                     Append
+                       (Event_List (Previous.Update.Data.all),
+                        Callback);
+                  end if;
+               elsif Callback.Query.Data.all in Event_List then
+                  Append (Event_List (Callback.Update.Data.all), Previous);
+                  Map.Replace_Element (Position, Callback);
                else
                   Map.Replace_Element
                     (Position,
