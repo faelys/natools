@@ -863,13 +863,19 @@ package body Natools.Smaz_Tests is
          --  49   001011_00  1001_1100  10
          --   by  000001_00  0100_0110  10_011110
          --  how  000101_10  1111_0110  11_101110
-         --- b    010001_10  0000
+         --  b    010001_10  0000
       Roundtrip_Test (Test, Dict_64,
          Character'Val (16#C3#) & Character'Val (16#A9#) & 'v'
            & Character'Val (16#C3#) & Character'Val (16#A8#) & "nement",
          To_SEA ("Uz9DjKHBi"));
          --       év<è >nement
          --  è    110000_11  0001_0101  00
+      Roundtrip_Test (Test, Dict_64,
+         "12345345345345345345345345",
+         To_SEA ("8xIzzQTNzQTNzQTNzQTNzQTNzQTNzQTN/AzQTN"));
+         --  Smallest 3n+2 that requires multiple verbatim blocks
+         --  12   100011_00  0100_1100  nn
+         --  345  110011_00  0010_1100  10_101100
    exception
       when Error : others => Test.Report_Exception (Error);
    end Sample_Strings_64;
