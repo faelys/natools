@@ -146,7 +146,7 @@ package body Natools.Smaz_Implementations.Base_64 is
             Largest_Prefix : constant Natural
               := (case Input_Length mod 3 is
                   when 1 => 15 * 3 + 1,
-                  when 2 => ((62 - Natural (Last_Code)) * 4 - 1) * 3 + 2,
+                  when 2 => ((61 - Natural (Last_Code)) * 4 - 1) * 3 + 2,
                   when others => 0);
             Prefix_Header_Size : constant Ada.Streams.Stream_Element_Count
               := (if Largest_Prefix > 0 then 1 else 0);
@@ -253,7 +253,7 @@ package body Natools.Smaz_Implementations.Base_64 is
             declare
                Extra_Blocks : constant Natural := Natural'Min
                  (Input'Length / 3,
-                  (62 - Natural (Last_Code)) * 4 - 1);
+                  (61 - Natural (Last_Code)) * 4 - 1);
             begin
                Output (Offset)
                  := Tools.Image (61 - Tools.Base_64_Digit (Extra_Blocks / 4));
