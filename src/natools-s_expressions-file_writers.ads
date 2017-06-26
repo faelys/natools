@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -41,6 +41,16 @@ package Natools.S_Expressions.File_Writers is
       Name : in String;
       Form : in String := "");
       --  Reinitialize Self using Stream_IO.Create or Stream_IO.Open
+
+   function Open_Or_Create (Name : String; Form : String := "") return Writer;
+   procedure Open_Or_Create
+     (Self : in out Writer;
+      Name : in String;
+      Form : in String := "");
+      --  Construct or reinitialize a writer, trying a regular open first
+      --  and attempting to create if it doesn't work.
+      --  Note that there is some time between failure to open and actual
+      --  file creation, which might lead to race conditions.
 
    function Name (Self : Writer) return String;
       --  Return the underlying file name

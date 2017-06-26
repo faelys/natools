@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -73,6 +73,34 @@ package body Natools.S_Expressions.File_Writers is
       Finalize (Self.Holder);
       Stream_IO.Open (Self.Holder.File, Stream_IO.Append_File, Name, Form);
    end Open;
+
+
+   function Open_Or_Create (Name : String; Form : String := "")
+     return Writer is
+   begin
+      return Result : Writer do
+         Open_Or_Create (Result, Name, Form);
+      end return;
+   end Open_Or_Create;
+
+
+   procedure Open_Or_Create
+     (Self : in out Writer;
+      Name : in String;
+      Form : in String := "") is
+   begin
+      Finalize (Self.Holder);
+
+      Open_Attempt :
+      begin
+         Stream_IO.Open (Self.Holder.File, Stream_IO.Append_File, Name, Form);
+         return;
+      exception
+         when Stream_IO.Name_Error => null;
+      end Open_Attempt;
+
+      Stream_IO.Create (Self.Holder.File, Stream_IO.Append_File, Name, Form);
+   end Open_Or_Create;
 
 
    function Name (Self : Writer) return String is
