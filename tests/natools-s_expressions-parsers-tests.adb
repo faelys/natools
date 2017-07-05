@@ -156,6 +156,18 @@ package body Natools.S_Expressions.Parsers.Tests is
                  & Events.Event'Image (Last_Event));
             end if;
          end Check_Last_Event;
+
+         Parser.Close_Current_List;
+
+         Check_Byeond_Last_Event :
+         declare
+            Last_Event : constant Events.Event := Parser.Current_Event;
+         begin
+            if Last_Event /= Events.End_Of_Input then
+               Test.Fail ("Unexpected bayond-last event "
+                 & Events.Event'Image (Last_Event));
+            end if;
+         end Check_Byeond_Last_Event;
       end;
    exception
       when Error : others => Test.Report_Exception (Error);
