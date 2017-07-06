@@ -157,7 +157,7 @@ package body Natools.Cron.Tests is
       --  Fast: set at 6.5, reset at 8.0,
       --        run at 6.7, 6.9, 7.1, 7.3, 7.5, 7.7, 7.9
 
-      Check (Test, Get (Log), "o.1.1.1.|.O.sff.fffff.s.");
+      Check (Test, "o.1.1.1.|.O.sff.fffff.s.", Get (Log));
    exception
       when Error : others => Test.Report_Exception (Error);
    end Basic_Usage;
@@ -179,9 +179,9 @@ package body Natools.Cron.Tests is
          delay Total / 4;
       end;
 
-      Check (Test, Get (Log), "(", "Before wait");
+      Check (Test, "(", Get (Log), "Before wait");
       delay Total / 2;
-      Check (Test, Get (Log), "()", "After wait");
+      Check (Test, "()", Get (Log), "After wait");
    exception
       when Error : others => Test.Report_Exception (Error);
    end Delete_While_Busy;
@@ -220,9 +220,9 @@ package body Natools.Cron.Tests is
       --  End of Block:         ^
       --  End of Test:                          ^
 
-      Check (Test, Get (Log), "(");
+      Check (Test, "(", Get (Log));
       delay 4 * Tick;
-      Check (Test, Get (Log), "()<>");
+      Check (Test, "()<>", Get (Log));
    exception
       when Error : others => Test.Report_Exception (Error);
    end Delete_While_Collision;
@@ -254,7 +254,7 @@ package body Natools.Cron.Tests is
             Symbol => 'A'));
 
          delay Total / 8 + Total / 16;
-         Check (Test, Get (Log), "(");
+         Check (Test, "(", Get (Log));
 
          B_Head.Set (Second_Tick, Test_Callback'
            (Backend => Log'Access,
@@ -264,13 +264,13 @@ package body Natools.Cron.Tests is
             Symbol => 'b'));
 
          delay Total / 4 + Total / 8;
-         Check (Test, Get (Log), "()ABb()A");
+         Check (Test, "()ABb()A", Get (Log));
 
          A_Tail.Reset;
          B_Tail.Reset;
 
          delay Total / 4;
-         Check (Test, Get (Log), "()ABb()AB()");
+         Check (Test, "()ABb()AB()", Get (Log));
       end;
 
       --  Timeline:  0   .   1/4   .   1/2   .   3/4   .   1
@@ -278,7 +278,7 @@ package body Natools.Cron.Tests is
       --  Code:      *     *               *         *   *
 
       delay Total / 8;
-      Check (Test, Get (Log), "()ABb()AB()");
+      Check (Test, "()ABb()AB()", Get (Log));
    exception
       when Error : others => Test.Report_Exception (Error);
    end Event_List_Fusion;
@@ -316,7 +316,7 @@ package body Natools.Cron.Tests is
       --  Run:           <----L---->S  <----L---->S  <----L---->
 
       delay Total / 8;
-      Check (Test, Get (Log), "().().()");
+      Check (Test, "().().()", Get (Log));
    exception
       when Error : others => Test.Report_Exception (Error);
    end Insert_While_Busy;
@@ -343,7 +343,7 @@ package body Natools.Cron.Tests is
          delay Total - Tick / 2;
       end;
 
-      Check (Test, Get (Log), "12312123");
+      Check (Test, "12312123", Get (Log));
    exception
       when Error : others => Test.Report_Exception (Error);
    end Time_Collision;
