@@ -82,6 +82,7 @@ package body Natools.Cron.Tests is
       Time_Collision (Report);
       Delete_While_Collision (Report);
       Event_List_Fusion (Report);
+      Event_List_Extension (Report);
    end All_Tests;
 
 
@@ -226,6 +227,62 @@ package body Natools.Cron.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Delete_While_Collision;
+
+
+   procedure Event_List_Extension (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Extension of synchronized callbacks");
+      Total : constant Duration := 0.25;
+      Log : aliased Bounded_String (256);
+   begin
+      declare
+         use type Ada.Calendar.Time;
+         First_Tick : constant Periodic_Time
+           := (Origin => Ada.Calendar.Clock + Total / 8,
+               Period => Total / 2);
+         Second_Tick : constant Periodic_Time
+           := (Origin => First_Tick.Origin + First_Tick.Period,
+               Period => First_Tick.Period);
+
+         Head, Middle, Tail, Extra : Cron_Entry;
+      begin
+         Head.Set (First_Tick, Long_Callback'
+           (Backend => Log'Access,
+            Open => '(',
+            Close => ')',
+            Wait => Total / 4));
+         Middle.Set (First_Tick, Test_Callback'
+           (Backend => Log'Access,
+            Symbol => 'M'));
+         Tail.Set (First_Tick, Test_Callback'
+           (Backend => Log'Access,
+            Symbol => 'T'));
+
+         delay Total / 4;
+         Check (Test, "(", Get (Log));
+
+         Extra.Set (Second_Tick, Test_Callback'
+           (Backend => Log'Access,
+            Symbol => 'E'));
+         Middle.Reset;
+
+         delay Total / 4;
+         Check (Test, "()MT", Get (Log));
+
+         delay Total / 4;
+         Check (Test, "()MTE(", Get (Log));
+
+         delay Total / 4;
+         Check (Test, "()MTE()T", Get (Log));
+      end;
+
+      --  Timeline:  0   .   1/4   .   1/2   .   3/4   .   1
+      --  Log:           (         )MT       E(         )T
+      --  Code:      *        *         *         *        *
+
+      Check (Test, "()MTE()T", Get (Log));
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Event_List_Extension;
 
 
    procedure Event_List_Fusion (Report : in out NT.Reporter'Class) is

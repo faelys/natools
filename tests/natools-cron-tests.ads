@@ -29,6 +29,7 @@ package Natools.Cron.Tests is
    procedure Basic_Usage (Report : in out NT.Reporter'Class);
    procedure Delete_While_Busy (Report : in out NT.Reporter'Class);
    procedure Delete_While_Collision (Report : in out NT.Reporter'Class);
+   procedure Event_List_Extension (Report : in out NT.Reporter'Class);
    procedure Event_List_Fusion (Report : in out NT.Reporter'Class);
    procedure Insert_While_Busy (Report : in out NT.Reporter'Class);
    procedure Time_Collision (Report : in out NT.Reporter'Class);
