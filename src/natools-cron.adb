@@ -213,7 +213,7 @@ package body Natools.Cron is
                         Callback);
                   end if;
                elsif Callback.Query.Data.all in Event_List then
-                  Append (Event_List (Callback.Update.Data.all), Previous);
+                  Prepend (Event_List (Callback.Update.Data.all), Previous);
                   Map.Replace_Element (Position, Callback);
                else
                   Map.Replace_Element
@@ -391,6 +391,14 @@ package body Natools.Cron is
    begin
       Self.List.Append (Ref);
    end Append;
+
+
+   procedure Prepend
+     (Self : in out Event_List;
+      Ref : in Callback_Refs.Reference) is
+   begin
+      Self.List.Prepend (Ref);
+   end Prepend;
 
 
    procedure Remove

@@ -120,6 +120,11 @@ private
       Ref : in Callback_Refs.Reference);
       --  Append Ref at the end of Self.List
 
+   procedure Prepend
+     (Self : in out Event_List;
+      Ref : in Callback_Refs.Reference);
+      --  Prepend Ref at the beginning of Self.List
+
    procedure Remove
      (Self : in out Event_List;
       Ref : in Callback_Refs.Reference;
