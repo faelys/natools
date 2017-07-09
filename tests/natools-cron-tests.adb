@@ -171,18 +171,25 @@ package body Natools.Cron.Tests is
    begin
       declare
          Test_Entry : Cron_Entry;
+         Guard_Entry : Cron_Entry;
       begin
          Test_Entry.Set (Total / 8, Long_Callback'
            (Backend => Log'Access,
             Open => '(',
             Close => ')',
             Wait => Total / 4));
-         delay Total / 4;
-      end;
+         Guard_Entry.Set (Total / 2, Test_Callback'
+           (Backend => Log'Access,
+            Symbol => '.'));
 
-      Check (Test, "(", Get (Log), "Before wait");
-      delay Total / 2;
-      Check (Test, "()", Get (Log), "After wait");
+         delay Total / 4;
+
+         Check (Test, "(", Get (Log), "Before wait");
+         Test_Entry.Reset;
+
+         delay Total / 2;
+         Check (Test, "().", Get (Log), "After wait");
+      end;
    exception
       when Error : others => Test.Report_Exception (Error);
    end Delete_While_Busy;
