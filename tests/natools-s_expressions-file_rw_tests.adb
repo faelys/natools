@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2017, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -292,6 +292,52 @@ package body Natools.S_Expressions.File_RW_Tests is
             To_Atom ("(5:first4:last)(10:unfinished"),
             File_Readers.Reader (To_String (Secondary_File_Name)).Read);
       end Raw_Read;
+
+      Clear_Secondary :
+      declare
+         File : Stream_IO.File_Type;
+      begin
+         Stream_IO.Open
+           (File, Stream_IO.Out_File, To_String (Secondary_File_Name));
+         Stream_IO.Delete (File);
+
+         Check_Removal :
+         begin
+            Stream_IO.Open
+              (File, Stream_IO.Out_File, To_String (Secondary_File_Name));
+            Test.Error ("Expected exception wasn't triggered.");
+            return;
+         exception
+            when Stream_IO.Name_Error => null;
+         end Check_Removal;
+      end Clear_Secondary;
+
+      Run_Open_Or_Create :
+      declare
+         Writer : File_Writers.Writer
+           := File_Writers.Open_Or_Create (To_String (Temporary_File_Name));
+      begin
+         Writer.Open_List;
+         Writer.Append_String ("");
+         Writer.Close_List;
+
+         Writer.Open_Or_Create (To_String (Secondary_File_Name));
+         Writer.Open_List;
+         Writer.Append_String ("solo");
+         Writer.Close_List;
+      end Run_Open_Or_Create;
+
+      Check_Open_Or_Create :
+      begin
+         Test_Tools.Test_Atom
+           (Test,
+            To_Atom ("5:begin(()(4:head4:tail))3:end(3:foo3:bar())(0:)"),
+            File_Readers.Reader (To_String (Temporary_File_Name)).Read);
+         Test_Tools.Test_Atom
+           (Test,
+            To_Atom ("(4:solo)"),
+            File_Readers.Reader (To_String (Secondary_File_Name)).Read);
+      end Check_Open_Or_Create;
    exception
       when Error : others => Test.Report_Exception (Error);
    end S_Expression_IO;
