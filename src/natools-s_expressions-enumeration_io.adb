@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2015, Natacha Porté                                        --
+-- Copyright (c) 2015-2019, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -59,6 +59,15 @@ package body Natools.S_Expressions.Enumeration_IO is
       function Value (Data : Atom) return Enum is
       begin
          return Enum'Value (To_Image (Data));
+      end Value;
+
+      function Value (Data : Atom; Default : Enum) return Enum is
+         Img : constant String := To_Image (Data);
+      begin
+         return Enum'Value (Img);
+      exception
+         when Constraint_Error =>
+            return Default;
       end Value;
 
    end Typed_IO;

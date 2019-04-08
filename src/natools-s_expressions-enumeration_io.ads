@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2015, Natacha Porté                                        --
+-- Copyright (c) 2015-2019, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -40,6 +40,10 @@ package Natools.S_Expressions.Enumeration_IO is
 
       function Value (Data : Atom) return Enum;
          --  Convert an atom into an enumeration value
+
+      function Value (Data : Atom; Default : Enum) return Enum;
+         --  Convert an atom into an enumeration value,
+         --  with a default value on invalid atom images
 
    end Typed_IO;
 
