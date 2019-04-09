@@ -61,13 +61,13 @@ package body Natools.S_Expressions.Enumeration_IO is
          return Enum'Value (To_Image (Data));
       end Value;
 
-      function Value (Data : Atom; Default : Enum) return Enum is
+      function Value (Data : Atom; Fallback : Enum) return Enum is
          Img : constant String := To_Image (Data);
       begin
          return Enum'Value (Img);
       exception
          when Constraint_Error =>
-            return Default;
+            return Fallback;
       end Value;
 
    end Typed_IO;
