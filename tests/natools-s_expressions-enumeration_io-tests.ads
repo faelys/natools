@@ -24,5 +24,6 @@ package Natools.S_Expressions.Enumeration_IO.Tests is
    procedure All_Tests (Report : in out NT.Reporter'Class);
 
    procedure Basic_Usage (Report : in out NT.Reporter'Class);
+   procedure Invalid_Atom (Report : in out NT.Reporter'Class);
 
 end Natools.S_Expressions.Enumeration_IO.Tests;

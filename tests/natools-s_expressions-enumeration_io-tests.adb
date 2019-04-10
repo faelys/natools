@@ -31,6 +31,7 @@ package body Natools.S_Expressions.Enumeration_IO.Tests is
    procedure All_Tests (Report : in out NT.Reporter'Class) is
    begin
       Basic_Usage (Report);
+      Invalid_Atom (Report);
    end All_Tests;
 
 
@@ -63,5 +64,38 @@ package body Natools.S_Expressions.Enumeration_IO.Tests is
    exception
       when Error : others => Test.Report_Exception (Error);
    end Basic_Usage;
+
+
+   procedure Invalid_Atom (Report : in out NT.Reporter'Class) is
+      Test : NT.Test := Report.Item ("Value on invalid atoms");
+      use type Stream_IO.File_Mode;
+   begin
+      Without_Fallback :
+      declare
+         Found : Stream_IO.File_Mode;
+      begin
+         Found := Test_IO.Value (To_Atom ("invalid-atom"));
+         Test.Fail ("Exception expected, but Value returned "
+           & Stream_IO.File_Mode'Image (Found));
+      exception
+         when Constraint_Error => null;
+      end Without_Fallback;
+
+      With_Fallback :
+      declare
+         Expected : constant Stream_IO.File_Mode := Stream_IO.Out_File;
+         Found : constant Stream_IO.File_Mode
+           := Test_IO.Value (To_Atom ("invalid-atom"), Expected);
+      begin
+         if Expected /= Found then
+            Test.Fail ("Test_IO.Value returned "
+              & Stream_IO.File_Mode'Image (Found)
+              & ", expected "
+              & Stream_IO.File_Mode'Image (Expected));
+         end if;
+      end With_Fallback;
+   exception
+      when Error : others => Test.Report_Exception (Error);
+   end Invalid_Atom;
 
 end Natools.S_Expressions.Enumeration_IO.Tests;
