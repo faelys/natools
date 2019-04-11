@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013-2014, Natacha Porté                                   --
+-- Copyright (c) 2013-2019, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -95,6 +95,13 @@ package Natools.S_Expressions.Generic_Caches is
      is (Move (Source).First);
       --  Return a cursor holding a copy of Original (which is
       --  destructively read)
+
+   function Conditional_Move
+     (Source : in out S_Expressions.Descriptor'Class)
+     return Cursor
+     is (if Source in Cursor then Cursor (Source) else Move (Source).First);
+      --  Return a copy of Source, with cheap copy if possible,
+      --  otherwise with destructive Move
 
 private
 
