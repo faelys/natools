@@ -16,4 +16,8 @@ project Tools is
    package Linker is
       for Default_Switches use Natools.Linker'Default_Switches;
    end Linker;
+
+   package Binder is
+      for Default_Switches ("Ada") use ("-E");
+   end Binder;
 end Tools;
