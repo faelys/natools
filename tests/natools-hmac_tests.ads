@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2014, Natacha Porté                                        --
+-- Copyright (c) 2014-2019, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -29,6 +29,7 @@ package Natools.HMAC_Tests is
 
    procedure RFC_2104 (Report : in out NT.Reporter'Class);
    procedure RFC_4231 (Report : in out NT.Reporter'Class);
+   procedure Vanilla_GNAT (Report : in out NT.Reporter'Class);
    procedure Wikipedia (Report : in out NT.Reporter'Class);
 
 end Natools.HMAC_Tests;
