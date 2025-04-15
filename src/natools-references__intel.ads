@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------
--- Copyright (c) 2013-2014, Natacha Porté                                   --
+-- Copyright (c) 2013-2025, Natacha Porté                                   --
 --                                                                          --
 -- Permission to use, copy, modify, and distribute this software for any    --
 -- purpose with or without fee is hereby granted, provided that the above   --
@@ -146,6 +146,6 @@ private
      := (Ada.Finalization.Controlled with Count => null, Data => null);
 
    Null_Reference : constant Reference
-     := (Null_Immutable_Reference with null record);
+     := (Ada.Finalization.Controlled with Count => null, Data => null);
 
 end Natools.References;
